@@ -1,0 +1,17 @@
+[package]
+name = "core-contracts"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dotenv = "0.15.0"
+eth_checksum = "0.1.2"
+hex = "0.4.3"
+hex-literal = "0.3.4"
+rust-crypto = "0.2.36"
+tokio = "1.25.0"
+web3 = "0.18.0"
+sha3 = "0.10"
+
