@@ -7,6 +7,16 @@ pragma solidity ^0.8.8;
  */
 contract IYieldchainBase {
     //===============================================//
+    //                   ENUMS                       //
+    //===============================================//
+
+    enum CallTypes {
+        CALL,
+        DELEGATECALL,
+        STATICCALL
+    }
+
+    //===============================================//
     //                   STRUCTS                     //
     //===============================================//
     /**
@@ -46,8 +56,7 @@ contract IYieldchainBase {
         bytes[] args;
         string signature;
         bool is_callback;
-        bool is_static;
-        bool is_condition;
+        CallTypes call_type;
     }
 
     /**
@@ -69,15 +78,20 @@ contract IYieldchainBase {
      * @param token_flows
      * @TokenFlow[]
      * An array of TokenFlow structs, consumed by frontends.
-
      *
+     * @param children_index
+     * @uint256
+     * A uint representing the index within the strategy's containers array of the step's children container.
+     * Since nesting structs poses some issues.
      * -----------------------------
      */
     struct YCStep {
         FunctionCall step_function;
         bytes protocol_details;
         bytes token_flows;
-        uint256 children_index;
+        uint256[] children_indexes;
+        bool is_conditional;
+        bytes[] conditions;
     }
 
     // TODO: Non-critical. Define protoocl details & token flow structs

@@ -8,4 +8,9 @@ interface IYieldchainDiamond {
         external
         view
         returns (string memory);
+
+    function getCalldata(string memory, bytes[] memory)
+        external
+        pure
+        returns (bytes memory);
 }

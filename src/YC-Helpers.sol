@@ -7,6 +7,40 @@ import "./YC-Base.sol";
  * contracts set.
  */
 contract YC_Utilities is IYieldchainBase {
+    /// @notice Exeuctes a function
+    /// @dev Calls getCalldata to get the call data, has a switch-case for function call types
+    /// @param _funcObj A YC FunctionCall struct object, has all the details for the function cal
+    /// @return _ret  a bytes return value from the low-level function call
+    function _executeFunc(FunctionCall memory _funcObj)
+        internal
+        returns (bytes memory _ret)
+    {
+        // Getting calldata for the call
+        bytes memory _calldata = getCalldata(_funcObj.signature, _funcObj.args);
+
+        // Preparing success variable for the call
+        bool success;
+
+        // Switch-Case for function's calltype, assigning return value to _ret
+
+        // Regular call
+        if (_funcObj.call_type == CallTypes.CALL)
+            (success, _ret) = _funcObj.target_address.call{value: msg.value}(
+                _calldata
+            );
+
+            // Delegate Call
+        else if (_funcObj.call_type == CallTypes.DELEGATECALL)
+            (success, _ret) = _funcObj.target_address.delegatecall(_calldata);
+
+            // Static Call (Cheapest)
+        else if (_funcObj.call_type == CallTypes.STATICCALL)
+            (success, _ret) = _funcObj.target_address.staticcall(_calldata);
+
+        // Require the call to go through
+        require(success, "Call Failed");
+    }
+
     /**
      * @notice
      * @Method getCalldata
@@ -89,7 +123,8 @@ contract YC_Utilities is IYieldchainBase {
             bytes memory result;
 
             // Finally, calling the step's function
-            if (decodedFunc.is_static) {
+            if (decodedFunc.is_callback) {
+                // TODO: placegholder callback
                 (success, result) = decodedFunc.target_address.staticcall(
                     callData
                 );
@@ -98,5 +133,25 @@ contract YC_Utilities is IYieldchainBase {
         }
     }
 
-    
+    /**
+     * @notice
+     * @find
+     * Find a number within an array of numbers
+     */
+    function findUint(uint256[] memory _arr, uint256 _item)
+        internal
+        pure
+        returns (bool _isFound)
+    {
+        for (uint256 i = 0; i < _arr.length; i++) {
+            // Cant be found if array is empty.
+            if (_arr.length == 0) break;
+
+            // Return true if found
+            if (_arr[i] == _item) {
+                _isFound = true;
+                break;
+            }
+        }
+    }
 }
