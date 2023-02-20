@@ -83,8 +83,6 @@ async fn get_transaction_history(_address: &str, _block_amount: Option<u32>) -> 
             if eth_checksum_encode(&*from_address.unwrap_or(H160::default()).to_string()) == address || eth_checksum_encode(&*to_address.unwrap_or(H160::default()).to_string()) == address { 
                    transaction_history.push(transaction);
             }
-
-
            }
         }
 
