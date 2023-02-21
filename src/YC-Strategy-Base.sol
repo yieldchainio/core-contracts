@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "./YC-Base.sol";
-import "./YC-Diamond/YC-Diamond.sol";
+import "./YC-Diamond/YC-Diamond-Interface.sol";
 import "./YC-Helpers.sol";
 
 /**
@@ -14,16 +14,29 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     //                          CONSTRUCTOR
     // =============================================================
     constructor(
-        bytes[] memory _steps // bytes[] memory _base_steps_container, // address[] memory _strategy_tokens_array, // address[] memory _base_tokens_array
+        bytes[] memory _steps,
+        bytes[] memory _base_strategy_steps,
+        address[] memory _base_tokens,
+        address[] memory _strategy_tokens,
+        address _deployer
     ) {
         // Diamond address = msg.sender (i.e factory contract)
-        YC_DIAMOND_ADDRESS = msg.sender;
+        YC_DIAMOND_ADDRESS = _deployer;
 
         // Call getExeuctor on the diamond to get the strategy's executor address (for modifier)
-        YC_DIAMOND = YieldchainDiamond(payable(YC_DIAMOND_ADDRESS));
+        YC_DIAMOND = IYieldchainDiamond(payable(YC_DIAMOND_ADDRESS));
 
         // Setting the strategy's steps.
         steps = _steps;
+
+        // Setting strategy's related tokens
+        tokens = _strategy_tokens;
+
+        // Setting strategy's base steps (triggered on deposit)
+        base_steps = _base_strategy_steps;
+
+        // Setting strategy's base tokens (swap to on deposit, before triggering base steps)
+        base_tokens = _base_tokens;
     }
 
     // =============================================================
@@ -31,17 +44,23 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     // =============================================================
 
     // Yieldchain's Diamond Contract Instance
-    YieldchainDiamond immutable YC_DIAMOND;
+    IYieldchainDiamond immutable YC_DIAMOND;
 
     // Diamond's address (executes internal functions as well, same as executor)
     address immutable YC_DIAMOND_ADDRESS;
 
     /**
      * @notice
-     * A 2D Array containing "Containers" Of Yieldchain Steps.
+     * An Array containing Yieldchain Steps of the strategy.
      * Each strategy has it's own set of steps, this is the actual strategy logic, encoded as bytes per step.
      */
     bytes[] internal steps;
+
+    // @notice Just as above, for the base steps.
+    bytes[] internal base_steps;
+
+    // Base tokens (multi-swap on deposit)
+    address[] internal base_tokens;
 
     // =============================================================
     //                          MODIFIERS
@@ -52,16 +71,100 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     }
 
     // =============================================================
-    //                          FUNCTIONS
+    //                          Events
     // =============================================================
 
-    // Execute a reguler step
-    function _runStep(YCStep memory _step) internal {
-        // Execute the step's function
-        _executeFunc(_step.step_function);
+    // System-related events
+    event RequestCallback(
+        string indexed origin_function,
+        uint256 indexed index,
+        bytes[] indexed params
+    );
+
+    // Vault-related events
+    event Deposit(address indexed depositer, uint256 indexed amount);
+    event Withdraw(address indexed depositer, uint256 indexed amount);
+
+    // =============================================================
+    //                   VAULT-RELATED STORAGE
+    // =============================================================
+
+    // Total vault shares (1 deposit token == 1 share)
+    uint256 public totalShares;
+
+    // Mapping user addresses => shares balances
+    mapping(address => uint256) public balances;
+
+    // All ERC20 tokens relating to the strategy
+    address[] public tokens;
+
+    // =============================================================
+    //                   VAULT OPERATIONS FUNCTIONS
+    // =============================================================
+    function deposit(uint256 amount) public {}
+
+    // =============================================================
+    //                         MAIN FUNCTIONS
+    // =============================================================
+
+    /**
+     * @notice
+     * @RunStrategy
+     * Runs the strategy given an index to start in (container-wise & inter-step-wise)
+     */
+    function runStep(uint256 _step_index) public {
+        // Decoding our current Step
+        YCStep memory current_step = abi.decode(steps[_step_index], (YCStep));
+
+        // An array of the step's children to not execute - only relevent for conditional steps.
+        uint256[] memory children_to_ignore;
+
+        // Initiallizing
+        FunctionCall memory executedFunc;
+
+        // If not a conditional, run the step regularly
+        if (current_step.conditions.length > 0) {
+            (, executedFunc) = _runStep(current_step);
+        } else {
+            children_to_ignore = _runConditional(current_step);
+        }
+
+        // Shorthand for current function
+
+        // If the step is a callback step (requires a stop on-chain and a resumption after offchain computation) -
+        // We break the recrusion.
+        // Note that in the case of it being a callback, either function should handle emitting the request log (that is caught
+        // by the backend), which would presumabley include the index of the step it was emitted in (So it can reenter the recrusion loop).
+        if (executedFunc.is_callback) {
+            return;
+        }
+
+        // Shorthand for children indexes
+        uint256[] memory childrenIndexes = current_step.children_indexes;
+
+        // Looping over each child,
+        // If it should be ignored (from conditional), we ignore it -
+        // else, we recruse the runStep function on it
+        for (uint256 i = 0; i < childrenIndexes.length; i++) {
+            // Continue if should be ignored
+            if (YC_DIAMOND.findUint(children_to_ignore, childrenIndexes[i]))
+                continue;
+
+            // @Recruse
+            runStep(childrenIndexes[i]);
+        }
     }
 
-    // Execute a conditional
+    // Execute a reguler step (Internal)
+    function _runStep(YCStep memory _step)
+        internal
+        returns (bytes memory _ret, FunctionCall memory _calledFunc)
+    {
+        // Execute the step's function
+        (_ret, _calledFunc) = executeYCFunction(_step.step_function);
+    }
+
+    // Execute a conditional (Internal)
     function _runConditional(YCStep memory _step)
         internal
         returns (uint256[] memory _children_to_ignore)
@@ -71,7 +174,7 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
         (
             uint256 conditionChildrenIndex,
             bool foundTrueCondition
-        ) = determineCondition(_step.conditions);
+        ) = _determineCondition(_step.conditions);
 
         // Children indexes shorthand (accessed 3 times)
         uint256[] memory children_indexes = _step.children_indexes;
@@ -85,39 +188,6 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
                     _children_to_ignore[j] = (children_indexes[j]);
     }
 
-    /**
-     * @notice
-     * @RunStrategy
-     * Runs the strategy given an index to start in (container-wise & inter-step-wise)
-     */
-    function runStep(uint256 _step_index) public {
-        // Decoding our current Step
-        YCStep memory current_step = abi.decode(steps[_step_index], (YCStep));
-
-        uint256[] memory children_to_ignore;
-
-        // If not a conditional, run the step regularly
-        if (!current_step.is_conditional) {
-            _runStep(current_step);
-        } else {
-            children_to_ignore = _runConditional(current_step);
-        }
-
-        // Shorthand for children indexes
-        uint256[] memory childrenIndexes = current_step.children_indexes;
-
-        // Looping over each child,
-        // If it should be ignored (from conditional), we ignore it -
-        // else, we recruse the runStep function on it
-        for (uint256 i = 0; i < childrenIndexes.length; i++) {
-            // Continue if should be ignored
-            if (findUint(children_to_ignore, childrenIndexes[i])) continue;
-
-            // @Recruse
-            runStep(childrenIndexes[i]);
-        }
-    }
-
     /// @notice Receives a container of conditional steps (i.e steps that run a function which returns a boolean),
     // determines which one of them is the first one to turn out true,
     // and returns the index of it. If none are true, it returns false additionaly. The caller will execute the correct condition's
@@ -126,7 +196,7 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     // @param _conditions_container The container (array) of encoded YCSteps - the conditions.
     // @return _should_exec_conditions
     // @return _container_to_run
-    function determineCondition(bytes[] memory _conditions)
+    function _determineCondition(bytes[] memory _conditions)
         internal
         returns (uint256 _container_to_run, bool _found_true_condition)
     // TODO: Think of how you secure this so that it's not completely arbitrary (Similar to runStep... Classify all interfaced
@@ -135,17 +205,20 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
         // Looping over each condition
         for (uint256 i = 0; i < _conditions.length; i++) {
             // Decoding the condition
-            FunctionCall memory current_condition_function = abi.decode(
-                _conditions[i],
-                (FunctionCall)
-            );
+            (
+                bytes memory _ret,
+                FunctionCall memory current_condition_function
+            ) = executeYCFunction(_conditions[i]);
 
             // @notice
-            // executing the condition's function, using return value as a boolean to see if it is true
-            _found_true_condition = abi.decode(
-                _executeFunc(current_condition_function),
-                (bool)
-            );
+            // Breaking the loop if current iteration is a callback.
+            // The functiin call is returned from the caller (runStep) function regardless,
+            // but this is sufficient in order to ensure efficiency & no executions of un-wanted, potentially state-chaning functions.
+            // TODO: How to reenter the conditional callbacks?
+            if (current_condition_function.is_callback) break;
+
+            // Decoding return value as a boolean
+            _found_true_condition = abi.decode(_ret, (bool));
 
             // @notice
             // If the condition is true, we return the index of it - Caller will execute it's children

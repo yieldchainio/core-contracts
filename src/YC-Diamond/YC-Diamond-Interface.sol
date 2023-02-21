@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+import "./interfaces/IArrayMethods.sol";
+import "./interfaces/IDiamondCut.sol";
+import "./interfaces/IDiamondLoupe.sol";
+import "./interfaces/IYCClassifcations.sol";
+import "./interfaces/IExecutionHelpers.sol";
+import "./interfaces/IStrategyFactory.sol";
 
-interface IYieldchainDiamond {
-    function getExecutor() external view returns (address);
-
+// Interface for our Diamond, Importing all facets' interfaces
+interface IYieldchainDiamond is
+    IArrayMethods,
+    IDiamondCut,
+    IDiamondLoupe,
+    IYCClassifications,
+    IExecutionHelpers
+{
     function getExternalFunction(string memory)
         external
         view

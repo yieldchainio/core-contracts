@@ -5,7 +5,7 @@ pragma solidity ^0.8.8;
  * @notice
  * Base YC Contract, inherited by every core (or, utility) Yieldchain contract.
  */
-contract IYieldchainBase {
+interface IYieldchainBase {
     //===============================================//
     //                   ENUMS                       //
     //===============================================//
@@ -14,6 +14,11 @@ contract IYieldchainBase {
         CALL,
         DELEGATECALL,
         STATICCALL
+    }
+
+    enum FlowDirection {
+        INFLOW,
+        OUTFLOW
     }
 
     //===============================================//
@@ -56,7 +61,6 @@ contract IYieldchainBase {
         bytes[] args;
         string signature;
         bool is_callback;
-        CallTypes call_type;
     }
 
     /**
@@ -86,12 +90,31 @@ contract IYieldchainBase {
      * -----------------------------
      */
     struct YCStep {
-        FunctionCall step_function;
-        bytes protocol_details;
-        bytes token_flows;
+        bytes step_function;
+        ProtocolDetails protocol_details;
+        Flow[] token_flows;
         uint256[] children_indexes;
-        bool is_conditional;
         bytes[] conditions;
+    }
+
+    struct ProtocolDetails {
+        string name;
+        string website;
+        string logo_uri;
+        string color;
+        uint256 id;
+    }
+
+    struct Token {
+        string symbol;
+        string name;
+        string logo_uri;
+        uint256 id;
+    }
+
+    struct Flow {
+        Token token_details;
+        FlowDirection direction;
     }
 
     // TODO: Non-critical. Define protoocl details & token flow structs
