@@ -1,9 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+import "../storage/ClassificationsStorage.sol";
 
 contract YCClassificationsFacet {
-    // Mapping of classified functions (i.e func_30) => external functions (i.e addLiquidity()) signatures.
-    mapping(string => string) internal classifiedFunctions;
+    /**
+     * @notice
+     * @classifyBatchFunctions
+     * OnlyOwner!!
+     * Multi-calls classifyFunction
+     */
+    function classifyBatchFunction(
+        string[] memory _classified_functions_names,
+        string[] memory _external_functions_signatures
+    ) external returns (bool) {
+        require(
+            _classified_functions_names.length ==
+                _external_functions_signatures.length,
+            "Length of Classified Function Names Does Not Match Length Of External Function Signatures"
+        );
+
+        for (uint256 i = 0; i < _classified_functions_names.length; i++) {
+            classifyFunction(
+                _classified_functions_names[i],
+                _external_functions_signatures[i]
+            );
+        }
+
+        return true;
+    }
 
     /**
      * @notice
@@ -14,18 +38,30 @@ contract YCClassificationsFacet {
     function classifyFunction(
         string memory _classified_function_name,
         string memory _external_function_signature
-    ) external returns (bool) {
-        classifiedFunctions[
-            _classified_function_name
-        ] = _external_function_signature;
+    ) public returns (bool) {
+        // Getting classification storage
+        ClassificationsStorage
+            storage classificationStorage = ClassificationsStorageLib
+                .getClassificationsStorage();
 
-        if (
+        classificationStorage.classifiedFunctions[
+                _classified_function_name
+            ] = _external_function_signature;
+
+        // Requiring the insertion to succeed
+        require(
             keccak256(
-                abi.encode(classifiedFunctions[_classified_function_name])
-            ) == keccak256(abi.encode(_external_function_signature))
-        ) return true;
+                abi.encode(
+                    classificationStorage.classifiedFunctions[
+                        _classified_function_name
+                    ]
+                )
+            ) == keccak256(abi.encode(_external_function_signature)),
+            "Classification Unsuccessfull."
+        );
 
-        return false;
+        // Indiciating the classification succeeded
+        return true;
     }
 
     /**
@@ -38,6 +74,14 @@ contract YCClassificationsFacet {
         view
         returns (string memory)
     {
-        return classifiedFunctions[_classified_function_signature];
+        // Getting classification storage
+        ClassificationsStorage
+            storage classificationStorage = ClassificationsStorageLib
+                .getClassificationsStorage();
+
+        return
+            classificationStorage.classifiedFunctions[
+                _classified_function_signature
+            ];
     }
 }

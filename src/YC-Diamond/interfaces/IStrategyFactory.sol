@@ -8,4 +8,6 @@ interface IStrategyFactory {
         address[] memory,
         address[] memory
     ) external returns (address);
+
+    function runStrategyByID(uint256 _strategy_id) external;
 }

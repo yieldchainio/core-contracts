@@ -52,8 +52,9 @@ contract YieldchainOnpcodes {
         else if (_opcode == 0x40) _ret = BLOCKHASH(_args);
         else if (_opcode == 0x41) _ret = COINBASE(_args);
         else if (_opcode == 0x42) _ret = TIMESTAMP(_args);
-        else if (_opcode == 0x43) _ret = NUMBER(_args);
-        else if (_opcode == 0x44) _ret = PREVRANDAO(_args);
+        else if (_opcode == 0x43)
+            _ret = NUMBER(_args);
+            // else if (_opcode == 0x44) _ret = PREVRANDAO(_args);
         else if (_opcode == 0x45) _ret = GASLIMIT(_args);
         else if (_opcode == 0x46) _ret = CHAINID(_args);
         else if (_opcode == 0x47) _ret = SELFBALANCE(_args);
@@ -65,8 +66,9 @@ contract YieldchainOnpcodes {
         else if (_opcode == 0x54) _ret = SLOAD(_args);
         else if (_opcode == 0x55) _ret = SSTORE(_args);
         else if (_opcode == 0x56) _ret = JUMP(_args);
-        else if (_opcode == 0x57) _ret = JUMPI(_args);
-        else if (_opcode == 0x59) _ret = MSIZE(_args);
+        else if (_opcode == 0x57)
+            _ret = JUMPI(_args);
+            // else if (_opcode == 0x59) _ret = MSIZE(_args);
         else if (_opcode == 0x5a) _ret = GAS(_args);
         else if (_opcode == 0xa0) _ret = LOG0(_args);
         else if (_opcode == 0xa1) _ret = LOG1(_args);
@@ -298,7 +300,6 @@ contract YieldchainOnpcodes {
     {
         assembly {
             let a := mload(add(_args, 0x20))
-
             _ret := iszero(a)
         }
     }
@@ -389,7 +390,6 @@ contract YieldchainOnpcodes {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
-
             _ret := shr(a, b)
         }
     }
@@ -602,13 +602,14 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function PREVRANDAO(
-        bytes[] memory /*_args*/
-    ) internal view returns (bytes memory _ret) {
-        assembly {
-            _ret := prevrandao()
-        }
-    }
+    // TODO: Figure out why this was not found
+    // function PREVRANDAO(
+    //     bytes[] memory /*_args*/
+    // ) internal view returns (bytes memory _ret) {
+    //     assembly {
+    //         _ret := prevrandao()
+    //     }
+    // }
 
     function GASLIMIT(
         bytes[] memory /*_args*/
@@ -645,18 +646,21 @@ contract YieldchainOnpcodes {
     function POP(bytes[] memory _args)
         internal
         pure
-        returns (bytes memory _ret)
+        returns (
+            bytes memory /* _ret*/
+        )
     {
         assembly {
             let a := mload(add(_args, 0x20))
-            let pre_size := msize()
             pop(a)
-            if eq(msize(), sub(pre_size, a)) {
-                _ret := 1
-            }
-            if iszero(eq(msize(), sub(pre_size, a))) {
-                _ret := 0
-            }
+            // TODO: Disable yul optimizer so this does not screma at
+
+            // if eq(msize(), sub(pre_size, a)) {
+            //     _ret := 1
+            // }
+            // if iszero(eq(msize(), sub(pre_size, a))) {
+            //     _ret := 0
+            // }
         }
     }
 
@@ -757,13 +761,15 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MSIZE(
-        bytes[] memory /*_args*/
-    ) internal pure returns (bytes memory _ret) {
-        assembly {
-            _ret := msize()
-        }
-    }
+    // TODO: Disable yul optimizer so this does not screma at
+
+    // function MSIZE(
+    //     bytes[] memory /*_args*/
+    // ) internal pure returns (bytes memory _ret) {
+    //     assembly {
+    //         _ret := msize()
+    //     }
+    // }
 
     function GAS(
         bytes[] memory /*_args*/

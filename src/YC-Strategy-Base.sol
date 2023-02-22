@@ -9,6 +9,8 @@ import "./YC-Helpers.sol";
  * @YCStrategyBase
  * A base contract that is used when creating Yielchain strategies through a factory.
  */
+
+// TODO: Import diamond and make executeFunction call to happen to diamond through delegatecall.
 contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     // =============================================================
     //                          CONSTRUCTOR
@@ -18,6 +20,7 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
         bytes[] memory _base_strategy_steps,
         address[] memory _base_tokens,
         address[] memory _strategy_tokens,
+        uint256 _automation_interval,
         address _deployer
     ) {
         // Diamond address = msg.sender (i.e factory contract)
@@ -27,16 +30,22 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
         YC_DIAMOND = IYieldchainDiamond(payable(YC_DIAMOND_ADDRESS));
 
         // Setting the strategy's steps.
-        steps = _steps;
+        STEPS = _steps;
 
         // Setting strategy's related tokens
         tokens = _strategy_tokens;
 
         // Setting strategy's base steps (triggered on deposit)
-        base_steps = _base_strategy_steps;
+        BASE_STEPS = _base_strategy_steps;
 
         // Setting strategy's base tokens (swap to on deposit, before triggering base steps)
-        base_tokens = _base_tokens;
+        BASE_TOKENS = _base_tokens;
+
+        // Setting automatio interval
+        AUTOMATION_INTERVAL = _automation_interval;
+
+        // Last execution == NOW
+        lastExecution = block.timestamp;
     }
 
     // =============================================================
@@ -54,18 +63,21 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
      * An Array containing Yieldchain Steps of the strategy.
      * Each strategy has it's own set of steps, this is the actual strategy logic, encoded as bytes per step.
      */
-    bytes[] internal steps;
+    bytes[] internal STEPS;
 
     // @notice Just as above, for the base steps.
-    bytes[] internal base_steps;
+    bytes[] internal BASE_STEPS;
 
     // Base tokens (multi-swap on deposit)
-    address[] internal base_tokens;
+    address[] internal BASE_TOKENS;
+
+    // The interval that determines how often the strategy automation should run
+    uint256 immutable AUTOMATION_INTERVAL;
 
     // =============================================================
     //                          MODIFIERS
     // =============================================================
-    modifier isExecutor() {
+    modifier isYieldchain() {
         require(msg.sender == YC_DIAMOND_ADDRESS);
         _;
     }
@@ -104,17 +116,41 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     function deposit(uint256 amount) public {}
 
     // =============================================================
+    //                 AUTOMATION STORAGE & FUNCTIONS
+    // =============================================================
+
+    // Last timestamp in which the strategy executed
+    uint256 lastExecution;
+
+    // Gets called by upkeep orchestrator to determine whether the strategy should run now
+    function shouldPerform() external view returns (bool) {
+        // If AUTOMATION_INTERVAL has passed since last execution
+        if (block.timestamp - lastExecution >= AUTOMATION_INTERVAL) return true;
+        return false;
+    }
+
+    // =============================================================
     //                         MAIN FUNCTIONS
     // =============================================================
 
     /**
      * @notice
-     * @RunStrategy
-     * Runs the strategy given an index to start in (container-wise & inter-step-wise)
+     * @runStrategy
+     * runs runStep at index 0,
+     * which means it begins a completely new strategy run
+     */
+    function runStrategy() external isYieldchain {
+        runStep(0);
+    }
+
+    /**
+     * @notice
+     * @runStep
+     * Begins a recrusive execution of steps starting at a given step index
      */
     function runStep(uint256 _step_index) public {
         // Decoding our current Step
-        YCStep memory current_step = abi.decode(steps[_step_index], (YCStep));
+        YCStep memory current_step = abi.decode(STEPS[_step_index], (YCStep));
 
         // An array of the step's children to not execute - only relevent for conditional steps.
         uint256[] memory children_to_ignore;
