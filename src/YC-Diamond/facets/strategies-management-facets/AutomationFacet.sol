@@ -7,6 +7,8 @@ import "../../YC-Diamond-Interface.sol";
 import "./StrategyFactoryFacet.sol";
 import "../../interfaces/LinktokenInterface.sol";
 import "../../interfaces/AutomationRegistryInterface2_0.sol";
+import {ExecutorEnforcment} from "./ExecutorsManagementFacet.sol";
+import "../../storage/AutomationStorage.sol";
 
 interface KeeperRegistrarInterface {
     function register(
@@ -27,18 +29,7 @@ interface KeeperRegistrarInterface {
  * AutomationFacet
  * Is read from / written to by the all of the automation upkeeps, on the YC Diamond.
  */
-contract AutomationFacet is AutomationCompatibleInterface {
-    // =====================================
-    //              IMMUTABLES
-    // =====================================
-    LinkTokenInterface internal immutable i_link;
-
-    address internal immutable registrar;
-
-    AutomationRegistryInterface internal immutable i_registry;
-
-    bytes4 registerSig = KeeperRegistrarInterface.register.selector;
-
+contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
     // =====================================
     //             CONSTRUCTOR
     // =====================================
@@ -47,9 +38,12 @@ contract AutomationFacet is AutomationCompatibleInterface {
         address _registrar,
         AutomationRegistryInterface _registry
     ) {
-        i_link = _link;
-        registrar = _registrar;
-        i_registry = _registry;
+        AutomationStorage storage automationStorage = AutomationStorageLib
+            .getAutomationStorage();
+
+        automationStorage.i_link = _link;
+        automationStorage.registrar = _registrar;
+        automationStorage.i_registry = _registry;
     }
 
     // =====================================
@@ -63,10 +57,34 @@ contract AutomationFacet is AutomationCompatibleInterface {
 
     // Enforce execution of performUpKeep to the registry only
     modifier onlyKeeper() {
-        require(msg.sender == address(i_registry));
+        // Get storage ref
+        AutomationStorage storage automationStorage = AutomationStorageLib
+            .getAutomationStorage();
+
+        require(msg.sender == address(automationStorage.i_registry));
         _;
     }
 
+    // ================================================
+    //         RETREIVAL FUNCTIONS (e.g for gas)
+    // ================================================
+
+    /**
+     * @notice
+     * Used to fund strategies' upkeeps' gas balances.
+     * @param _amount The amount of LINK tokens to deposit
+     * isExecutor - Only called by YC executors.
+     * note this is a *fullfill* function - The initial function is called on the strategy
+     * contract, and has the deposited token swapped for LINK offchain. After which this function gets executed.
+     */
+    function fundStrategyGas(
+        uint256 _amount,
+        uint256 _strategyID
+    ) external isExecutor {}
+
+    // =====================================
+    //          AUTOMATION FUNCTIONS
+    // =====================================
     /**
      * @notice
      * @CheckUpkeep
@@ -121,6 +139,9 @@ contract AutomationFacet is AutomationCompatibleInterface {
         StrategyFactory(address(this)).runStrategyByID(strategyID);
     }
 
+    // =====================================
+    //        REGISTRATION FUNCTIONS
+    // =====================================
     /**
      * @notice
      * @registerAutomation
@@ -132,6 +153,13 @@ contract AutomationFacet is AutomationCompatibleInterface {
     ) external returns (uint256 _upkeepID) {
         // Sufficient check to not re-register upkeeps to strategies
         require(_strategy.upkeepID == 0, "Upkeep Already Initiated");
+
+        // Get storage ref
+        AutomationStorage storage automationStorage = AutomationStorageLib
+            .getAutomationStorage();
+
+        // Memory ref of i_registry (gas opt)
+        AutomationRegistryInterface i_registry = automationStorage.i_registry;
 
         // Getting the state of the registry
         // @notice All variables here except the state one are unused (We want to get the nonce)
@@ -157,10 +185,10 @@ contract AutomationFacet is AutomationCompatibleInterface {
         );
 
         // Transfer the LINK amount and call the registry - registering the upkeep
-        i_link.transferAndCall(
-            registrar,
+        automationStorage.i_link.transferAndCall(
+            automationStorage.registrar,
             _amount,
-            bytes.concat(registerSig, payload)
+            bytes.concat(automationStorage.registerSig, payload)
         );
 
         // Getting the state after calling

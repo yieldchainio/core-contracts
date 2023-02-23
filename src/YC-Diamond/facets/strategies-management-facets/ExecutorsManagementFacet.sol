@@ -11,7 +11,7 @@ import "../base-diamond-facets/OwnershipFacet.sol";
  * Executors call functions directly on this facet to interact with the strategies
  */
 
-contract ExecutorsFacet is OwnershipFacet {
+contract ExecutorEnforcment {
     // =======================
     //        MODIFIERS
     // =======================
@@ -28,7 +28,9 @@ contract ExecutorsFacet is OwnershipFacet {
         require(_isExecutor, "Must Be a YC Executor To Run This Function");
         _;
     }
+}
 
+contract ExecutorsFacet is OwnershipFacet, ExecutorEnforcment {
     // ==============================================
     //             EXECUTOR FUNCTIONS
     // ==============================================
@@ -38,7 +40,8 @@ contract ExecutorsFacet is OwnershipFacet {
      */
     function runStrategyStep(
         uint256 _strategy_id,
-        uint256 _step_index
+        uint256 _step_index,
+        bool _isRoot
     ) external isExecutor {
         // Retreiving storage ref of strategies
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
@@ -56,7 +59,7 @@ contract ExecutorsFacet is OwnershipFacet {
         );
 
         // Run the step with the step index
-        currentStrategy.contract_instance.runStep(_step_index);
+        currentStrategy.contract_instance.runStep(_step_index, _isRoot);
     }
 
     // ==============================================
