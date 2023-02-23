@@ -79,6 +79,9 @@ contract YieldchainStrategyState {
     // All ERC20 tokens relating to the strategy
     address[] public tokens;
 
+    // @notice Strategy LOCK - when locked, deposits/withdrawls are queued offchain
+    bool locked;
+
     // =============================================================
     //                      AUTOMATION STORAGE
     // =============================================================

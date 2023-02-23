@@ -51,17 +51,16 @@ abstract contract YieldchainStrategyVaultOps is YieldchainStrategyNames {
         // which will spread them into the base positions
 
         // If it's one, we can just call depositFullfill on our own w empty calldata
+
         bytes memory emptyCalldata = "00";
         if (BASE_TOKENS.length == 1)
-            depositFullfill("");
+            depositFullfill(emptyCalldata);
 
             // Otherwise, there are multiple tokens and we need to multi-swap them using a callback
-        else {
-            
-        }
+        else {}
     }
 
-    function depositFullfill(bytes memory _calldata) public isYieldchain {
+    function depositFullfill(bytes memory _calldata) public view isYieldchain {
         // Empty bytes length for comparison
         bytes memory emptybyte = "00";
 

@@ -45,10 +45,18 @@ abstract contract YieldchainStrategyNames is YieldchainStrategyState {
     // =============================================================
     //                          MODIFIERS
     // =============================================================
+    // Checks to see if the exector is yieldchain's diamond, or the current address
     modifier isYieldchain() {
         require(
-            msg.sender == YC_DIAMOND_ADDRESS || msg.sender == address(this)
+            msg.sender == YC_DIAMOND_ADDRESS || msg.sender == address(this),
+            "Address Is Not Yieldchain-Permitted"
         );
+        _;
+    }
+
+    // checks to see if strategy is currently unlocked
+    modifier isUnlocked() {
+        require(!locked, "Strategy Is Locked, Cannot Execute Operation");
         _;
     }
 

@@ -59,7 +59,8 @@ contract YCStrategyBase is
      * which means it begins a completely new strategy run
      */
     function runStrategy() external isYieldchain {
-        runStep(0);
+        locked = true;
+        runStep(0, true);
     }
 
     /**
@@ -67,7 +68,7 @@ contract YCStrategyBase is
      * @runStep
      * Begins a recrusive execution of steps starting at a given step index
      */
-    function runStep(uint256 _step_index) public isYieldchain {
+    function runStep(uint256 _step_index, bool _isRoot) public isYieldchain {
         // Decoding our current Step
         YCStep memory current_step = abi.decode(STEPS[_step_index], (YCStep));
 
@@ -106,8 +107,10 @@ contract YCStrategyBase is
                 continue;
 
             // @Recruse
-            runStep(childrenIndexes[i]);
+            runStep(childrenIndexes[i], false);
         }
+
+        if (_isRoot) locked = false;
     }
 
     // Execute a reguler step (Internal)
