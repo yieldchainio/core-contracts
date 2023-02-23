@@ -48,6 +48,31 @@ contract YCStrategyBase is
         return false;
     }
 
+    // User triggers to fund the gas balance - takes in any ERC20 token and transfers it. Then swaps it
+    function fundGas(uint256 _amount, address _token) external payable {
+        // Initiating data array for callback
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encode(_amount);
+        data[1] = abi.encode(_token);
+
+        // Transfering the tokens to us
+
+        // If it's native currency we use msg.value instead of the amount argument
+        if (_token == address(0)) {
+            require(
+                msg.value > 0,
+                "msg.value must be above 0 when depositing native currency"
+            );
+            _amount = msg.value;
+        } else {
+            // Transfer ERC20 token from msg.sender to us - requires preapproval.
+            IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        }
+
+        // Emiting a callback event requesting the gas deposit
+        emit RequestCallback("fundGas", "addGas", 0, data);
+    }
+
     // =========================
     //       MAIN FUNCTIONS
     // =========================
@@ -59,6 +84,7 @@ contract YCStrategyBase is
      * which means it begins a completely new strategy run
      */
     function runStrategy() external isYieldchain {
+        lastExecution = block.timestamp;
         locked = true;
         runStep(0, true);
     }

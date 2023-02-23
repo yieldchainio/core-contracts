@@ -90,8 +90,10 @@ abstract contract YieldchainStrategyVaultOps is YieldchainStrategyNames {
     // Internal approve, only called by Yieldchain diamond if ever needed
     function internalApproval(
         address _token,
-        address _spender
+        address _spender,
+        uint256 _amount
     ) external isYieldchain {
-        IERC20(_token).approve(_spender, 2 ** 256 - 1);
+        // Either transferred inputted amount, or max uint256 if amount is 0 (implicit max approval)
+        IERC20(_token).approve(_spender, _amount > 0 ? _amount : 2 ** 256 - 1);
     }
 }

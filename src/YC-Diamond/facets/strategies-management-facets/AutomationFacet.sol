@@ -36,7 +36,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
     constructor(
         LinkTokenInterface _link,
         address _registrar,
-        AutomationRegistryInterface _registry
+        AutomationRegistryBaseInterface _registry
     ) {
         AutomationStorage storage automationStorage = AutomationStorageLib
             .getAutomationStorage();
@@ -45,6 +45,11 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
         automationStorage.registrar = _registrar;
         automationStorage.i_registry = _registry;
     }
+
+    // =====================================
+    //              ERRORS
+    // =====================================
+    error UpkeepNotSet();
 
     // =====================================
     //              MODIFIERS
@@ -66,25 +71,85 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
     }
 
     // ================================================
-    //         RETREIVAL FUNCTIONS (e.g for gas)
+    //             GAS-RELATED FUNCTIONS
     // ================================================
 
     /**
      * @notice
      * Used to fund strategies' upkeeps' gas balances.
      * @param _amount The amount of LINK tokens to deposit
+     * @param _strategyID - The ID of the strategy to fund.
      * isExecutor - Only called by YC executors.
      * note this is a *fullfill* function - The initial function is called on the strategy
      * contract, and has the deposited token swapped for LINK offchain. After which this function gets executed.
      */
+
+    // TODO: Implement a transferAndCall compatiblity on this, instead of doing approval & transferFrom
     function fundStrategyGas(
-        uint256 _amount,
+        uint96 _amount,
         uint256 _strategyID
-    ) external isExecutor {}
+    ) external isExecutor {
+        // Get storage ref for strategies
+        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
+            .getStrategiesStorage();
+
+        // Get the current strategy's details
+        IStrategy memory currentStrategy = strategiesStorage.strategies[
+            _strategyID
+        ];
+
+        // Upkeep ID of the strategy
+        uint256 upkeepID = currentStrategy.upkeepID;
+
+        // Requiring an upkeep to be set for the strategy.
+        if (upkeepID == 0) revert UpkeepNotSet();
+
+        // Get automation storage ref
+        AutomationStorage storage automationStorage = AutomationStorageLib
+            .getAutomationStorage();
+
+        // Memory ref for i_registry
+        AutomationRegistryBaseInterface i_registry = automationStorage
+            .i_registry;
+
+        // Transfer amount of I_LINK To us
+        automationStorage.i_link.transferFrom(
+            currentStrategy.contract_address,
+            address(this),
+            _amount
+        );
+
+        // Finally, fund the Upkeep
+        i_registry.addFunds(upkeepID, _amount);
+    }
+
+    /**
+     * @notice Get a strategy's upkeep's entire details
+     * @dev May be consumed by frontends, as well as other helper "Shortcut" functions.
+     * @param _strategyID - The ID of the strategy of which we want to get the gas balance of
+     * @return upkeep_  the information about the upkeep.
+     */
+    function getStrategyUpkeepInfo(
+        uint256 _strategyID
+    ) public view returns (UpkeepInfo memory upkeep_) {
+        // Get automation storage ref
+        AutomationStorage storage automationStorage = AutomationStorageLib
+            .getAutomationStorage();
+
+        // Strategies Storage Ref
+        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
+            .getStrategiesStorage();
+
+        // Call the retreival function
+        upkeep_ = automationStorage.i_registry.getUpkeep(
+            strategiesStorage.strategies[_strategyID].upkeepID
+        );
+    }
 
     // =====================================
     //          AUTOMATION FUNCTIONS
     // =====================================
+
     /**
      * @notice
      * @CheckUpkeep
@@ -96,7 +161,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
     function checkUpkeep(
         bytes calldata checkData
     )
-        external
+        public
         view
         override
         cannotExecute
@@ -120,7 +185,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
         // If we should perform the execution (time passed since last execution >= interval...)
         if (currentStrategyContract.shouldPerform()) {
             upkeepNeeded = true;
-            performData = abi.encode(strategyID);
+            performData = checkData;
         }
     }
 
@@ -132,6 +197,10 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
     function performUpkeep(
         bytes calldata performData
     ) external override onlyKeeper {
+        // Re-validate the condition
+        (bool isReady, ) = checkUpkeep(performData);
+        require(isReady, "Condition Has Not Been Met!");
+
         // Decoding Strategy ID
         uint256 strategyID = abi.decode(performData, (uint256));
 
@@ -159,7 +228,8 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
             .getAutomationStorage();
 
         // Memory ref of i_registry (gas opt)
-        AutomationRegistryInterface i_registry = automationStorage.i_registry;
+        AutomationRegistryBaseInterface i_registry = automationStorage
+            .i_registry;
 
         // Getting the state of the registry
         // @notice All variables here except the state one are unused (We want to get the nonce)
@@ -177,7 +247,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
             _strategy.title,
             bytes32(0),
             address(this),
-            uint256(2 ** 256 - 1), // TODO: Make this variable per user? w a default value
+            uint256(2 ** 256 - 1), // TODO: Make this some base fee that makes sense. Otherwise gotta do some offchain calc and pass in constructor per strategy.
             address(this),
             _strategy.id,
             _amount,

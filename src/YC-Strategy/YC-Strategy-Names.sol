@@ -66,9 +66,10 @@ abstract contract YieldchainStrategyNames is YieldchainStrategyState {
 
     // System-related events
     event RequestCallback(
-        string indexed origin_function,
+        string indexed originFunction,
+        string indexed funcToExec,
         uint256 indexed index,
-        bytes[] indexed params
+        bytes[] params
     );
 
     // Vault-related events

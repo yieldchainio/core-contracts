@@ -7,7 +7,7 @@ struct AutomationStorage {
     // Link Token Interface
     LinkTokenInterface i_link;
     address registrar;
-    AutomationRegistryInterface i_registry;
+    AutomationRegistryBaseInterface i_registry;
     bytes4 registerSig;
 }
 
