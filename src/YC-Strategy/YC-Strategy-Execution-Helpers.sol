@@ -2,7 +2,6 @@
 pragma solidity ^0.8.18;
 import "./YC-Strategy-Vault-Operations.sol";
 import "./YC-Strategy-Types.sol";
-import "../Libraries/YC-Diamond-Library.sol";
 
 contract YieldchainStrategyExecHelpers is
     YieldchainStrategyVaultOps,

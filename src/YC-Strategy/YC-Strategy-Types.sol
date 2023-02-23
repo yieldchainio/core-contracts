@@ -48,6 +48,7 @@ interface YieldchainStrategyTypes is YieldchainTypes {
         Flow[] token_flows;
         uint256[] children_indexes;
         bytes[] conditions;
+        uint256 percentage;
     }
 
     struct ProtocolDetails {

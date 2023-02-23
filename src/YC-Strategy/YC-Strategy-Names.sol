@@ -46,7 +46,9 @@ abstract contract YieldchainStrategyNames is YieldchainStrategyState {
     //                          MODIFIERS
     // =============================================================
     modifier isYieldchain() {
-        require(msg.sender == YC_DIAMOND_ADDRESS);
+        require(
+            msg.sender == YC_DIAMOND_ADDRESS || msg.sender == address(this)
+        );
         _;
     }
 

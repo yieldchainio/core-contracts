@@ -33,9 +33,41 @@ abstract contract YieldchainStrategyVaultOps is YieldchainStrategyNames {
     // =============================================================
     //                   VAULT OPERATIONS FUNCTIONS
     // =============================================================
-    function deposit(uint256 amount) public {}
+    function deposit(uint256 _amount) public {
+        // Require amount to be above zero
+        if (_amount <= 0) revert InvalidAmountZero();
 
-    function _depositFullfill(bytes memory _calldata) external isYieldchain {}
+        // Transfer tokens from user
+        IERC20(tokens[0]).transferFrom(msg.sender, address(this), _amount);
+
+        // Update user's shares
+        balances[msg.sender] += _amount;
+
+        // Update total shares
+        totalShares += _amount;
+
+        // Send a callback request event to swap the user's deposit token into
+        // the strategy's base tokens, and call the depositFullfill function,
+        // which will spread them into the base positions
+
+        // If it's one, we can just call depositFullfill on our own w empty calldata
+        bytes memory emptyCalldata = "00";
+        if (BASE_TOKENS.length == 1)
+            depositFullfill("");
+
+            // Otherwise, there are multiple tokens and we need to multi-swap them using a callback
+        else {
+            
+        }
+    }
+
+    function depositFullfill(bytes memory _calldata) public isYieldchain {
+        // Empty bytes length for comparison
+        bytes memory emptybyte = "00";
+
+        // If we got actual swap calldata
+        if (_calldata.length == emptybyte.length) {}
+    }
 
     function withdraw(uint256 amount) public {}
 
