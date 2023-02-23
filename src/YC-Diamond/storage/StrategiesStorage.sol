@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../YC-Strategy-Base.sol";
+import "../../YC-Strategy/YC-Strategy-Logic.sol";
 
 // Struct representing a basic strategy - only details required for implementation
 struct IStrategy {

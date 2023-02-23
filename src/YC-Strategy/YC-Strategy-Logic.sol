@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "./YC-Base.sol";
-import "./YC-Diamond/YC-Diamond-Interface.sol";
-import "./YC-Helpers.sol";
+import "../YC-Diamond/YC-Diamond-Interface.sol";
+import "./YC-Strategy-Execution-Helpers.sol";
+import "./YC-Strategy-Types.sol";
 
 /**
  * @notice
@@ -10,10 +10,12 @@ import "./YC-Helpers.sol";
  * A base contract that is used when creating Yielchain strategies through a factory.
  */
 
-// TODO: Import diamond and make executeFunction call to happen to diamond through delegatecall.
-contract YCStrategyBase is IYieldchainBase, YC_Utilities {
+contract YCStrategyBase is
+    YieldchainStrategyExecHelpers,
+    YieldchainStrategyTypes
+{
     // =============================================================
-    //                          CONSTRUCTOR
+    //                 CONSTRUCTOR SUPER
     // =============================================================
     constructor(
         bytes[] memory _steps,
@@ -22,105 +24,20 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
         address[] memory _strategy_tokens,
         uint256 _automation_interval,
         address _deployer
-    ) {
-        // Diamond address = msg.sender (i.e factory contract)
-        YC_DIAMOND_ADDRESS = _deployer;
-
-        // Call getExeuctor on the diamond to get the strategy's executor address (for modifier)
-        YC_DIAMOND = IYieldchainDiamond(payable(YC_DIAMOND_ADDRESS));
-
-        // Setting the strategy's steps.
-        STEPS = _steps;
-
-        // Setting strategy's related tokens
-        tokens = _strategy_tokens;
-
-        // Setting strategy's base steps (triggered on deposit)
-        BASE_STEPS = _base_strategy_steps;
-
-        // Setting strategy's base tokens (swap to on deposit, before triggering base steps)
-        BASE_TOKENS = _base_tokens;
-
-        // Setting automatio interval
-        AUTOMATION_INTERVAL = _automation_interval;
-
-        // Last execution == NOW
-        lastExecution = block.timestamp;
-    }
+    )
+        YieldchainStrategyExecHelpers(
+            _steps,
+            _base_strategy_steps,
+            _base_tokens,
+            _strategy_tokens,
+            _automation_interval,
+            _deployer
+        )
+    {}
 
     // =============================================================
-    //                          IMMUTABLES
+    //                 AUTOMATION FUNCTIONS
     // =============================================================
-
-    // Yieldchain's Diamond Contract Instance
-    IYieldchainDiamond immutable YC_DIAMOND;
-
-    // Diamond's address (executes internal functions as well, same as executor)
-    address immutable YC_DIAMOND_ADDRESS;
-
-    /**
-     * @notice
-     * An Array containing Yieldchain Steps of the strategy.
-     * Each strategy has it's own set of steps, this is the actual strategy logic, encoded as bytes per step.
-     */
-    bytes[] internal STEPS;
-
-    // @notice Just as above, for the base steps.
-    bytes[] internal BASE_STEPS;
-
-    // Base tokens (multi-swap on deposit)
-    address[] internal BASE_TOKENS;
-
-    // The interval that determines how often the strategy automation should run
-    uint256 immutable AUTOMATION_INTERVAL;
-
-    // =============================================================
-    //                          MODIFIERS
-    // =============================================================
-    modifier isYieldchain() {
-        require(msg.sender == YC_DIAMOND_ADDRESS);
-        _;
-    }
-
-    // =============================================================
-    //                          Events
-    // =============================================================
-
-    // System-related events
-    event RequestCallback(
-        string indexed origin_function,
-        uint256 indexed index,
-        bytes[] indexed params
-    );
-
-    // Vault-related events
-    event Deposit(address indexed depositer, uint256 indexed amount);
-    event Withdraw(address indexed depositer, uint256 indexed amount);
-
-    // =============================================================
-    //                   VAULT-RELATED STORAGE
-    // =============================================================
-
-    // Total vault shares (1 deposit token == 1 share)
-    uint256 public totalShares;
-
-    // Mapping user addresses => shares balances
-    mapping(address => uint256) public balances;
-
-    // All ERC20 tokens relating to the strategy
-    address[] public tokens;
-
-    // =============================================================
-    //                   VAULT OPERATIONS FUNCTIONS
-    // =============================================================
-    function deposit(uint256 amount) public {}
-
-    // =============================================================
-    //                 AUTOMATION STORAGE & FUNCTIONS
-    // =============================================================
-
-    // Last timestamp in which the strategy executed
-    uint256 lastExecution;
 
     // Gets called by upkeep orchestrator to determine whether the strategy should run now
     function shouldPerform() external view returns (bool) {
@@ -192,19 +109,17 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     }
 
     // Execute a reguler step (Internal)
-    function _runStep(YCStep memory _step)
-        internal
-        returns (bytes memory _ret, FunctionCall memory _calledFunc)
-    {
+    function _runStep(
+        YCStep memory _step
+    ) internal returns (bytes memory _ret, FunctionCall memory _calledFunc) {
         // Execute the step's function
-        (_ret, _calledFunc) = executeYCFunction(_step.step_function);
+        (_ret, _calledFunc) = runFunction(_step.step_function);
     }
 
     // Execute a conditional (Internal)
-    function _runConditional(YCStep memory _step)
-        internal
-        returns (uint256[] memory _children_to_ignore)
-    {
+    function _runConditional(
+        YCStep memory _step
+    ) internal returns (uint256[] memory _children_to_ignore) {
         // Execute the determineCondition function - which executes each condition function, returns the index
         // of the child to execute fro the children's array
         (
@@ -232,7 +147,9 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     // @param _conditions_container The container (array) of encoded YCSteps - the conditions.
     // @return _should_exec_conditions
     // @return _container_to_run
-    function _determineCondition(bytes[] memory _conditions)
+    function _determineCondition(
+        bytes[] memory _conditions
+    )
         internal
         returns (uint256 _container_to_run, bool _found_true_condition)
     // TODO: Think of how you secure this so that it's not completely arbitrary (Similar to runStep... Classify all interfaced
@@ -240,21 +157,20 @@ contract YCStrategyBase is IYieldchainBase, YC_Utilities {
     {
         // Looping over each condition
         for (uint256 i = 0; i < _conditions.length; i++) {
-            // Decoding the condition
-            (
-                bytes memory _ret,
-                FunctionCall memory current_condition_function
-            ) = executeYCFunction(_conditions[i]);
+            // Call the condition FunctionCall
+            (bytes memory ret, FunctionCall memory calledFunc) = runFunction(
+                _conditions[i]
+            );
 
             // @notice
             // Breaking the loop if current iteration is a callback.
             // The functiin call is returned from the caller (runStep) function regardless,
             // but this is sufficient in order to ensure efficiency & no executions of un-wanted, potentially state-chaning functions.
             // TODO: How to reenter the conditional callbacks?
-            if (current_condition_function.is_callback) break;
+            if (calledFunc.is_callback) break;
 
             // Decoding return value as a boolean
-            _found_true_condition = abi.decode(_ret, (bool));
+            _found_true_condition = abi.decode(ret, (bool));
 
             // @notice
             // If the condition is true, we return the index of it - Caller will execute it's children

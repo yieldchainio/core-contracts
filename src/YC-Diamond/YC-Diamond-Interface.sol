@@ -24,4 +24,9 @@ interface IYieldchainDiamond is
         external
         pure
         returns (bytes memory);
+
+    function decodeFunctionCall(bytes memory)
+        external
+        pure
+        returns (FunctionCall memory, uint8);
 }

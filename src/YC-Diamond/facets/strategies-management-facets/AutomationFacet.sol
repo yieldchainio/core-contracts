@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 import "../../storage/StrategiesStorage.sol";
 import "../../interfaces/ChainlinkAutomationInterface.sol";
-import "../../../YC-Strategy-Base.sol";
+import "../../../YC-Strategy/YC-Strategy-Logic.sol";
 import "../../YC-Diamond-Interface.sol";
 import "./StrategyFactoryFacet.sol";
 import "../../interfaces/LinktokenInterface.sol";
@@ -52,6 +52,21 @@ contract AutomationFacet is AutomationCompatibleInterface {
         i_registry = _registry;
     }
 
+    // =====================================
+    //              MODIFIERS
+    // =====================================
+    // Enforce view-only simulation for checkUpKeep
+    modifier cannotExecute() {
+        require(tx.origin == address(0), "Only For Simulated Backend");
+        _;
+    }
+
+    // Enforce execution of performUpKeep to the registry only
+    modifier onlyKeeper() {
+        require(msg.sender == address(i_registry));
+        _;
+    }
+
     /**
      * @notice
      * @CheckUpkeep
@@ -60,10 +75,13 @@ contract AutomationFacet is AutomationCompatibleInterface {
      * @return upkeepNeeded a part of the Chainlink Keepers Interface, if this returns true in the simulation - it executes the performUpKeep
      * @return performData encoded bytes data passed from checkUpkeep to performUpKeep - encoded strategy ID again.
      */
-    function checkUpkeep(bytes calldata checkData)
+    function checkUpkeep(
+        bytes calldata checkData
+    )
         external
         view
         override
+        cannotExecute
         returns (bool upkeepNeeded, bytes memory performData)
     {
         // Getting strategies storage
@@ -93,7 +111,9 @@ contract AutomationFacet is AutomationCompatibleInterface {
      * @performUpkeep
      * Gets called by checkUpkeep, runs the strategy when triggered by the keeper
      */
-    function performUpkeep(bytes calldata performData) external override {
+    function performUpkeep(
+        bytes calldata performData
+    ) external override onlyKeeper {
         // Decoding Strategy ID
         uint256 strategyID = abi.decode(performData, (uint256));
 
@@ -106,10 +126,10 @@ contract AutomationFacet is AutomationCompatibleInterface {
      * @registerAutomation
      * Used to initiate an upkeep for a strategy.
      */
-    function registerAutomation(IStrategy memory _strategy, uint256 _amount)
-        external
-        returns (uint256 _upkeepID)
-    {
+    function registerAutomation(
+        IStrategy memory _strategy,
+        uint256 _amount
+    ) external returns (uint256 _upkeepID) {
         // Sufficient check to not re-register upkeeps to strategies
         require(_strategy.upkeepID == 0, "Upkeep Already Initiated");
 
@@ -129,7 +149,7 @@ contract AutomationFacet is AutomationCompatibleInterface {
             _strategy.title,
             bytes32(0),
             address(this),
-            uint256(2**256 - 1), // TODO: Make this variable per user? w a default value
+            uint256(2 ** 256 - 1), // TODO: Make this variable per user? w a default value
             address(this),
             _strategy.id,
             _amount,
