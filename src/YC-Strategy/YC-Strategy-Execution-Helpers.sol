@@ -11,19 +11,30 @@ contract YieldchainStrategyExecHelpers is
     // =============================================================
     //                 CONSTRUCTOR SUPER
     // =============================================================
-    constructor( bytes[] memory _steps,
+    constructor(
+        bytes[] memory _steps,
         bytes[] memory _base_strategy_steps,
         address[] memory _base_tokens,
         address[] memory _strategy_tokens,
+        address[][] memory _tokens_related_addresses,
         uint256 _automation_interval,
-        address _deployer) YieldchainStrategyVaultOps(_steps, _base_strategy_steps, _base_tokens, _strategy_tokens, _automation_interval, _deployer) {
+        address _deployer
+    )
+        YieldchainStrategyVaultOps(
+            _steps,
+            _base_strategy_steps,
+            _base_tokens,
+            _strategy_tokens,
+            _tokens_related_addresses,
+            _automation_interval,
+            _deployer
+        )
+    {}
 
-    }
     // High-level runFunction function
-    function runFunction(bytes memory _encodedFunctionCall)
-        internal
-        returns (bytes memory _ret, FunctionCall memory _calledFunc)
-    {
+    function runFunction(
+        bytes memory _encodedFunctionCall
+    ) internal returns (bytes memory _ret, FunctionCall memory _calledFunc) {
         // Initiallizing
         uint8 typeflag;
 
@@ -40,10 +51,10 @@ contract YieldchainStrategyExecHelpers is
     // Lower-level function for executing a DECODED FunctionCall,
     // Function must be prepared (with actual signature)
     // TODO: Enter the future r,s,v as args here
-    function _execFunctionCall(FunctionCall memory _func, uint8 _typeflag)
-        internal
-        returns (bytes memory _ret)
-    {
+    function _execFunctionCall(
+        FunctionCall memory _func,
+        uint8 _typeflag
+    ) internal returns (bytes memory _ret) {
         // Initiating an array for the new arguments
         bytes[] memory newArgs = new bytes[](_func.args.length);
 
@@ -79,10 +90,9 @@ contract YieldchainStrategyExecHelpers is
      * @return _returnArg The result - the actual value of that argument. If static, would just be the argument without
      * the flags (i.e plain). If it's a FunctionCall, it would be the return data of that function call
      */
-    function _getArgValue(bytes memory _arg)
-        internal
-        returns (bytes memory _returnArg)
-    {
+    function _getArgValue(
+        bytes memory _arg
+    ) internal returns (bytes memory _returnArg) {
         // Seperating the argument & the flag
         (bytes memory plainArg, uint8 typeflag) = YC_DIAMOND.seperateYCVariable(
             _arg

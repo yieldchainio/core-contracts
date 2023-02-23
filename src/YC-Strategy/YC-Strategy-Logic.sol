@@ -22,6 +22,7 @@ contract YCStrategyBase is
         bytes[] memory _base_strategy_steps,
         address[] memory _base_tokens,
         address[] memory _strategy_tokens,
+        address[][] memory _tokens_related_addresses,
         uint256 _automation_interval,
         address _deployer
     )
@@ -30,6 +31,7 @@ contract YCStrategyBase is
             _base_strategy_steps,
             _base_tokens,
             _strategy_tokens,
+            _tokens_related_addresses,
             _automation_interval,
             _deployer
         )

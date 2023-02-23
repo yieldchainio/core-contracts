@@ -10,6 +10,7 @@ contract StrategyFactory {
         bytes[] memory _base_steps_arr,
         address[] memory _base_tokens_arr,
         address[] memory _tokens_arr,
+        address[][] memory _tokens_related_addresses,
         uint256 _automation_interval,
         uint256 _fundingAmount,
         string memory name
@@ -28,6 +29,7 @@ contract StrategyFactory {
             _base_steps_arr,
             _base_tokens_arr,
             _tokens_arr,
+            _tokens_related_addresses,
             _automation_interval,
             address(this)
         );
