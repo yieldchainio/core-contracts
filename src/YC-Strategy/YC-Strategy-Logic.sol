@@ -14,9 +14,9 @@ contract YCStrategyBase is
     YieldchainStrategyExecHelpers,
     YieldchainStrategyTypes
 {
-    // =============================================================
-    //                 CONSTRUCTOR SUPER
-    // =============================================================
+    // =======================================
+    //            CONSTRUCTOR SUPER
+    // ========================================
     constructor(
         bytes[] memory _steps,
         bytes[] memory _base_strategy_steps,
@@ -35,9 +35,9 @@ contract YCStrategyBase is
         )
     {}
 
-    // =============================================================
-    //                 AUTOMATION FUNCTIONS
-    // =============================================================
+    // ======================================
+    //          AUTOMATION FUNCTIONS
+    // ======================================
 
     // Gets called by upkeep orchestrator to determine whether the strategy should run now
     function shouldPerform() external view returns (bool) {
@@ -46,9 +46,9 @@ contract YCStrategyBase is
         return false;
     }
 
-    // =============================================================
-    //                         MAIN FUNCTIONS
-    // =============================================================
+    // =========================
+    //       MAIN FUNCTIONS
+    // =========================
 
     /**
      * @notice
@@ -65,7 +65,7 @@ contract YCStrategyBase is
      * @runStep
      * Begins a recrusive execution of steps starting at a given step index
      */
-    function runStep(uint256 _step_index) public {
+    function runStep(uint256 _step_index) public isYieldchain {
         // Decoding our current Step
         YCStep memory current_step = abi.decode(STEPS[_step_index], (YCStep));
 
@@ -149,12 +149,7 @@ contract YCStrategyBase is
     // @return _container_to_run
     function _determineCondition(
         bytes[] memory _conditions
-    )
-        internal
-        returns (uint256 _container_to_run, bool _found_true_condition)
-    // TODO: Think of how you secure this so that it's not completely arbitrary (Similar to runStep... Classify all interfaced
-    // TODO: opcodes in Diamond?)
-    {
+    ) internal returns (uint256 _container_to_run, bool _found_true_condition) {
         // Looping over each condition
         for (uint256 i = 0; i < _conditions.length; i++) {
             // Call the condition FunctionCall
@@ -166,7 +161,6 @@ contract YCStrategyBase is
             // Breaking the loop if current iteration is a callback.
             // The functiin call is returned from the caller (runStep) function regardless,
             // but this is sufficient in order to ensure efficiency & no executions of un-wanted, potentially state-chaning functions.
-            // TODO: How to reenter the conditional callbacks?
             if (calledFunc.is_callback) break;
 
             // Decoding return value as a boolean

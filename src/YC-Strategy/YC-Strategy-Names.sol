@@ -6,16 +6,24 @@ abstract contract YieldchainStrategyNames is YieldchainStrategyState {
     // =============================================================
     //                 CONSTRUCTOR SUPER
     // =============================================================
-    constructor( bytes[] memory _steps,
+    constructor(
+        bytes[] memory _steps,
         bytes[] memory _base_strategy_steps,
         address[] memory _base_tokens,
         address[] memory _strategy_tokens,
         uint256 _automation_interval,
-        address _deployer) YieldchainStrategyState(_steps, _base_strategy_steps, _base_tokens, _strategy_tokens, _automation_interval, _deployer) {
+        address _deployer
+    )
+        YieldchainStrategyState(
+            _steps,
+            _base_strategy_steps,
+            _base_tokens,
+            _strategy_tokens,
+            _automation_interval,
+            _deployer
+        )
+    {}
 
-    }
-
-    
     // =============================================================
     //                          ERRORS
     // =============================================================
