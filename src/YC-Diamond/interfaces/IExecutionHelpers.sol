@@ -7,22 +7,21 @@ import "../../YC-Types.sol";
  * contracts set.
  */
 interface IExecutionHelpers is YieldchainTypes {
-    function prepareFunctionCall(bytes memory)
-        external
-        view
-        returns (FunctionCall memory, uint8);
+    function prepareFunctionCall(
+        bytes memory
+    ) external view returns (FunctionCall memory, uint8);
 
-    function getCalldata(string memory, bytes[] memory)
-        external
-        pure
-        returns (bytes memory);
+    function buildCalldata(
+        string memory,
+        bytes[] memory,
+        uint8
+    ) external pure returns (bytes memory);
 
     function getArgValue(bytes memory) external returns (bytes memory);
 
-    function seperateYCVariable(bytes memory)
-        external
-        pure
-        returns (bytes memory, uint8);
+    function seperateYCVariable(
+        bytes memory
+    ) external pure returns (bytes memory, uint8);
 
     function getVarFlag(bytes memory) external pure returns (uint8);
 

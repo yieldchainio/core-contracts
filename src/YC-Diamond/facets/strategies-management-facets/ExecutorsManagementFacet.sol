@@ -36,12 +36,40 @@ contract ExecutorsFacet is OwnershipFacet, ExecutorEnforcment {
     // ==============================================
     /**
      * @notice
+     * Called by executors to initiate a strategy run on a YC Strategy via an ID
+     * Note - uses runStrategyStep under the hood, just less boilerplate for ease
+     */
+    function runYCStrategy(uint256 _strategyID) external isExecutor {
+        // Retreiving storage ref of strategies
+        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
+            .getStrategiesStorage();
+
+        // Current Strategy
+        IStrategy memory currentStrategy = strategiesStorage.strategies[
+            _strategyID
+        ];
+
+        // Sufficient check to make sure the strategy exists
+        require(
+            currentStrategy.contract_address != address(0),
+            "Strategy Attempted To Execute Does Not Exist"
+        );
+
+        // Run the step with the step index
+        currentStrategy.contract_instance.runStrategy();
+    }
+
+    /**
+     * @notice
      * Called by executors to runStep on strategies via their IDs
      */
     function runStrategyStep(
         uint256 _strategy_id,
         uint256 _step_index,
-        bool _isRoot
+        bool _isRoot,
+        bytes memory _customFunction,
+        bool _isFullfill,
+        uint256[] memory _childrenToIgnore
     ) external isExecutor {
         // Retreiving storage ref of strategies
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
@@ -59,7 +87,13 @@ contract ExecutorsFacet is OwnershipFacet, ExecutorEnforcment {
         );
 
         // Run the step with the step index
-        currentStrategy.contract_instance.runStep(_step_index, _isRoot);
+        currentStrategy.contract_instance.runStep(
+            _step_index,
+            _isRoot,
+            _customFunction,
+            _isFullfill,
+            _childrenToIgnore
+        );
     }
 
     // ==============================================

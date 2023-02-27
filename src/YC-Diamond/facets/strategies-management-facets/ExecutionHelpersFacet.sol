@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.8;
-import "./YCClassificationsFacet.sol";
+pragma solidity ^0.8.18;
+import "./ClassificationsFacet.sol";
 import "../../../YC-Types.sol";
 
 /**
@@ -18,42 +18,11 @@ contract ExecutionHelpersFacet is YieldchainTypes {
         bytes memory _encodedFunctionCall
     ) external view returns (FunctionCall memory _func, uint8 _typeflag) {
         // Decode the function call
-        (_func, _typeflag) = decodeFunctionCall(_encodedFunctionCall);
+        (_func, _typeflag, ) = decodeFunctionCall(_encodedFunctionCall);
 
         // Get the verified function
         _func = YCClassificationsFacet(address(this)).verifyYCFunction(_func);
     }
-
-    /**
-     * @notice
-     * @Method getCalldata
-     * dynamic, generic encoding of calldata.
-     * ----- // PARAMETERS // -----
-     * @param _function_signature - @string, The function signature to encode (e.g, "addLiquidity(address,address,uint256,uint256)"
-     *
-     * @param _arguments - bytes[] - An array of arguments (as bytes) that will be appended to the calldata when concatanating it.
-     * -----------------------------
-     *
-     * @return _calldata - bytes - The encoded calldata, should be used directly in a low-level call
-     */
-    // ------------------------------------------
-    function getCalldata(
-        string memory _function_signature,
-        bytes[] memory _arguments
-    ) public pure returns (bytes memory _calldata) {
-        // Encoding the function signature
-        _calldata = abi.encodeWithSignature(_function_signature);
-
-        // For each one of the arguments
-        for (uint256 i = 0; i < _arguments.length; i++) {
-            // Concat the existing calldata with the argument
-            _calldata = bytes.concat(_calldata, _arguments[i]);
-        }
-        // Return the new calldata
-        return _calldata;
-    }
-
-    // --------------------------------------------
 
     /**
      * @notice
@@ -66,14 +35,26 @@ contract ExecutionHelpersFacet is YieldchainTypes {
     )
         public
         pure
-        returns (FunctionCall memory _function_call, uint8 _typeflag)
+        returns (
+            FunctionCall memory _function_call,
+            uint8 _typeflag,
+            uint8 _retTypeflag
+        )
     {
         // Getting the plain encoded function call & it's typeflag seperated.
         bytes memory encodedFunctionCallNoFlag;
 
         // Seperating the function byte from it's flag
-        (encodedFunctionCallNoFlag, _typeflag) = seperateYCVariable(
-            _encodedFunctionCall
+        (
+            encodedFunctionCallNoFlag,
+            _typeflag,
+            _retTypeflag
+        ) = seperateYCVariable(_encodedFunctionCall);
+
+        // Sufficient check
+        require(
+            _typeflag >= 0x02 && _typeflag < 0x05,
+            "Not A Function Call Flag!"
         );
 
         // Decoding the result
@@ -88,9 +69,17 @@ contract ExecutionHelpersFacet is YieldchainTypes {
      */
     function seperateYCVariable(
         bytes memory _variable
-    ) public pure returns (bytes memory _plain_variable, uint8 _typeflag) {
+    )
+        public
+        pure
+        returns (
+            bytes memory _plain_variable,
+            uint8 _typeflag,
+            uint8 _retTypeflag
+        )
+    {
         // Getting the @Flag of the variable (appended to the end of each YC input)
-        _typeflag = getVarFlag(_variable);
+        (_typeflag, _retTypeflag) = getVarFlags(_variable);
 
         // Saving a version of the argument without the appended flag
         _plain_variable = removeVarFlag(_variable);
@@ -100,15 +89,23 @@ contract ExecutionHelpersFacet is YieldchainTypes {
      * @notice
      * Get the flag of a YC variable
      * 0x00 = Static Variable
-     * 0x01 = Static CALL
-     * 0x02 = Delegate CALL
-     * 0x03 = CALL
+     * 0x01 = Dynamic variable
+     * 0x02 = Static CALL
+     * 0x03 = Delegate CALL
+     * 0x04 CALL
      */
-    function getVarFlag(bytes memory _var) public pure returns (uint8) {
-        bytes2 lastTwo = bytes2(
-            uint16(uint8(_var[_var.length - 2]) + uint8(_var[_var.length - 1]))
-        );
-        return uint8(uint16(lastTwo) / uint16(0x10));
+    function getVarFlags(
+        bytes memory _var
+    ) public pure returns (uint8 typeflag_, uint8 retTypeflag_) {
+        assembly {
+            let len := mload(_var)
+
+            // Getting typeflag
+            typeflag_ := mload(add(add(_var, 0x20), sub(len, 1)))
+
+            // Getting retTypeFlag
+            retTypeflag_ := mload(add(add(_var, 0x20), sub(len, 2)))
+        }
     }
 
     /**
@@ -121,8 +118,16 @@ contract ExecutionHelpersFacet is YieldchainTypes {
         bytes memory _var
     ) public pure returns (bytes memory _ret) {
         _ret = new bytes(_var.length - 2);
-        for (uint256 i = 0; i < _var.length - 2; i++) {
-            _ret[i] = _var[i];
+        assembly {
+            let baseptr := add(_var, 0x20)
+            let retptr := add(_ret, 0x20)
+            for {
+                let i := 0
+            } lt(i, sub(mload(_var), 2)) {
+                i := add(i, 1)
+            } {
+                mstore(add(retptr, i), mload(add(baseptr, i)))
+            }
         }
     }
 }

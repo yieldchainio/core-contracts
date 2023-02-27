@@ -2,10 +2,10 @@
 pragma solidity ^0.8.18;
 
 contract YieldchainOnpcodes {
-    function _execute_opcode(bytes1 _opcode, bytes[] memory _args)
-        external
-        returns (bytes memory _ret)
-    {
+    function _execute_opcode(
+        bytes1 _opcode,
+        bytes[] memory _args
+    ) external returns (bytes memory _ret) {
         if (_opcode == 0x00) _ret = STOP(_args);
         else if (_opcode == 0x01) _ret = ADD(_args);
         else if (_opcode == 0x02) _ret = MUL(_args);
@@ -57,8 +57,9 @@ contract YieldchainOnpcodes {
             // else if (_opcode == 0x44) _ret = PREVRANDAO(_args);
         else if (_opcode == 0x45) _ret = GASLIMIT(_args);
         else if (_opcode == 0x46) _ret = CHAINID(_args);
-        else if (_opcode == 0x47) _ret = SELFBALANCE(_args);
-        else if (_opcode == 0x48) _ret = BASEFEE(_args);
+        else if (_opcode == 0x47)
+            _ret = SELFBALANCE(_args);
+            // else if (_opcode == 0x48) _ret = BASEFEE(_args); // TODO: This was getting analyzer errors
         else if (_opcode == 0x50) _ret = POP(_args);
         else if (_opcode == 0x51) _ret = MLOAD(_args);
         else if (_opcode == 0x52) _ret = MSTORE(_args);
@@ -83,11 +84,9 @@ contract YieldchainOnpcodes {
 
     function STOP(bytes[] memory _args) internal returns (bytes memory _ret) {}
 
-    function ADD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function ADD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -96,11 +95,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MUL(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MUL(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -109,11 +106,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SUB(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SUB(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -122,11 +117,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function DIV(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function DIV(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -135,11 +128,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SDIV(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SDIV(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -148,11 +139,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MOD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MOD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -161,11 +150,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SMOD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SMOD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -174,11 +161,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function ADDMOD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function ADDMOD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -188,11 +173,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MULMOD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MULMOD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -202,11 +185,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function EXP(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function EXP(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -215,11 +196,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SIGNEXTEND(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SIGNEXTEND(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -228,11 +207,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function LT(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function LT(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -241,11 +218,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function GT(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function GT(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -254,11 +229,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SLT(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SLT(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -267,11 +240,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SGT(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SGT(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -280,11 +251,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function EQ(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function EQ(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -293,22 +262,18 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function ISZERO(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function ISZERO(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             _ret := iszero(a)
         }
     }
 
-    function AND(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function AND(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -317,11 +282,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function OR(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function OR(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -330,11 +293,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function XOR(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function XOR(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -343,11 +304,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function NOT(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function NOT(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -356,11 +315,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function BYTE(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function BYTE(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -369,11 +326,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SHL(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SHL(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -382,11 +337,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SHR(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SHR(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -394,11 +347,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SAR(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function SAR(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -407,11 +358,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function KECCAK256(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function KECCAK256(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -428,11 +377,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function BALANCE(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function BALANCE(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             _ret := balance(a)
@@ -463,11 +410,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function CALLDATALOAD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function CALLDATALOAD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
 
@@ -483,11 +428,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function CALLDATACOPY(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function CALLDATACOPY(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             let b := mload(add(_args, 0x40))
@@ -505,11 +448,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function CODECOPY(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function CODECOPY(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         // TODO: Needed?
     }
 
@@ -521,22 +462,18 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function EXTCODESIZE(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function EXTCODESIZE(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             _ret := extcodesize(a)
         }
     }
 
-    function EXTCODECOPY(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function EXTCODECOPY(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         // TODO: needed?
     }
 
@@ -548,30 +485,24 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function RETURNDATACOPY(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function RETURNDATACOPY(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         // TODO: Needed?
     }
 
-    function EXTCODEHASH(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function EXTCODEHASH(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             _ret := extcodehash(a)
         }
     }
 
-    function BLOCKHASH(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function BLOCKHASH(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         assembly {
             let a := mload(add(_args, 0x20))
             _ret := blockhash(a)
@@ -635,21 +566,17 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function BASEFEE(
-        bytes[] memory /*_args*/
-    ) internal view returns (bytes memory _ret) {
-        assembly {
-            _ret := basefee()
-        }
-    }
+    // function BASEFEE(
+    //     bytes[] memory /*_args*/
+    // ) internal view returns (bytes memory _ret) {
+    //     assembly {
+    //         _ret := basefee()
+    //     }
+    // }
 
-    function POP(bytes[] memory _args)
-        internal
-        pure
-        returns (
-            bytes memory /* _ret*/
-        )
-    {
+    function POP(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory /* _ret*/) {
         assembly {
             let a := mload(add(_args, 0x20))
             pop(a)
@@ -664,22 +591,18 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MLOAD(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MLOAD(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let offset := mload(add(_args, 0x20))
             _ret := mload(offset)
         }
     }
 
-    function MSTORE(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MSTORE(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let offset := mload(add(_args, 0x20))
             let val := mload(add(_args, 0x40))
@@ -693,11 +616,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function MSTORE8(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function MSTORE8(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             // TODO: do i need to load the values differently  since size is different?
             let offset := mload(add(_args, 0x20))
@@ -712,11 +633,9 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function SLOAD(bytes[] memory _args)
-        internal
-        view
-        returns (bytes memory _ret)
-    {
+    function SLOAD(
+        bytes[] memory _args
+    ) internal view returns (bytes memory _ret) {
         assembly {
             let key := mload(add(_args, 0x20))
             _ret := sload(key)
@@ -737,22 +656,18 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function JUMP(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function JUMP(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let dest := mload(add(_args, 0x20))
             _ret := dest
         }
     }
 
-    function JUMPI(bytes[] memory _args)
-        internal
-        pure
-        returns (bytes memory _ret)
-    {
+    function JUMPI(
+        bytes[] memory _args
+    ) internal pure returns (bytes memory _ret) {
         assembly {
             let dest := mload(add(_args, 0x20))
             let condition := mload(add(_args, 0x40))
@@ -843,18 +758,15 @@ contract YieldchainOnpcodes {
         }
     }
 
-    function RETURN(bytes[] memory _args)
-        internal
-        returns (bytes memory _ret)
-    {}
+    function RETURN(
+        bytes[] memory _args
+    ) internal returns (bytes memory _ret) {}
 
-    function CREATE2(bytes[] memory _args)
-        internal
-        returns (bytes memory _ret)
-    {}
+    function CREATE2(
+        bytes[] memory _args
+    ) internal returns (bytes memory _ret) {}
 
-    function REVERT(bytes[] memory _args)
-        internal
-        returns (bytes memory _ret)
-    {}
+    function REVERT(
+        bytes[] memory _args
+    ) internal returns (bytes memory _ret) {}
 }

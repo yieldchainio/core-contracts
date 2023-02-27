@@ -227,10 +227,6 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
         AutomationStorage storage automationStorage = AutomationStorageLib
             .getAutomationStorage();
 
-        // Memory ref of i_registry (gas opt)
-        AutomationRegistryBaseInterface i_registry = automationStorage
-            .i_registry;
-
         // Getting the state of the registry
         // @notice All variables here except the state one are unused (We want to get the nonce)
         (
@@ -239,7 +235,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
             address[] memory _k,
             address[] memory _b,
             uint8 _u
-        ) = i_registry.getState();
+        ) = automationStorage.i_registry.getState();
         uint256 oldNonce = state.nonce;
 
         // Encoding paylod for registering the upkeep
@@ -262,7 +258,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
         );
 
         // Getting the state after calling
-        (state, _c, _k, _b, _u) = i_registry.getState();
+        (state, _c, _k, _b, _u) = automationStorage.i_registry.getState();
 
         // Confirm the nonce has indeed changed
         uint256 newNonce = state.nonce;
@@ -272,7 +268,7 @@ contract AutomationFacet is AutomationCompatibleInterface, ExecutorEnforcment {
                 keccak256(
                     abi.encodePacked(
                         blockhash(block.number - 1),
-                        address(i_registry),
+                        address(automationStorage.i_registry),
                         uint32(oldNonce)
                     )
                 )

@@ -96,4 +96,41 @@ abstract contract YieldchainStrategyVaultOps is YieldchainStrategyNames {
         // Either transferred inputted amount, or max uint256 if amount is 0 (implicit max approval)
         IERC20(_token).approve(_spender, _amount > 0 ? _amount : 2 ** 256 - 1);
     }
+
+    // ======================================
+    //          AUTOMATION FUNCTIONS
+    // ======================================
+
+    // Gets called by upkeep orchestrator to determine whether the strategy should run now
+    // TODO: Custom triggers (Not just automations)
+    function shouldPerform() external view returns (bool) {
+        // If AUTOMATION_INTERVAL has passed since last execution
+        if (block.timestamp - lastExecution >= AUTOMATION_INTERVAL) return true;
+        return false;
+    }
+
+    // User triggers to fund the gas balance - takes in any ERC20 token and transfers it. Then swaps it
+    function fundGas(uint256 _amount, address _token) external payable {
+        // Initiating data array for callback
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encode(_amount);
+        data[1] = abi.encode(_token);
+
+        // Transfering the tokens to us
+
+        // If it's native currency we use msg.value instead of the amount argument
+        if (_token == address(0)) {
+            require(
+                msg.value > 0,
+                "ERROR FUNDING GAS: msg.value must be larger than 0 when depositing native currency"
+            );
+            _amount = msg.value;
+        } else {
+            // Transfer ERC20 token from msg.sender to us - requires preapproval.
+            IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        }
+
+        // Emiting a callback event requesting the gas deposit
+        emit RequestCallback("fundGas", "addGas", 0, data);
+    }
 }

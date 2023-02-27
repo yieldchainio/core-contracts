@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../YC-Diamond/YC-Diamond-Interface.sol";
-import "./YC-Strategy-Execution-Helpers.sol";
+import "./YC-Strategy-Conditionals-Logic.sol";
 import "./YC-Strategy-Types.sol";
 
 /**
@@ -10,10 +10,7 @@ import "./YC-Strategy-Types.sol";
  * A base contract that is used when creating Yielchain strategies through a factory.
  */
 
-contract YCStrategyBase is
-    YieldchainStrategyExecHelpers,
-    YieldchainStrategyTypes
-{
+contract YCStrategyBase is YieldchainStrategyConditionals {
     // =======================================
     //            CONSTRUCTOR SUPER
     // ========================================
@@ -26,7 +23,7 @@ contract YCStrategyBase is
         uint256 _automation_interval,
         address _deployer
     )
-        YieldchainStrategyExecHelpers(
+        YieldchainStrategyConditionals(
             _steps,
             _base_strategy_steps,
             _base_tokens,
@@ -36,42 +33,6 @@ contract YCStrategyBase is
             _deployer
         )
     {}
-
-    // ======================================
-    //          AUTOMATION FUNCTIONS
-    // ======================================
-
-    // Gets called by upkeep orchestrator to determine whether the strategy should run now
-    function shouldPerform() external view returns (bool) {
-        // If AUTOMATION_INTERVAL has passed since last execution
-        if (block.timestamp - lastExecution >= AUTOMATION_INTERVAL) return true;
-        return false;
-    }
-
-    // User triggers to fund the gas balance - takes in any ERC20 token and transfers it. Then swaps it
-    function fundGas(uint256 _amount, address _token) external payable {
-        // Initiating data array for callback
-        bytes[] memory data = new bytes[](2);
-        data[0] = abi.encode(_amount);
-        data[1] = abi.encode(_token);
-
-        // Transfering the tokens to us
-
-        // If it's native currency we use msg.value instead of the amount argument
-        if (_token == address(0)) {
-            require(
-                msg.value > 0,
-                "msg.value must be above 0 when depositing native currency"
-            );
-            _amount = msg.value;
-        } else {
-            // Transfer ERC20 token from msg.sender to us - requires preapproval.
-            IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        }
-
-        // Emiting a callback event requesting the gas deposit
-        emit RequestCallback("fundGas", "addGas", 0, data);
-    }
 
     // =========================
     //       MAIN FUNCTIONS
@@ -86,7 +47,7 @@ contract YCStrategyBase is
     function runStrategy() external isYieldchain {
         lastExecution = block.timestamp;
         locked = true;
-        runStep(0, true);
+        runStep(0, true, new bytes(0), false, new uint256[](0));
     }
 
     /**
@@ -94,30 +55,42 @@ contract YCStrategyBase is
      * @runStep
      * Begins a recrusive execution of steps starting at a given step index
      */
-    function runStep(uint256 _step_index, bool _isRoot) public isYieldchain {
+    function runStep(
+        uint256 _step_index,
+        bool _isRoot,
+        bytes memory _custom_function, // Optional - for callback fullfills
+        bool _isFullfill,
+        uint256[] memory _childrenToIgnore
+    ) public isYieldchain {
         // Decoding our current Step
         YCStep memory current_step = abi.decode(STEPS[_step_index], (YCStep));
 
         // An array of the step's children to not execute - only relevent for conditional steps.
-        uint256[] memory children_to_ignore;
+        uint256[] memory children_to_ignore = _childrenToIgnore;
 
         // Initiallizing
         FunctionCall memory executedFunc;
 
-        // If not a conditional, run the step regularly
-        if (current_step.conditions.length > 0) {
-            (, executedFunc) = _runStep(current_step);
-        } else {
-            children_to_ignore = _runConditional(current_step);
-        }
+        // @notice
+        // If the current run is a fullfill - Run the custom function
+        if (_isFullfill) (, executedFunc) = _runFunction(_custom_function);
 
-        // Shorthand for current function
+        // If the current call is not an offchain fullfil operation, we run the step (either regularely/as a conditional)
+        if (!_isFullfill)
+            if (current_step.conditions.length > 0) {
+                (, executedFunc) = _runFunction(current_step.step_function);
+            } else {
+                (
+                    children_to_ignore,
+                    executedFunc.is_callback
+                ) = _runConditional(current_step, _step_index);
+            }
 
-        // If the step is a callback step (requires a stop on-chain and a resumption after offchain computation) -
+        // If the step is a callback step (requires a stop on-chain and a resumption (fulfill) after offchain computation) -
         // We break the recrusion.
         // Note that in the case of it being a callback, either function should handle emitting the request log (that is caught
         // by the backend), which would presumabley include the index of the step it was emitted in (So it can reenter the recrusion loop).
-        if (executedFunc.is_callback) {
+        if (executedFunc.is_callback && !_isFullfill) {
             return;
         }
 
@@ -133,77 +106,16 @@ contract YCStrategyBase is
                 continue;
 
             // @Recruse
-            runStep(childrenIndexes[i], false);
-        }
-
-        if (_isRoot) locked = false;
-    }
-
-    // Execute a reguler step (Internal)
-    function _runStep(
-        YCStep memory _step
-    ) internal returns (bytes memory _ret, FunctionCall memory _calledFunc) {
-        // Execute the step's function
-        (_ret, _calledFunc) = runFunction(_step.step_function);
-    }
-
-    // Execute a conditional (Internal)
-    function _runConditional(
-        YCStep memory _step
-    ) internal returns (uint256[] memory _children_to_ignore) {
-        // Execute the determineCondition function - which executes each condition function, returns the index
-        // of the child to execute fro the children's array
-        (
-            uint256 conditionChildrenIndex,
-            bool foundTrueCondition
-        ) = _determineCondition(_step.conditions);
-
-        // Children indexes shorthand (accessed 3 times)
-        uint256[] memory children_indexes = _step.children_indexes;
-
-        // Looping over each one of the children - If no condition was true, we push em all.
-        // Else, we push everyone but the condition that evaluated to true.
-        if (!foundTrueCondition) _children_to_ignore = children_indexes;
-        else
-            for (uint256 j = 0; j < children_indexes.length; j++)
-                if (children_indexes[j] != conditionChildrenIndex)
-                    _children_to_ignore[j] = (children_indexes[j]);
-    }
-
-    /// @notice Receives a container of conditional steps (i.e steps that run a function which returns a boolean),
-    // determines which one of them is the first one to turn out true,
-    // and returns the index of it. If none are true, it returns false additionaly. The caller will execute the correct condition's
-    // children container - or none at all.
-    // @dev similar to the usual in-code if/elseif/else statements
-    // @param _conditions_container The container (array) of encoded YCSteps - the conditions.
-    // @return _should_exec_conditions
-    // @return _container_to_run
-    function _determineCondition(
-        bytes[] memory _conditions
-    ) internal returns (uint256 _container_to_run, bool _found_true_condition) {
-        // Looping over each condition
-        for (uint256 i = 0; i < _conditions.length; i++) {
-            // Call the condition FunctionCall
-            (bytes memory ret, FunctionCall memory calledFunc) = runFunction(
-                _conditions[i]
+            runStep(
+                childrenIndexes[i],
+                false,
+                new bytes(0),
+                false,
+                new uint256[](0)
             );
-
-            // @notice
-            // Breaking the loop if current iteration is a callback.
-            // The functiin call is returned from the caller (runStep) function regardless,
-            // but this is sufficient in order to ensure efficiency & no executions of un-wanted, potentially state-chaning functions.
-            if (calledFunc.is_callback) break;
-
-            // Decoding return value as a boolean
-            _found_true_condition = abi.decode(ret, (bool));
-
-            // @notice
-            // If the condition is true, we return the index of it - Caller will execute it's children
-            // (which will be now ignored when looping)
-            if (_found_true_condition) {
-                _container_to_run = i;
-                break;
-            }
         }
+
+        // Unlocking the "locked" if the inputted step is the root - it means we finished executing it and all of it's hierarchy
+        if (_isRoot && locked == true) locked = false;
     }
 }
