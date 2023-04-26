@@ -3,7 +3,6 @@ pragma solidity ^0.8.18;
 import "../../storage/StrategiesStorage.sol";
 import "../../interfaces/ChainlinkAutomationInterface.sol";
 import "../../../YC-Strategy/YC-Strategy-Logic.sol";
-import "../../YC-Diamond-Interface.sol";
 import "./StrategyFactoryFacet.sol";
 import "../../interfaces/LinktokenInterface.sol";
 import "../../interfaces/AutomationRegistryInterface2_0.sol";

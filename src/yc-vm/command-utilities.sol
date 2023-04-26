@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+import "../YC-Types.sol";
 
-contract ycVMUtilities {
+contract ycVMUtilities is YieldchainTypes {
     // =====================
     //        ERRORS
     // =====================
@@ -10,6 +11,32 @@ contract ycVMUtilities {
     // =====================
     //       FUNCTIONS
     // =====================
+    /**
+     * @notice
+     * Decodes a full encoded YC FunctionCall
+     * @param _encodedFunctionCall - An encoded YC FunctionCall struct, with flags
+     * @return _decodedFunc The decoded function call
+     * @return _typeflag - the typeflag of the FunctionCall
+     * @return _returnTypeflag - The typeflag of the FunctionCall's return value
+     */
+
+    function decodeFunctionCall(
+        bytes memory _encodedFunctionCall
+    )
+        internal
+        pure
+        returns (
+            FunctionCall memory _decodedFunc,
+            uint8 _typeflag,
+            uint8 _returnTypeflag
+        )
+    {
+        // Initiating byte for the encoded function call without the flag
+        bytes memory encodedFunctionCallNoFlag;
+
+        // Seperating them
+        (encodedFunctionCallNoFlag, _typeflag, _returnTypeflag);
+    }
 
     /**
      * @notice
@@ -72,17 +99,17 @@ contract ycVMUtilities {
         returns (
             bytes memory _plain_variable,
             uint8 _typeflag,
-            uint8 _returnTypeFlag
+            uint8 _returnTypeFlag,
+            uint8 _arrayIdentifierFlag
         )
     {
         // Getting the @Flag of the variable (appended to the end of each YC input)
-        (_typeflag, _returnTypeFlag) = getVarFlags(_variable);
+        (_typeflag, _returnTypeFlag, _arrayIdentifierFlag) = getVarFlags(
+            _variable
+        );
 
         // Saving a version of the argument without the appended flag
-        _plain_variable = removeVarFlag(_variable);
-
-        // TODO: update this
-        _returnTypeFlag = _typeflag;
+        _plain_variable = removeVarFlags(_variable);
     }
 
     /**
@@ -91,7 +118,9 @@ contract ycVMUtilities {
      */
     function isIterative(
         bytes memory _ycVar
-    ) internal pure returns (bool _isIterative) {}
+    ) internal pure returns (bool _isIterative) {
+        return _ycVar[0] == 0x01;
+    }
 
     /**
      * @notice
@@ -103,7 +132,7 @@ contract ycVMUtilities {
      * 0x03 = Delegate CALL
      * 0x04 CALL
      * -------------------
-     * I
+     * 
      * --- Iterative Flags: ---
      * 0x00 = Non-Iterative (reguler)
      * 0x01 = Iterative (i.e an array)
@@ -129,27 +158,55 @@ contract ycVMUtilities {
     /**
      * @notice
      * @removeVarFlag
-     * Takes in a full encoded YC Variable with flag,
-     * returns the variable without the flag
+     * Takes in a full encoded YC Variable with flags,
+     * returns the variable without the flags
      */
-    function removeVarFlag(
-        bytes memory _var
+    function removeVarFlags(
+        bytes memory _ycVar
     ) public pure returns (bytes memory _ret) {
-        // Determine the length of the new byte,
-        // If the variable is not an iterative (array) then its 3 (isArray bool + typeflag + return typeflag),
-        // If it is,we also need to delete the length of it
-        uint256 deductLen = _var[0] == 0 ? 3 : 4;
-        _ret = new bytes(_var.length - deductLen);
-        assembly {
-            let baseptr := add(_var, 0x20)
-            let retptr := add(_ret, 0x20)
-            for {
-                let i := 0
-            } lt(i, sub(mload(_var), 2)) {
-                i := add(i, 1)
-            } {
-                mstore(add(retptr, i), mload(add(baseptr, i)))
-            }
+        // Remove the typeflags & the array identifiers at the end of the byte
+        _ret = removeTypeflags(removeArrayIdentifierFlags(_ycVar));
+    }
+
+    /**
+     * @notice
+     * Takes in an encoded YC variable, removes it's typeflags from the end
+     * @param _ycVar the encoded YC variable
+     * @return The encoded variable without the 1byte-long typeflags at the end
+     */
+    function removeTypeflags(
+        bytes memory _ycVar
+    ) internal pure returns (bytes memory) {
+        // Initiate new byte of the length of the variable - 1 (to account for the byte we are deleting)
+        bytes memory _ycVarNoTypeflags = new bytes(_ycVar.length - 1);
+
+        // Iterate over the bytes, append them in the new byte - should push all but the last byte
+        for (uint256 i = 0; i < _ycVarNoTypeflags.length; i++) {
+            _ycVarNoTypeflags[i] = _ycVar[i];
         }
+
+        // Finally, return the new byte
+        return _ycVarNoTypeflags;
+    }
+
+    /**
+     * @notice
+     * Removes the array identifiers from a YC Variable
+     * @param _ycVar - The encoded YC variable with the array flag on it already
+     * @return YC Variable without the array flags
+     */
+    function removeArrayIdentifierFlags(
+        bytes memory _ycVar
+    ) internal pure returns (bytes memory) {
+        // Initiate new byte of the length of the variable - 1 (to account for the byte we are deleting)
+        bytes memory _ycVarNoTypeflags = new bytes(_ycVar.length - 1);
+
+        // Iterate over the bytes, append them in the new byte - should push all but the last byte
+        for (uint256 i = 1; i < _ycVarNoTypeflags.length; i++) {
+            _ycVarNoTypeflags[i] = _ycVar[i];
+        }
+
+        // Finally, return the new variable
+        return _ycVarNoTypeflags;
     }
 }

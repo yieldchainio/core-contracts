@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "./YC-Strategy-State.sol";
-
-abstract contract YieldchainStrategyNames is YieldchainStrategyState {
+ contract YieldchainStrategyNames is YieldchainStrategyState {
     // =============================================================
     //                 CONSTRUCTOR SUPER
     // =============================================================
@@ -54,7 +53,7 @@ abstract contract YieldchainStrategyNames is YieldchainStrategyState {
         _;
     }
 
-    // checks to see if strategy is currently unlocked
+    // Checks to see if strategy is currently unlocked
     modifier isUnlocked() {
         require(!locked, "Strategy Is Locked, Cannot Execute Operation");
         _;

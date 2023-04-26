@@ -454,7 +454,7 @@ contract YieldchainLPWrapper is YieldchainLPProxyBase {
         );
 
         // Approving the LP amount to the target client address if allownace is insufficient
-        if (lpAmount > IERC20(tokenAAddress).allowance(sender, address(this))) {
+        if (lpAmount > IERC20(pair).allowance(sender, address(this))) {
             // Call the vault's internal approve function, to approve us for the max amount of LP tokens
             (success, result) = sender.call(
                 abi.encodeWithSignature(

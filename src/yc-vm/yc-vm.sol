@@ -2,8 +2,9 @@
 pragma solidity ^0.8.18;
 import "../YC-Types.sol";
 import "./command-utilities.sol";
+import "./yc-vm-storage.sol";
 
-contract YieldchainStrategyExecHelpers is YieldchainTypes, ycVMUtilities {
+contract YCVM is YieldchainTypes, ycVMUtilities, YCVMStorage {
     /**
      * @notice
      * _runFunction
@@ -15,12 +16,12 @@ contract YieldchainStrategyExecHelpers is YieldchainTypes, ycVMUtilities {
     function _runFunction(
         bytes memory _encodedFunctionCall
     ) internal returns (bytes memory _ret, FunctionCall memory _calledFunc) {
-        // Initiallizing
+        // Initiallize the flags variables
         uint8 typeflag;
+        uint8 retTypeflag;
 
-        // TODO: Add some r,s,v signature in here to retain pureness of function verification?
         // Preparing the function call.
-        (_calledFunc, typeflag) = YC_DIAMOND.prepareFunctionCall(
+        (_calledFunc, typeflag, retTypeflag) = decodeFunctionCall(
             _encodedFunctionCall
         );
 
@@ -38,7 +39,6 @@ contract YieldchainStrategyExecHelpers is YieldchainTypes, ycVMUtilities {
      * @param _typeflag - The typeflag to call with (i.e CALL, DELEGATECALL, STATICCALL)
      * @return ret_ - The return value of the function call
      */
-    // TODO: Enter the future r,s,v as args here
     function _execFunctionCall(
         FunctionCall memory _func,
         uint8 _typeflag
@@ -155,20 +155,48 @@ contract YieldchainStrategyExecHelpers is YieldchainTypes, ycVMUtilities {
      */
     function _getArgValue(
         bytes memory _arg
-    ) internal returns (bytes memory returnArg_, uint8 typeflag_) {
+    ) internal returns (bytes memory, uint8) {
         // Seperating the argument & the flag
         bytes memory plainArg;
 
+        // Shorthand for typeflag
+        uint8 typeflag;
+
         // Shorthand for the return type flag - may not be used if the variable is not a function call
         uint8 retTypeFlag;
+
+        // Shorthand for array identifier flag
+        uint8 arrayFlag;
+
         // Seperating the argument from it's typeflags
-        (plainArg, typeflag_, retTypeFlag) = seperateYCVariable(_arg);
+        (plainArg, typeflag, retTypeFlag, arrayFlag) = seperateYCVariable(_arg);
+
+        // @notice
+        // We first check to see if the argument is an iterative,
+        // If it is, we will iterate over each item of it,
+        // and parse each one individually. This is because a specfic item in an array may be an encoded FunctionCall
+        // struct, and we therefore want to use it's return value.
+
+        if (arrayFlag == 0x01) {
+            // Decode the byte into an array of bytes (It's an array of encoded YC Variables - done explictly in generation)
+            bytes[] memory arr = abi.decode(plainArg, (bytes[]));
+
+            // Iterate over each item in the array, get it's value
+            for (uint256 i = 0; i < arr.length; i++) {
+                // @notice We want to determine whether the items are dynamic or not, but getting the typeflag of the first item
+                // only should be sufficient since they are all of the same type - More efficient to reassign just once
+                // TODO: U left here just so u know
+                (arr[i], typeflag) = _getArgValue(arr[i]);
+            }
+        }
 
         // If the flag is 0, it means it is static so we return the plain arg as-is
-        if (typeflag_ == 0x00) returnArg_ = plainArg;
+        if (typeflag == 0x00) {
+            return (plainArg, typeflag);
+        }
 
         // If the flag is 1, it means it is a dynamic-length variable. We parse and return it
-        if (typeflag_ == 0x01) returnArg_ = parseDynamicVar(plainArg);
+        if (typeflag == 0x01) return (parseDynamicVar(plainArg), typeflag);
 
         // @notice
         // If the flag is not 0, 1 (i.e its either 1, 2, 3 - the CALL types), we call prepareFunctionCall.
@@ -178,12 +206,15 @@ contract YieldchainStrategyExecHelpers is YieldchainTypes, ycVMUtilities {
         // Getting the FunctionCall struct (Since the arg is not static)
 
         // Execute the function call.
-        (returnArg_, ) = _runFunction(_arg);
-
-        // Typeflag now equals to the return value's type flag (Since this will be now used as the argument)
-        typeflag_ = retTypeFlag;
+        (plainArg, ) = _runFunction(_arg);
 
         // If the return type flag is equal to the dynamic-length variable flag we parse it before returning it
-        if (retTypeFlag == 0x01) returnArg_ = parseDynamicVar(returnArg_);
+        if (retTypeFlag == 0x01) plainArg = parseDynamicVar(plainArg);
+
+        // Typeflag now equals to the return value's type flag (Since this will be now used as the argument,
+        // the calldata builder will treat it differently depending on whether it is fixed or not)
+        typeflag = retTypeFlag;
+
+        return (plainArg, typeflag);
     }
 }
