@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../types.sol";
+import "../libs/Bytes.sol";
 
 contract YCParsers is YieldchainTypes {
+    // =========
+    //    LIBS
+    // =========
+    using BytesLib for bytes[];
+
     // ================
     //    CONSTANTS
     // ================
@@ -110,125 +116,18 @@ contract YCParsers is YieldchainTypes {
 
         /**
          * @notice
-         * We keep track of all of the dynamic variables we have as arguments,
-         * in order to encode them correctly.
-         */
-        // We first get the total amount of dynamic variables, in order to initiate the array
-        uint256 dynamicVarsAmt = 0;
-        for (uint256 i = 0; i < _func.args.length; i++) {
-            if (_func.args[i][0] == DYNAMIC_VAR_FLAG) ++dynamicVarsAmt;
-        }
-        // The actual dynamic-length variables
-        bytes[] memory dynamicVars = new bytes[](dynamicVarsAmt);
-
-        // Their indexes within the calldata
-        uint256[] memory dynamicVarsIndexes = new uint256[](dynamicVarsAmt);
-
-        // We save a uint256 variable to keep track of the current available index
-        // within the array of dynamic variables. This is becuase we cannot push into
-        // in-memory arrays in Solidity
-        uint256 freeDynVarIndexPtr = 0;
-
-        /**
-         * Iterate over each one of hte function's arguments,
-         * call the _getCommandValue() function on them, which returns both the value and their typeflag.
-         */
-        for (uint256 i = 0; i < _func.args.length; i++) {
-            /**
-             * Get the value of the argument and it's underlying typeflag
-             */
-            (bytes memory argumentValue, bytes1 typeflag) = _getCommandValue(
-                _func.args[i]
-            );
-
-            /**
-             * Assert that the typeflag must either be a static or a dynamic variable.
-             * At this point, the argument should have been interpreted up until the point where
-             *  it's either dynamic or static length.
-             */
-            require(typeflag < 0x02, "typeflag must < 2 after parsing");
-
-            /**
-             * If it's a static variable, we simply concat the existing calldata with it
-             */
-            if (typeflag == 0x00)
-                constructedCalldata = bytes.concat(
-                    constructedCalldata,
-                    argumentValue
-                );
-
-                /**
-                 * Otherwise, we process it as a dynamic variable
-                 */
-            else {
-                /**
-                 * We save the current calldata length as the index of the 32 byte pointer of this dynamic variable,
-                 * in our array of dynamicVarIndexes
-                 */
-
-                // We have to manually iterate to "push" into in memory array
-
-                dynamicVarsIndexes[freeDynVarIndexPtr] = constructedCalldata
-                    .length;
-
-                /**
-                 * We then append an empty 32 byte placeholder at that index
-                 */
-                constructedCalldata = bytes.concat(
-                    constructedCalldata,
-                    new bytes(32)
-                );
-
-                /**
-                 * We then, at the same index as we saved the chunck pointer's index,
-                 * save the parsed value of the dynamic argument (it was parsed to be just the length + data
-                 * by the getCommandValue() function, it does not include the default prepended mem pointer now).
-                 */
-                dynamicVars[freeDynVarIndexPtr] = argumentValue;
-
-                // Increment the free index pointer of the dynamic variables
-                ++freeDynVarIndexPtr;
-            }
-        }
-
-        /**
-         * @notice,
-         * at this point we have iterated over each argument.
-         * The fixed-length arguments were concatinated with our constructed calldata,
-         * whilst the dynamic variables have been replaced with an empty 32 byte at their index,
-         * and their values & indexes of these empty placeholders were saved into our arrays.
+         * We call the interpretCommandsAndEncodeChunck() function with the function's array of arguments
+         * (which are YC commands), which will:
          *
-         * We know perform an additional iteration over these arrays, where we now basically append the
-         * dynamic variables to the end of the constructed calldata, save that new index of where we appended it,
-         * go back to the index of the corresponding empty placeholder, and replace it with a pointer to our new index.
+         * 1) Interpret each argument using the getCommandValue() function
+         * 2) Encode all of them as an ABI-compatible chunck, which can be used as the calldata
          *
-         * the EVM, when accepting this calldata, will expect this memory pointer at the index, which, points
-         * to where our variable is located in terms of offset since the beginning of the chunck
+         * And assign to the constructed calldata the concatinated selector + encoded chunck we recieve
          */
-        for (uint256 i = 0; i < dynamicVars.length; i++) {
-            // Shorthand for the index of our placeholder pointer
-            uint256 index = dynamicVarsIndexes[i];
-
-            // The new index/pointer
-            uint256 newPtr = constructedCalldata.length;
-
-            // Go into assembly (much cheaper & more conveient to just mstore the 32 byte word)
-            assembly {
-                mstore(add(add(constructedCalldata, 0x20), index), newPtr)
-            }
-
-            // Finally, concat the calldata with our dynamic variable's length + data
-            // (At what would now be stored in the  original index
-            // as the mem pointer)
-            constructedCalldata = bytes.concat(
-                constructedCalldata,
-                dynamicVars[i]
-            );
-        }
-        /**
-         * Finally, concat the 4 byte function selector with the arguments body - and return it
-         */
-        return bytes.concat(selector, constructedCalldata);
+        constructedCalldata = bytes.concat(
+            selector,
+            interpretCommandsAndEncodeChunck(_func.args)
+        );
     }
 
     /**
@@ -406,8 +305,188 @@ contract YCParsers is YieldchainTypes {
      */
     function parseDynamicCommandsArr(
         bytes memory ycCommandsArr
-    ) public pure returns (bytes memory interpretedArray) {
-        // Decode the bytes into a bytes[]
-        // bytes[] memory
+    ) public returns (bytes memory interpretedArray) {
+        /**
+         * We begin by decoding the encoded array into a bytes[]
+         */
+        bytes[] memory decodedCommandsArray = abi.decode(
+            ycCommandsArr,
+            (bytes[])
+        );
+
+        /**
+         * We iterate over each YC command in the array,
+         * and call _getCommandValue() on it, then swap the command at the index
+         * to the new interpreted underlying value.
+         */
+        for (uint256 i = 0; i < decodedCommandsArray.length; i++) {
+            /**
+             * Note that we discard the typeflag for each command as it is not needed in our case,
+             * once the contents are interpreted, this array is supposed to be used as-is on the
+             * end external contract.
+             */
+            (decodedCommandsArray[i], ) = _getCommandValue(
+                decodedCommandsArray[i]
+            );
+        }
+
+        interpretedArray = decodedCommandsArray.encodeBytesArray();
+    }
+
+    /**
+     * @notice
+     * interpretCommandsAndEncodeChunck
+     * Accepts an array of YC commands - interprets each one of them, then encodes an ABI-compatible chunck of bytes,
+     * corresponding of all of these arguments (account for static & dynamic variables)
+     * @param ycCommands - an array of yc commands to interpret
+     * @return interpretedEncodedChunck - A chunck of bytes which is an ABI-compatible encoded version
+     * of all of the interpreted commands
+     */
+    function interpretCommandsAndEncodeChunck(
+        bytes[] memory ycCommands
+    ) public returns (bytes memory interpretedEncodedChunck) {
+        /**
+         * @notice
+         * We keep track of all of the dynamic variables we have on the commands,
+         * in order to encode them correctly.
+         */
+
+        /**
+         * We begin by getting the amount of all dynamic variables,
+         * in order to instantiate the array.
+         *
+         * Note that we are looking at the RETURN typeflag of the command at idx 1,
+         * and we're doing it since a command may be flagged as some certain type in order to be parsed correctly,
+         * but the end result we will be getting from the parsing iteration is different - for example, dynamic
+         * commands arrays (dynamic-length arrays which are made up of YC commands) are flagged as 0x03 in order to
+         * be parsed differently, yet at the end we're supposed to get a reguler dynamic flag from the parsing
+         * (Since that is what the end contract expects - a dynamic-length variable which is some array).
+         *
+         * This means that for a dynamic variable to be flagged correctly, it's return type need to be flagged
+         * also as dynamic (0x01)
+         */
+        uint256 dynamicVarsAmt = 0;
+        for (uint256 i = 0; i < ycCommands.length; i++) {
+            if (ycCommands[i][1] == DYNAMIC_VAR_FLAG) ++dynamicVarsAmt;
+        }
+
+        // The actual array of dynamic-length variables
+        bytes[] memory dynamicVars = new bytes[](dynamicVarsAmt);
+
+        // Their indexes within the chunck
+        uint256[] memory dynamicVarsIndexes = new uint256[](dynamicVarsAmt);
+
+        // We save a uint256 variable to keep track of the current available index
+        // within the array of dynamic variables. This is because we cannot push into
+        // in-memory arrays in Solidity
+        uint256 freeDynVarIndexPtr = 0;
+
+        /**
+         * Iterate over each one of the ycCommands,
+         * call the _getCommandValue() function on them, which returns both the value and their typeflag.
+         */
+        for (uint256 i = 0; i < ycCommands.length; i++) {
+            /**
+             * Get the value of the argument and it's underlying typeflag
+             */
+            (bytes memory argumentValue, bytes1 typeflag) = _getCommandValue(
+                ycCommands[i]
+            );
+
+            /**
+             * Assert that the typeflag must either be a static or a dynamic variable.
+             * At this point, the argument should have been interpreted up until the point where
+             * it's either dynamic or static length variable.
+             */
+            require(typeflag < 0x02, "typeflag must < 2 after parsing");
+
+            /**
+             * If it's a static variable, we simply concat the existing chunck with it
+             */
+            if (typeflag == 0x00)
+                interpretedEncodedChunck = bytes.concat(
+                    interpretedEncodedChunck,
+                    argumentValue
+                );
+
+                /**
+                 * Otherwise, we process it as a dynamic variable
+                 */
+            else {
+                /**
+                 * We save the current chunck length as the index of the 32 byte pointer of this dynamic variable,
+                 * in our array of dynamicVarIndexes
+                 */
+                dynamicVarsIndexes[
+                    freeDynVarIndexPtr
+                ] = interpretedEncodedChunck.length;
+
+                /**
+                 * We then append an empty 32 byte placeholder at that index on the chunck
+                 * ("mocking" what would have been the offset pointer)
+                 */
+                interpretedEncodedChunck = bytes.concat(
+                    interpretedEncodedChunck,
+                    new bytes(32)
+                );
+
+                /**
+                 * We then, at the same index as we saved the chunck pointer's index,
+                 * save the parsed value of the dynamic argument (it was parsed to be just the length + data
+                 * by the getCommandValue() function, it does not include the default prepended mem pointer now).
+                 */
+                dynamicVars[freeDynVarIndexPtr] = argumentValue;
+
+                // Increment the free index pointer of the dynamic variables
+                ++freeDynVarIndexPtr;
+            }
+        }
+
+        /**
+         * @notice,
+         * at this point we have iterated over each command.
+         * The fixed-length arguments were concatinated with our chunck,
+         * whilst the dynamic variables have been replaced with an empty 32 byte at their index,
+         * and their values & indexes of these empty placeholders were saved into our arrays.
+         *
+         * We now perform an additional iteration over these arrays, where we append the
+         * dynamic variables to the end of the encoded chunck, save that new index of where we appended it,
+         * go back to the index of the corresponding empty placeholder, and replace it with a pointer to our new index.
+         *
+         * the EVM, when accepting this chunck as calldata, will expect this memory pointer at the index, which, points
+         * to where our variable is located in terms of offset since the beginning of the chunck
+         */
+        for (uint256 i = 0; i < dynamicVars.length; i++) {
+            // Shorthand for the index of our placeholder pointer
+            uint256 index = dynamicVarsIndexes[i];
+
+            // The new index/pointer
+            uint256 newPtr = interpretedEncodedChunck.length;
+
+            // Go into assembly (much cheaper & more conveient to just mstore the 32 byte word)
+            assembly {
+                mstore(add(add(interpretedEncodedChunck, 0x20), index), newPtr)
+            }
+
+            // Finally, concat the calldata with our dynamic variable's length + data
+            // (At what would now be stored in the  original index
+            // as the mem pointer)
+            interpretedEncodedChunck = bytes.concat(
+                interpretedEncodedChunck,
+                dynamicVars[i]
+            );
+        }
+        /**
+         * Finally, concat the 4 byte function selector with the arguments body - and return it
+         */
+        return interpretedEncodedChunck;
     }
 }
+
+// The inputted byte where the function call return val was suposed to be used
+// 0x
+// 00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001c546869732049732054686520617272617920737472696e672073657200000000
+
+// 0000000000000000000000000000000000000000000000000000000000000001
+// 000000000000000000000000000000000000000000000000000000000000001c
+// 546869732049732054686520617272617920737472696e672073657200000000
