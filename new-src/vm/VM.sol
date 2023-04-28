@@ -119,7 +119,7 @@ contract YCParsers is YieldchainTypes {
          * We call the interpretCommandsAndEncodeChunck() function with the function's array of arguments
          * (which are YC commands), which will:
          *
-         * 1) Interpret each argument using the getCommandValue() function
+         * 1) Interpret each argument using the _separateAndGetCommandValue() function
          * 2) Encode all of them as an ABI-compatible chunck, which can be used as the calldata
          *
          * And assign to the constructed calldata the concatinated selector + encoded chunck we recieve
@@ -131,14 +131,14 @@ contract YCParsers is YieldchainTypes {
     }
 
     /**
-     * _getCommandValue()
-     * Get a command/argument's actual value, by parsing it, and potentially
+     * _separateAndGetCommandValue()
+     * Separate & get a command/argument's actual value, by parsing it, and potentially
      * using it's return value (if a function call)
      * @param command - the full encoded command, including typeflags
      * @return interpretedValue - The interpreted underlying value of the argument
      * @return typeflag - The typeflag of the underlying value
      */
-    function _getCommandValue(
+    function _separateAndGetCommandValue(
         bytes memory command
     ) public returns (bytes memory interpretedValue, bytes1 typeflag) {
         // First, seperate the command/variable from it's typeflag & return var typeflag
@@ -146,20 +146,88 @@ contract YCParsers is YieldchainTypes {
         (interpretedValue, typeflag, retTypeFlag) = _separateCommand(command);
 
         /**
-         * Assert that the typeflag must be ranging from 0x00 to
+         * Then, check to see if it's either one of the CALL typeflags, to determine
+         * whether it's a function call or not
          */
+        if (typeflag >= STATICCALL_COMMAND_FLAG) {
+            /* 
+             * If it is, it means the body is an encoded FunctionCall struct.
+             * We call the internal _execFunction() function with our command body & typeflag,
+             * in order to execute this function and retreive it's return value - And then use the
+             * usual _getCommandValue() function to parse it's primitive value, with the return typeflag.
+             * We also assign to the typeflag the command's returnTypeFlag that we got when separating.
+             */
+            // Decode it first
+            FunctionCall memory functionCallCommand = abi.decode(
+                interpretedValue,
+                (FunctionCall)
+            );
+
+            /**
+             * To the interpretedValue variable, assign the interpreted result
+             * of the return value of the function call. And to the typeflag, assign
+             * the returned typeflag (which should be the typeflag of the underlying return value)
+             * Note that, to avoid any doubts -
+             * The underlying typeflag in this case should always just be the return type flag of the function call,
+             * that we input into the function. It's just the uniform API of the function that requires us to receive
+             * it anyway.
+             *
+             * The additional interpretation is done in order to comply the primitive underlying return value
+             * with the rest of the system (i.e chunck/calldata encoder). For example, if the function returns
+             * a dynamic variable - We need to remove it's initial 32-byte offset pointer in order for it to
+             * be compliant with the calldata builder.
+             */
+
+            return (
+                _getCommandValue(
+                    _execFunctionCall(functionCallCommand, typeflag),
+                    retTypeFlag
+                )
+            );
+        }
+
+        /**
+         * At this point, if it's not a FunctionCall - It is another command type.
+         *
+         * We call the _getCommandValue() function with our command body & typeflag,
+         * which will interpret it and return the underlying value, along with the underlying typeflag.
+         */
+        (interpretedValue, typeflag) = _getCommandValue(
+            interpretedValue,
+            typeflag
+        );
+    }
+
+    /**
+     * @notice
+     * _getCommandValue
+     * Accepts a primitive value, a typeflag - and interprets it
+     * @param commandVariable - A command variable without the typeflags
+     * @param typeFlag - The typeflag
+     */
+
+    function _getCommandValue(
+        bytes memory commandVariable,
+        bytes1 typeflag
+    ) public returns (bytes memory parsedPrimitiveValue, bytes1 typeFlag) {
+        /**
+         * We initially set parsed primitive value and typeFlag to the provided ones
+         */
+        parsedPrimitiveValue = commandVariable;
+        typeFlag = typeflag;
 
         /**
          * If the typeflag is 0x00, it's a static variable and we just return it (simplest case)
          */
-        if (typeflag == STATIC_VAR_FLAG) return (interpretedValue, typeflag);
+        if (typeflag == STATIC_VAR_FLAG)
+            return (parsedPrimitiveValue, typeflag);
 
         /**
          * If the typeflag is 0x01, it's a dynamic-type variable (string, array...), we parse and return it
          */
         if (typeflag == DYNAMIC_VAR_FLAG) {
-            interpretedValue = _parseDynamicVar(interpretedValue);
-            return (interpretedValue, typeflag);
+            parsedPrimitiveValue = _parseDynamicVar(parsedPrimitiveValue);
+            return (parsedPrimitiveValue, typeflag);
         }
 
         /**
@@ -171,7 +239,7 @@ contract YCParsers is YieldchainTypes {
          */
         if (typeflag == FIXED_LENGTH_COMMANDS_ARR_FLAG) {
             return (
-                parseFixedLengthCommandsArr(interpretedValue),
+                parseFixedLengthCommandsArr(parsedPrimitiveValue),
                 STATIC_VAR_FLAG
             );
         }
@@ -182,28 +250,10 @@ contract YCParsers is YieldchainTypes {
          */
         if (typeflag == DYNAMIC_LENGTH_COMMANDS_ARR_FLAG) {
             return (
-                parseDynamicCommandsArr(interpretedValue),
+                parseDynamicCommandsArr(parsedPrimitiveValue),
                 DYNAMIC_VAR_FLAG
             );
         }
-
-        /**
-         * At this point, it can be either 0x04, 0x05, or 0x06.
-         * All of those refer to some sort of a function call, which means the body is an encoded
-         * FunctionCall struct.
-         * we call the internal _execFunction() function with our command body & typeflag,
-         * in order to execute this function and retreive it's return value.
-         * We also assign to the typeflag the command's returnTypeFlag that we got when separating.
-         */
-        // Decode it first
-        FunctionCall memory functionCallCommand = abi.decode(
-            interpretedValue,
-            (FunctionCall)
-        );
-
-        // Assign command body to the return value of execFunctionCall()
-        interpretedValue = _execFunctionCall(functionCallCommand, typeflag);
-        typeflag = retTypeFlag;
     }
 
     /**
@@ -292,7 +342,8 @@ contract YCParsers is YieldchainTypes {
      * parseFixedLengthCommandsArr
      * Parse a fixed-length array of YC commands
      * @param ycCommandsArr - An encoded fixed-length array which is made up of YC commands
-     * @return interpretedArray - The array, but of the underlying values (using _getCommandValue() on each item),
+     * @return interpretedArray - The array, but of the underlying values
+     * (using _separateAndGetCommandValue() on each item),
      * without it's ABI-prepended 32 byte offset pointer
      */
     function parseFixedLengthCommandsArr(
@@ -315,22 +366,18 @@ contract YCParsers is YieldchainTypes {
         );
 
         /**
-         * We iterate over each YC command in the array,
-         * and call _getCommandValue() on it, then swap the command at the index
-         * to the new interpreted underlying value.
+         * We then call the interpretCommandsAndEncodeChunck() function with our array of YC commands,
+         * which will interpret each command, and encode it into a single chunck, depending on it's underlying type.
+         *
+         * We then prepend the result (using bytes.concat) with the array's length (32 byte padded, ofc).
+         * This is needed for arrays in the EVM, otherwise it's just a chunck of the items in it, without anything
+         * identifying it as an iterable array.
+         * A pointer will be prepended to it where needed lower in the stack - out of scope for this function.
          */
-        for (uint256 i = 0; i < decodedCommandsArray.length; i++) {
-            /**
-             * Note that we discard the typeflag for each command as it is not needed in our case,
-             * once the contents are interpreted, this array is supposed to be used as-is on the
-             * end external contract.
-             */
-            (decodedCommandsArray[i], ) = _getCommandValue(
-                decodedCommandsArray[i]
-            );
-        }
-
-        interpretedArray = decodedCommandsArray.encodeBytesArray();
+        interpretedArray = bytes.concat(
+            abi.encode(decodedCommandsArray.length),
+            interpretCommandsAndEncodeChunck(decodedCommandsArray)
+        );
     }
 
     /**
@@ -383,15 +430,16 @@ contract YCParsers is YieldchainTypes {
 
         /**
          * Iterate over each one of the ycCommands,
-         * call the _getCommandValue() function on them, which returns both the value and their typeflag.
+         * call the _separateAndGetCommandValue() function on them, which returns both the value and their typeflag.
          */
         for (uint256 i = 0; i < ycCommands.length; i++) {
             /**
              * Get the value of the argument and it's underlying typeflag
              */
-            (bytes memory argumentValue, bytes1 typeflag) = _getCommandValue(
-                ycCommands[i]
-            );
+            (
+                bytes memory argumentValue,
+                bytes1 typeflag
+            ) = _separateAndGetCommandValue(ycCommands[i]);
 
             /**
              * Assert that the typeflag must either be a static or a dynamic variable.
@@ -482,11 +530,3 @@ contract YCParsers is YieldchainTypes {
         return interpretedEncodedChunck;
     }
 }
-
-// The inputted byte where the function call return val was suposed to be used
-// 0x
-// 00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001c546869732049732054686520617272617920737472696e672073657200000000
-
-// 0000000000000000000000000000000000000000000000000000000000000001
-// 000000000000000000000000000000000000000000000000000000000000001c
-// 546869732049732054686520617272617920737472696e672073657200000000
