@@ -1,14 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../types.sol";
-import "../libs/Bytes.sol";
 
 contract YCParsers is YieldchainTypes {
-    // =========
-    //    LIBS
-    // =========
-    using BytesLib for bytes[];
-
     // ================
     //    CONSTANTS
     // ================
@@ -150,7 +144,7 @@ contract YCParsers is YieldchainTypes {
          * whether it's a function call or not
          */
         if (typeflag >= STATICCALL_COMMAND_FLAG) {
-            /* 
+            /*
              * If it is, it means the body is an encoded FunctionCall struct.
              * We call the internal _execFunction() function with our command body & typeflag,
              * in order to execute this function and retreive it's return value - And then use the
@@ -271,22 +265,66 @@ contract YCParsers is YieldchainTypes {
         pure
         returns (bytes memory nakedCommand, bytes1 typeflag, bytes1 retTypeflag)
     {
-        // Set the typeflag
+        // Assign the typeflag & retTypeFlag
         typeflag = ycCommand[0];
-
-        // Set the return type flag
         retTypeflag = ycCommand[1];
 
-        // The new desired length (length of ycCommand - 2 (the flags' length))
-        uint256 newLen = ycCommand.length - 2;
+        // The length of the original command
+        uint256 originalLen = ycCommand.length;
 
-        // Assign a new empty byte of that length to nakedCommand
-        nakedCommand = new bytes(newLen);
+        // The new desired length
+        uint256 newLen = originalLen - 2;
 
-        // Iterate over each byte in the ycCommand (minus the last 2) and assign them to the nakedCommand
-        for (uint256 i = 0; i < newLen; i++) {
-            nakedCommand[i] = ycCommand[i + 2];
+        /**
+         * We load the first word of the command,
+         * by mloading it's first 32 bytes, shifting them 2 bytes to the left,
+         * then convering assigning that to bytes30. The result is the first 30 bytes of the command,
+         * minus the typeflags.
+         */
+        bytes30 firstWord;
+        assembly {
+            firstWord := shl(16, mload(add(ycCommand, 0x20)))
         }
+
+        /**
+         * Initiate the naked command to a byte the length of the original command, minus 32 bytes.
+         * -2 to account for the flags we are omitting, and -30 to account for the first loaded bytes.
+         * We will later concat the first 30 bytes from the original command (that does not include the typeflags)
+         */
+        nakedCommand = new bytes(newLen - 30);
+
+        assembly {
+            /**
+             * We begin by getting the base origin & destination pointers.
+             * For the base destination, it is 62 bytes - 32 bytes to skip the length,
+             * and an additional 30 bytes to account for the first word (minus the typeflags) which we have loaded
+             * For the baseOrigin, it is 64 bytes - 32 bytes for the length skipping, and an additional 32 bytes
+             * to skip the first word, including the typeflags
+             */
+            let baseOrigin := add(ycCommand, 0x40)
+            let baseDst := add(nakedCommand, 0x20)
+
+            // If there should be an additional iteration that may be needed
+            // (depending on whether it is a multiple of 32 or not)
+            let extraIters := and(1, mod(newLen, 32))
+
+            // The iterations amount to do
+            let iters := sub(add(div(newLen, 32), extraIters), 1)
+
+            for {
+                let i := 0
+            } lt(i, iters) {
+                i := add(i, 1)
+            } {
+                mstore(
+                    add(baseDst, mul(i, 0x20)),
+                    mload(add(baseOrigin, mul(i, 0x20)))
+                )
+            }
+        }
+
+        // We concat the first 30 byte word with the new naked command - completeing the operation, and returning.
+        nakedCommand = bytes.concat(firstWord, nakedCommand);
     }
 
     /**
@@ -516,7 +554,7 @@ contract YCParsers is YieldchainTypes {
                 mstore(add(add(interpretedEncodedChunck, 0x20), index), newPtr)
             }
 
-            // Finally, concat the calldata with our dynamic variable's length + data
+            // Finally, concat the existing chunck with our dynamic variable's length + data
             // (At what would now be stored in the  original index
             // as the mem pointer)
             interpretedEncodedChunck = bytes.concat(
