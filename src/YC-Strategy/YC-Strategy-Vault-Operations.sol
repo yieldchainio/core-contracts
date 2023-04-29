@@ -7,6 +7,8 @@ abstract contract YieldchainStrategyVaultOps is YieldchainStrategyNames {
     // =============================================================
     //                 CONSTRUCTOR SUPER
     // =============================================================
+  
+    
     constructor(
         bytes[] memory _steps,
         bytes[] memory _base_strategy_steps,
