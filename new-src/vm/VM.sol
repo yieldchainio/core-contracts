@@ -300,6 +300,11 @@ contract YCParsers is YieldchainTypes {
              * and an additional 30 bytes to account for the first word (minus the typeflags) which we have loaded
              * For the baseOrigin, it is 64 bytes - 32 bytes for the length skipping, and an additional 32 bytes
              * to skip the first word, including the typeflags
+             *
+             * Note that there should not be any free memory issue. It is true that we may go off a bit with
+             * the new byte assignment than our naked command's length (nit-picking would be expsv here), but
+             * it shouldnt matter as the size we care about is already allocated to our new naked command,
+             * and anything that would like to override the extra empty bytes after it is more than welcome
              */
             let baseOrigin := add(ycCommand, 0x40)
             let baseDst := add(nakedCommand, 0x20)
@@ -309,8 +314,13 @@ contract YCParsers is YieldchainTypes {
             let extraIters := and(1, mod(newLen, 32))
 
             // The iterations amount to do
-            let iters := sub(add(div(newLen, 32), extraIters), 1)
+            let iters := add(div(newLen, 32), extraIters)
 
+            /*
+             * We iterate over our original command in 32 byte increments,
+             * and copy over the bytes to the new nakedCommand (again, with the base
+             * of the origin being 32 bytes late, to skip the first word
+             */
             for {
                 let i := 0
             } lt(i, iters) {
