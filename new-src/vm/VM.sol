@@ -345,45 +345,13 @@ contract YCParsers is YieldchainTypes {
     function _parseDynamicVar(
         bytes memory _arg
     ) public pure returns (bytes memory) {
-        // We create the new value, which is the length of the argument - 32 bytes
-        // (to account for the offset pointer we are about to remove)
-        bytes memory newVal = new bytes(_arg.length - 0x20);
-        assembly {
-            // Length of the arg
-            let len := sub(mload(_arg), 0x20)
-
-            // Require the argument to be a multiple of 32 bytes
-            if mod(len, 0x20) {
-                revert(0, 0)
-            }
-
-            // Length's multiple of 32
-            let iters := div(len, 0x20)
-
-            // Pointer - We use that in a base pointer so that we skip over it (and thus only copy the values)
-            let ptr := mload(add(_arg, 0x20))
-
-            // Base pointer for value - Base ptr + ptr pointing to value (first 32 bytes of the value)
-            let baseptr := add(add(_arg, 0x20), ptr)
-
-            // Base mstore ptr
-            let basemstoreptr := add(newVal, 0x20)
-
-            // Iterating over the variable, copying it's bytes to the new value - except the first 32 bytes (the mem pointer)
-            for {
-                let i := 0
-            } lt(i, iters) {
-                i := add(i, 1)
-            } {
-                // Current 32 bytes
-                let currpart := mload(add(baseptr, mul(0x20, i)))
-
-                // Paste them into the new value
-                mstore(add(basemstoreptr, mul(0x20, i)), currpart)
-            }
-        }
-
-        return newVal;
+        /**
+         * We call the _removePrependedBytes() function with our arg,
+         * and 32 as the amount of bytes to remove.
+         * this will remove the first 32 bytes of our argument, which is supposed to be the
+         * offset pointer to hence - and hence return a "parsed" version of it (just the length + data)
+         */
+        return _removePrependedBytes(_arg, 32);
     }
 
     /**
@@ -577,4 +545,126 @@ contract YCParsers is YieldchainTypes {
          */
         return interpretedEncodedChunck;
     }
+
+    /**
+     * @notice
+     * interpretFixedLengthCommandsArray
+     * Interprets a fixed-length array of YC commands, and returns a fixed-length array with the underlying
+     * interpreted values.
+     *
+     * It will also remove any potential memory pointer from the beggining of it (if contains dyn-length items),
+     * and the synthetic 32-byte length prepended in the encoding.
+     *
+     * @param ycCommands - An ABI encoded chunck of bytes, which is supposed to be a fixed-length array,
+     * of either dynamic-length or fixed-length ("static") contents and their corresponding attributes,
+     * as well as 32 bytes appended at the top, which are supposed to be the length of the array (synthetically added
+     * during encoding)
+     *
+     * @param typeflag - A typeflag specifying the type of contents in the array. This is used to parse it correcrtly,
+     * and the "returnTypeFlag" of the command should be used here.
+     *
+     * @return interpretedCommands - An array of interpreted commands. I.e their underlying values
+     */
+    function interpretCommandsAndEncodeChunck(
+        bytes memory ycCommands,
+        bytes1 typeflag
+    ) public returns (bytes memory interpretedCommands) {}
+
+    /**
+     * @notice
+     * _removePrependedBytes
+     * Takes in a chunck of bytes (must be a multiple of 32 in length!!!!!!!),
+     * Note that the chunck must be a "dynamic" variable, so the first 32 bytes must specify it's length.
+     * and a uint specifying how many  bytes to remove (also must be a multiple of 32 length) from the beggining.
+     * @param chunck - a chunck of bytes
+     * @param bytesToRemove - A multiple of 32, amount of bytes to remove from the beginning
+     * @return parsedChunck - the chunck without the first multiples of 32 bytes
+     */
+    function _removePrependedBytes(
+        bytes memory chunck,
+        uint256 bytesToRemove
+    ) public pure returns (bytes memory parsedChunck) {
+        // Shorthand for the length of the bytes chunck
+        uint256 len = chunck.length;
+
+        // We create the new value, which is the length of the argument *minus* the bytes to remove
+        parsedChunck = new bytes(len - bytesToRemove);
+
+        assembly {
+            // Require the argument & bytes to remove to be a multiple of 32 bytes
+            if or(mod(len, 0x20), mod(bytesToRemove, 0x20)) {
+                revert(0, 0)
+            }
+
+            // New length's multiple of 32 (the amount of iterations we need to do)
+            let iters := div(sub(len, bytesToRemove), 0x20)
+
+            // Base pointer for the original value - Base ptr + ptr pointing to value + bytes to remove
+            //  (first 32 bytes of the value)
+            let baseOriginPtr := add(chunck, add(0x20, bytesToRemove))
+
+            // Base destination pointer
+            let baseDstPtr := add(parsedChunck, 0x20)
+
+            // Iterating over the variable, copying it's bytes to the new value - except the first *bytes to remove*
+            for {
+                let i := 0
+            } lt(i, iters) {
+                i := add(i, 1)
+            } {
+                // Current 32 bytes
+                let currpart := mload(add(baseOriginPtr, mul(0x20, i)))
+
+                // Paste them into the new value
+                mstore(add(baseDstPtr, mul(0x20, i)), currpart)
+            }
+        }
+    }
 }
+
+// // ABI encoded chunck with fixed-length string[]
+// 0x
+// 00000000000000000000000000000000000000000000000000000000000000a0
+// 00000000000000000000000000000000000000000000000000000000030f8f37
+// 00000000000000000000000000000000000000000000000000000000000000e0
+// 0000000000000000000000000000000000000000000000000000000000000203
+// 00000000000000000000000000000000000000000000000000000000000001a0
+// 000000000000000000000000000000000000000000000000000000000000001b
+// 4c616c616c616c616c205572206d756d20697320612062697463680000000000
+// 0000000000000000000000000000000000000000000000000000000000000040
+// 0000000000000000000000000000000000000000000000000000000000000080
+// 0000000000000000000000000000000000000000000000000000000000000015
+// 4669727374204974656d20686568656865686865650000000000000000000000
+// 000000000000000000000000000000000000000000000000000000000000000b
+// 7365636f6e64206974656d000000000000000000000000000000000000000000
+// 0000000000000000000000000000000000000000000000000000000000000010
+// 466972737420537472696e672053657200000000000000000000000000000000
+
+// // ABI encoded chunck with fixed-length uint256[]
+// 0x
+// 00000000000000000000000000000000000000000000000000000000000000c0 // "strang" offset pointer
+// 00000000000000000000000000000000000000000000000000000000030f8f37 // 51351351
+// ///////////////////////////////Fixed length Arr///////////////////////////////////////////////
+// 00000000000000000000000000000000000000000000000000000000000003e7 // First Num (999)
+// 00000000000000000000000000000000000000000000000000000000000003e7 // Second Num (999)
+// //////////////////////////////////////////////////////////////////////////////
+// 0000000000000000000000000000000000000000000000000000000000000203 // 515
+// 0000000000000000000000000000000000000000000000000000000000000100 // "First String Ser" Offset pointer (WTF!?!?!?!?!?!?)
+// 000000000000000000000000000000000000000000000000000000000000001b // "strang" length
+// 4c616c616c616c616c205572206d756d20697320612062697463680000000000 // "strang" value
+// 0000000000000000000000000000000000000000000000000000000000000010 // "First String String" length
+// 466972737420537472696e672053657200000000000000000000000000000000 // "First String String" Value
+
+// 0x
+// 00000000000000000000000000000000000000000000000000000000000000a0
+// 00000000000000000000000000000000000000000000000000000000030f8f37
+// 00000000000000000000000000000000000000000000000000000000000000e0
+// 0000000000000000000000000000000000000000000000000000000000000203
+// 0000000000000000000000000000000000000000000000000000000000000140
+// 000000000000000000000000000000000000000000000000000000000000001b
+// 4c616c616c616c616c205572206d756d20697320612062697463680000000000
+// 0000000000000000000000000000000000000000000000000000000000000002
+// 00000000000000000000000000000000000000000000000000000000000003e7
+// 00000000000000000000000000000000000000000000000000000000000003e7
+// 0000000000000000000000000000000000000000000000000000000000000010
+// 466972737420537472696e672053657200000000000000000000000000000000
