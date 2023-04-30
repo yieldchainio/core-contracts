@@ -6,7 +6,7 @@ import "./utilities/General.sol";
 import "../../src/vm/VM.sol";
 import "forge-std/console.sol";
 
-contract VMTest is Test, Constants {
+contract VMTest is Test, Constants, YieldchainTypes {
     GeneralFunctions public generalFunctions;
     YCVM public ycVM;
 
@@ -29,6 +29,12 @@ contract VMTest is Test, Constants {
         ycVM = new YCVM();
     }
 
+    // =====================
+    //       TESTS
+    // =====================
+    /**
+     * Test the ycVM with a general function, that stress-tests some of it's capabilities
+     */
     function testFuzzyNestedGeneralFunctions(
         bytes32 firstFuzzCompatibleString,
         uint64 num, // We do not want arithecmetic overflow, so uint128
@@ -146,5 +152,33 @@ contract VMTest is Test, Constants {
             resMixedStruct.someUnrelatedString,
             "Struct String Does Not Match"
         );
+    }
+
+    /**
+     * Test the ycVM's "self" functionality.
+     * We not only just call .self() on the VM contract,
+     * we make a yc command that makes a call to .self() on the address(0),
+     * which the ycVM shall interpret as a call to itself
+     */
+    function testVMConsciousness() public {
+        /**
+         * Encode the command on the 0 address
+         */
+        bytes[] memory args = new bytes[](0);
+        FunctionCall memory selfFunctionStaticCall = FunctionCall(
+            address(0),
+            args,
+            "self()",
+            false
+        );
+
+        bytes memory ycCommand = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(selfFunctionStaticCall)
+        );
+
+        address result = abi.decode(ycVM._runFunction(ycCommand), (address));
+        assertEq(result, address(ycVM), "ycVM Is Not Self Conscious");
     }
 }
