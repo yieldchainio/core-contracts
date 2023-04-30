@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 import "../types.sol";
 import "./Interpreters.sol";
 
-contract YCParsers is YieldchainTypes, Interpreters {
+contract YCVM is YieldchainTypes, Interpreters {
     // ================
     //    FUNCTIONS
     // ================
@@ -57,11 +57,19 @@ contract YCParsers is YieldchainTypes, Interpreters {
     function _execFunctionCall(
         FunctionCall memory func,
         bytes1 typeflag
-    ) public returns (bytes memory returnVal) {
+    ) internal returns (bytes memory returnVal) {
         /**
          * First, build the calldata for the function & it's args
          */
         bytes memory callData = _buildCalldata(func);
+
+        /**
+         * If the target address equals to the 0 address, we assume the intention
+         * was to call ourselves - and we thus do so
+         */
+        address targetAddress = func.target_address == address(0)
+            ? address(this)
+            : func.target_address;
 
         /**
          * Switch case for the function call type
@@ -69,17 +77,17 @@ contract YCParsers is YieldchainTypes, Interpreters {
 
         // STATICALL
         if (typeflag == STATICCALL_COMMAND_FLAG) {
-            (, returnVal) = func.target_address.staticcall(callData);
+            (, returnVal) = targetAddress.staticcall(callData);
             return returnVal;
         }
         // CALL
         if (typeflag == CALL_COMMAND_FLAG) {
-            (, returnVal) = func.target_address.call(callData);
+            (, returnVal) = targetAddress.call(callData);
             return returnVal;
         }
         // DELEGATECALL
         if (typeflag == DELEGATECALL_COMMAND_FLAG) {
-            (, returnVal) = func.target_address.delegatecall(callData);
+            (, returnVal) = targetAddress.delegatecall(callData);
             return returnVal;
         }
     }
@@ -92,7 +100,7 @@ contract YCParsers is YieldchainTypes, Interpreters {
      */
     function _buildCalldata(
         FunctionCall memory _func
-    ) public returns (bytes memory constructedCalldata) {
+    ) internal returns (bytes memory constructedCalldata) {
         /**
          * Get the 4 bytes keccak256 hash selector of the signature (used at the end to concat w the calldata body)
          */
@@ -124,7 +132,7 @@ contract YCParsers is YieldchainTypes, Interpreters {
      */
     function _separateAndGetCommandValue(
         bytes memory command
-    ) public returns (bytes memory interpretedValue, bytes1 typeflag) {
+    ) internal returns (bytes memory interpretedValue, bytes1 typeflag) {
         // First, seperate the command/variable from it's typeflag & return var typeflag
         bytes1 retTypeFlag;
         (interpretedValue, typeflag, retTypeFlag) = _separateCommand(command);
@@ -196,7 +204,7 @@ contract YCParsers is YieldchainTypes, Interpreters {
         bytes memory commandVariable,
         bytes1 typeflag,
         bytes1 retTypeflag
-    ) public returns (bytes memory parsedPrimitiveValue, bytes1 typeFlag) {
+    ) internal returns (bytes memory parsedPrimitiveValue, bytes1 typeFlag) {
         /**
          * We initially set parsed primitive value and typeFlag to the provided ones
          */
@@ -244,7 +252,7 @@ contract YCParsers is YieldchainTypes, Interpreters {
      */
     function interpretCommandsAndEncodeChunck(
         bytes[] memory ycCommands
-    ) public returns (bytes memory interpretedEncodedChunck) {
+    ) internal returns (bytes memory interpretedEncodedChunck) {
         /**
          * We begin by getting the amount of all ref variables,
          * in order to instantiate the array.
@@ -388,7 +396,7 @@ contract YCParsers is YieldchainTypes, Interpreters {
     function interpretCommandsArr(
         bytes memory ycCommandsArr,
         bytes1 typeflag
-    ) public returns (bytes memory interpretedArray) {
+    ) internal returns (bytes memory interpretedArray) {
         /**
          * We begin by decoding the encoded array into a bytes[]
          */

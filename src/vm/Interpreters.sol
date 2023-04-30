@@ -2,7 +2,7 @@
  * @notice
  * All of the interpreters for the ycVM.
  * This includes type-specific interpreters - i.e interpretDynamicVar(), etc.
- * 
+ *
  * Note that it may not include some interpreters and they will be included in the main contract.
  * This is because some of them depend on the core VM functionality
  */
@@ -21,7 +21,7 @@ contract Interpreters is YieldchainTypes, Constants, Utilities {
      */
     function _parseDynamicVar(
         bytes memory _arg
-    ) public pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         /**
          * We call the _removePrependedBytes() function with our arg,
          * and 32 as the amount of bytes to remove.

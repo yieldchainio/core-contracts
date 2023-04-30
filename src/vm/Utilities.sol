@@ -21,7 +21,7 @@ contract Utilities {
     function _separateCommand(
         bytes memory ycCommand
     )
-        public
+        internal
         pure
         returns (bytes memory nakedCommand, bytes1 typeflag, bytes1 retTypeflag)
     {
@@ -168,7 +168,7 @@ contract Utilities {
     function _removePrependedBytes(
         bytes memory chunck,
         uint256 bytesToRemove
-    ) public pure returns (bytes memory parsedChunck) {
+    ) internal pure returns (bytes memory parsedChunck) {
         // Shorthand for the length of the bytes chunck
         uint256 len = chunck.length;
 
@@ -204,5 +204,15 @@ contract Utilities {
                 mstore(add(baseDstPtr, mul(0x20, i)), currpart)
             }
         }
+    }
+
+    /**
+     * NON-CORE
+     * self()
+     * get own address
+     * @return ownAddress
+     */
+    function self() public view returns (address ownAddress) {
+        ownAddress = address(this);
     }
 }
