@@ -5,10 +5,16 @@ import "forge-std/Test.sol";
 import "./utilities/General.sol";
 import "../../src/vm/VM.sol";
 import "forge-std/console.sol";
+import "./utilities/ERC20.sol";
+import "./utilities/Staking.sol";
+import "./utilities/Context.sol";
 
 contract VMTest is Test, Constants, YieldchainTypes {
     GeneralFunctions public generalFunctions;
     YCVM public ycVM;
+    ERC20 public erc20Token;
+    SimpleStaking public stakingContract;
+    Context public contextContract;
 
     // =====================
     //       STRUCTS
@@ -27,6 +33,9 @@ contract VMTest is Test, Constants, YieldchainTypes {
     function setUp() public {
         generalFunctions = new GeneralFunctions();
         ycVM = new YCVM();
+        erc20Token = new ERC20("Epic Toecan", "EPIC", 18, 1000000 * 10 ** 18);
+        stakingContract = new SimpleStaking(erc20Token);
+        contextContract = new Context();
     }
 
     // =====================
@@ -180,5 +189,181 @@ contract VMTest is Test, Constants, YieldchainTypes {
 
         address result = abi.decode(ycVM._runFunction(ycCommand), (address));
         assertEq(result, address(ycVM), "ycVM Is Not Self Conscious");
+    }
+
+    /**
+     * Fuzz test the VM with some mocked real-world-like usecases,
+     * ERC20 Basic Operations
+     */
+    function testFuzzERC20Ops(uint256 amount) public {
+        // Make some asserations to make sure our ERC20 configs are correct
+        // Balance of us should be the total supply (10M)
+        assertEq(erc20Token.balanceOf(address(this)), 1000000 * 10 ** 18);
+
+        // Encode a command to approve
+        bytes[] memory approveArgs = new bytes[](2);
+
+        // Address to approve as VALUE_VAR arg (us)
+        approveArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(address(this))
+        );
+
+        // Amount to approve
+        approveArgs[1] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(amount)
+        );
+
+        // The command
+        bytes memory approveCommand = bytes.concat(
+            CALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(erc20Token),
+                    approveArgs,
+                    "approve(address,uint256)",
+                    false
+                )
+            )
+        );
+
+        // Run it
+        ycVM._runFunction(approveCommand);
+
+        // Get the current allowance on us from the ycVM contract and assert it must be the approveAmount
+        assertEq(erc20Token.allowance(address(ycVM), address(this)), amount);
+
+        // If it is OK, we move onto transfer
+
+        // We approve him (we want him to .transferFrom() from us)
+        erc20Token.approve(address(ycVM), erc20Token.totalSupply());
+
+        // We encode a command to transferFrom from us all of our balance to the VM
+        bytes[] memory transferFromArgs = new bytes[](3);
+
+        transferFromArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(address(this))
+        );
+
+        transferFromArgs[1] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(address(0), new bytes[](0), "self()", false)
+            )
+        );
+
+        // Balance of command
+        bytes[] memory balanceOfArgs = new bytes[](1);
+        balanceOfArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(address(this))
+        );
+
+        transferFromArgs[2] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(erc20Token),
+                    balanceOfArgs,
+                    "balanceOf(address)",
+                    false
+                )
+            )
+        );
+
+        // Call the command
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(erc20Token),
+                        transferFromArgs,
+                        "transferFrom(address,address,uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        // Assert that the VM's balance now must be the total supply (what was originally ours)
+        assertEq(
+            erc20Token.balanceOf(address(ycVM)),
+            erc20Token.totalSupply(),
+            "Transfer From Did Not Work - ycVM's balanceof does not equal to total supply."
+        );
+
+        // Run a command to transfer to us
+        bytes[] memory transferArgs = new bytes[](2);
+
+        /**
+         * @notice
+         * Here we encode a DELEGATE CALL command to Context.sol to get the msg sender (us)
+         */
+        transferArgs[0] = bytes.concat(
+            DELEGATECALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(contextContract),
+                    new bytes[](0),
+                    "msgSender()",
+                    false
+                )
+            )
+        );
+
+        bytes[] memory balanceOfVMArgs = new bytes[](1);
+
+        balanceOfVMArgs[0] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(address(0), new bytes[](0), "self()", false)
+            )
+        );
+
+        transferArgs[1] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(erc20Token),
+                    balanceOfVMArgs,
+                    "balanceOf(address)",
+                    false
+                )
+            )
+        );
+
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(erc20Token),
+                        transferArgs,
+                        "transfer(address,uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        // We assert that our balance should have resumed to what it was,
+        // and the ycVM's balance to 0
+        assertEq(erc20Token.balanceOf(address(this)), 1000000 * 10 ** 18);
+        assertEq(erc20Token.balanceOf(address(ycVM)), 0);
     }
 }
