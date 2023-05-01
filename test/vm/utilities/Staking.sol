@@ -24,7 +24,7 @@ contract SimpleStaking {
     ERC20 public erc20Contract;
 
     // Events
-    event tokensStaked(address from, uint256 amount);
+    event TokensStaked(address from, uint256 amount);
     event TokensUnstaked(address to, uint256 amount);
 
     /// @dev Deploys contract and links the ERC20 token which we are staking, also sets owner as msg.sender and sets timestampSet bool to false.
@@ -43,6 +43,10 @@ contract SimpleStaking {
         // Initialize the reentrancy variable to not locked
         locked = false;
     }
+
+    /**
+     * Set the owner of the contract
+     */
 
     // Modifier
     /**
@@ -90,9 +94,7 @@ contract SimpleStaking {
 
     /// @dev Sets the initial timestamp and calculates minimum staking period in seconds i.e. 3600 = 1 hour
     /// @param _timePeriodInSeconds amount of seconds to add to the initial timestamp i.e. we are essemtially creating the minimum staking period here
-    function setTimestamp(
-        uint256 _timePeriodInSeconds
-    ) public onlyOwner timestampNotSet {
+    function setTimestamp(uint256 _timePeriodInSeconds) public {
         timestampSet = true;
         initialTimestamp = block.timestamp;
         timePeriod = initialTimestamp + _timePeriodInSeconds;
@@ -115,7 +117,7 @@ contract SimpleStaking {
         );
         token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender] = balances[msg.sender] + amount;
-        emit tokensStaked(msg.sender, amount);
+        emit TokensStaked(msg.sender, amount);
     }
 
     /// @dev Allows user to unstake tokens after the correct time period has elapsed

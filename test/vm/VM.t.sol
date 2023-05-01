@@ -8,13 +8,23 @@ import "forge-std/console.sol";
 import "./utilities/ERC20.sol";
 import "./utilities/Staking.sol";
 import "./utilities/Context.sol";
+import "./utilities/Math.sol";
 
 contract VMTest is Test, Constants, YieldchainTypes {
+    // =====================
+    //       CONTRACTS
+    // =====================
     GeneralFunctions public generalFunctions;
     YCVM public ycVM;
     ERC20 public erc20Token;
     SimpleStaking public stakingContract;
     Context public contextContract;
+    Math public mathContract;
+
+    // =====================
+    //       CONSTANTS
+    // =====================
+    uint256 public constant ERC20_TOTAL_SUPPLY = 1000000 * 10 ** 18;
 
     // =====================
     //       STRUCTS
@@ -33,9 +43,12 @@ contract VMTest is Test, Constants, YieldchainTypes {
     function setUp() public {
         generalFunctions = new GeneralFunctions();
         ycVM = new YCVM();
-        erc20Token = new ERC20("Epic Toecan", "EPIC", 18, 1000000 * 10 ** 18);
+        erc20Token = new ERC20("Epic Toecan", "EPIC", 18, ERC20_TOTAL_SUPPLY);
+
+        // We pretend to be the ycVM so that it gets owner stuff
         stakingContract = new SimpleStaking(erc20Token);
         contextContract = new Context();
+        mathContract = new Math();
     }
 
     // =====================
@@ -50,6 +63,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         bytes32 secondFuzzCompatiblestring,
         MixedStruct memory mixedStruct
     ) public {
+        // Assume parameters to not be nullish and not cause overflows when multiplying
         vm.assume(firstFuzzCompatibleString != bytes32(0));
         vm.assume(secondFuzzCompatiblestring != bytes32(0));
         vm.assume(num != 0 && num < type(uint64).max / 3);
@@ -64,8 +78,9 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 keccak256(bytes(""))
         );
 
-        // Encode The Command To Retreive the First String
-
+        /**
+         * Encode The Command To Retreive the First String (3x nested string command)
+         */
         bytes memory firstStringCommand = generalFunctions
             .encodeFixedLengthArrFunctionForYCVM(
                 generalFunctions.encodeFixedLengthArrFunctionForYCVM(
@@ -76,11 +91,15 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 )
             );
 
-        // Encode the num getter
+        /**
+         * Encode the command to get the num arg
+         */
         bytes memory numCommand = generalFunctions
             .encodeMultipleSimpleNumForYCVM(num);
 
-        // Encode the second string getter
+        /**
+         * Encode the second string getter
+         */
         string[] memory ourStringArrAsAnArg = new string[](2);
         ourStringArrAsAnArg[0] = string(
             abi.encodePacked(secondFuzzCompatiblestring)
@@ -92,6 +111,9 @@ contract VMTest is Test, Constants, YieldchainTypes {
         bytes memory secondStringCommand = generalFunctions
             .encodeDynamicLengthStringArr(ourStringArrAsAnArg);
 
+        /**
+         * Encode the struct command
+         */
         bytes memory mixedStructCommand = generalFunctions
             .encodeStructFunctionForYCVM(
                 mixedStruct.first,
@@ -99,6 +121,9 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 mixedStruct.second
             );
 
+        /**
+         * Encode the root function call (uses all of the above complex commands as args)
+         */
         bytes memory rootFunctionCall = generalFunctions
             .encodeMixedFunctionForYCVM(
                 firstStringCommand,
@@ -107,10 +132,10 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 mixedStructCommand
             );
 
+        // Run it
         bytes memory result = ycVM._runFunction(rootFunctionCall);
 
-        console.log("Before ABI Decode");
-
+        // Decode the results
         (
             string memory resString,
             uint256 resNum,
@@ -118,13 +143,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
             MixedStruct memory resMixedStruct
         ) = abi.decode(result, (string, uint256, string, MixedStruct));
 
-        console.log("After ABI Decode");
-
-        // =====================
-        //    DESIRED OUTPUTS
-        // =====================
-
-        // Assert equality of the results to desired
+        // Assert equality of the results to desired (According to what the functions we called should have emitted)
         assertEq(
             string.concat(
                 "New New New ",
@@ -171,7 +190,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
      */
     function testVMConsciousness() public {
         /**
-         * Encode the command on the 0 address
+         * Encode the command on the 0 address, to call self() (which is actually on the ycVM core contract)
          */
         bytes[] memory args = new bytes[](0);
         FunctionCall memory selfFunctionStaticCall = FunctionCall(
@@ -181,12 +200,14 @@ contract VMTest is Test, Constants, YieldchainTypes {
             false
         );
 
+        // Encode it
         bytes memory ycCommand = bytes.concat(
             STATICCALL_COMMAND_FLAG,
             VALUE_VAR_FLAG,
             abi.encode(selfFunctionStaticCall)
         );
 
+        // Decode the call result and assert it equals to the ycVM's actual address
         address result = abi.decode(ycVM._runFunction(ycCommand), (address));
         assertEq(result, address(ycVM), "ycVM Is Not Self Conscious");
     }
@@ -195,12 +216,15 @@ contract VMTest is Test, Constants, YieldchainTypes {
      * Fuzz test the VM with some mocked real-world-like usecases,
      * ERC20 Basic Operations
      */
-    function testFuzzERC20Ops(uint256 amount) public {
-        // Make some asserations to make sure our ERC20 configs are correct
-        // Balance of us should be the total supply (10M)
-        assertEq(erc20Token.balanceOf(address(this)), 1000000 * 10 ** 18);
+    function testFuzzERC20Ops() public {
+        /**
+         * Make sure our initial balance (as the deployer of the ERC20 token) is the total supply
+         */
+        assertEq(erc20Token.balanceOf(address(this)), ERC20_TOTAL_SUPPLY);
 
-        // Encode a command to approve
+        /**
+         * Encode an approval command to approve US (test contract) on the ycVM
+         */
         bytes[] memory approveArgs = new bytes[](2);
 
         // Address to approve as VALUE_VAR arg (us)
@@ -214,7 +238,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         approveArgs[1] = bytes.concat(
             VALUE_VAR_FLAG,
             VALUE_VAR_FLAG,
-            abi.encode(amount)
+            abi.encode(ERC20_TOTAL_SUPPLY)
         );
 
         // The command
@@ -234,15 +258,22 @@ contract VMTest is Test, Constants, YieldchainTypes {
         // Run it
         ycVM._runFunction(approveCommand);
 
-        // Get the current allowance on us from the ycVM contract and assert it must be the approveAmount
-        assertEq(erc20Token.allowance(address(ycVM), address(this)), amount);
+        /**
+         * Get our current allowance on the ycVM contract to ensure the approval worked
+         */
+        assertEq(
+            erc20Token.allowance(address(ycVM), address(this)),
+            ERC20_TOTAL_SUPPLY
+        );
 
-        // If it is OK, we move onto transfer
+        /**
+         * We approve the ycVM contract now (to call transferFrom)
+         */
+        erc20Token.approve(address(ycVM), type(uint256).max - 1);
 
-        // We approve him (we want him to .transferFrom() from us)
-        erc20Token.approve(address(ycVM), erc20Token.totalSupply());
-
-        // We encode a command to transferFrom from us all of our balance to the VM
+        /**
+         * We encode a command to call transferFrom() on our address, for all of our balance
+         */
         bytes[] memory transferFromArgs = new bytes[](3);
 
         transferFromArgs[0] = bytes.concat(
@@ -259,7 +290,9 @@ contract VMTest is Test, Constants, YieldchainTypes {
             )
         );
 
-        // Balance of command
+        /**
+         * Complex command of balanceOf as the argument
+         */
         bytes[] memory balanceOfArgs = new bytes[](1);
         balanceOfArgs[0] = bytes.concat(
             VALUE_VAR_FLAG,
@@ -303,12 +336,13 @@ contract VMTest is Test, Constants, YieldchainTypes {
             "Transfer From Did Not Work - ycVM's balanceof does not equal to total supply."
         );
 
-        // Run a command to transfer to us
+        // Run a command to transfer to us again from the ycVM (transfer())
         bytes[] memory transferArgs = new bytes[](2);
 
         /**
          * @notice
-         * Here we encode a DELEGATE CALL command to Context.sol to get the msg sender (us)
+         * Here we encode a DELEGATE CALL command to Context.sol to get the msg sender (us),
+         * for additional stress testing
          */
         transferArgs[0] = bytes.concat(
             DELEGATECALL_COMMAND_FLAG,
@@ -363,7 +397,345 @@ contract VMTest is Test, Constants, YieldchainTypes {
 
         // We assert that our balance should have resumed to what it was,
         // and the ycVM's balance to 0
-        assertEq(erc20Token.balanceOf(address(this)), 1000000 * 10 ** 18);
+        assertEq(erc20Token.balanceOf(address(this)), ERC20_TOTAL_SUPPLY);
         assertEq(erc20Token.balanceOf(address(ycVM)), 0);
+    }
+
+    /**
+     * Test some basic ERC20 staking contract functionality
+     * through the ycVM
+     */
+    function testFuzzStakingOps(uint160 lockPeriod) public {
+        vm.assume(lockPeriod > 0);
+        /**
+         * Make sure our initial balance equals to the total supply (1M)
+         */
+        assertEq(
+            erc20Token.balanceOf(address(this)),
+            ERC20_TOTAL_SUPPLY,
+            "Initial Balance Of U Is Not Total Supply"
+        );
+
+        /**
+         * Shorthand function DELEGATECALL that will be reused
+         * to get the msgsender (inefficient but good for testing purposes)
+         */
+        bytes memory getMsgSender = bytes.concat(
+            DELEGATECALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(contextContract),
+                    new bytes[](0),
+                    "msgSender()",
+                    false
+                )
+            )
+        );
+
+        /**
+         * Shorthand function to get self() address on the ycVM
+         */
+        bytes memory getSelf = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(address(0), new bytes[](0), "self()", false)
+            )
+        );
+
+        /**
+         * We make a function call to change the locking period on it
+         */
+        bytes[] memory timestampArgs = new bytes[](1);
+        timestampArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(lockPeriod)
+        );
+        bytes memory timestampCall = bytes.concat(
+            CALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(stakingContract),
+                    timestampArgs,
+                    "setTimestamp(uint256)",
+                    false
+                )
+            )
+        );
+
+        // Make the call
+        ycVM._runFunction(timestampCall);
+
+        // Assert the equality of the timestamp to be the lock period we got as an argument
+        assertEq(
+            stakingContract.timePeriod(),
+            stakingContract.initialTimestamp() + lockPeriod,
+            "Timestamp Not Set Correctly"
+        );
+        assertTrue(
+            stakingContract.timestampSet(),
+            "Timestamp not set successfully"
+        );
+
+        /**
+         * Reset it to 0
+         */
+        timestampArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(0)
+        );
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(stakingContract),
+                        timestampArgs,
+                        "setTimestamp(uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        /**
+         * Transfer all of our tokens to the ycVM
+         */
+        erc20Token.transfer(address(ycVM), ERC20_TOTAL_SUPPLY);
+
+        /**
+         * Encode a complex command on the ycVM to stake half of it's balance,
+         * by calling these complex commands recrusively:
+         * div(balanceOf(self()),2)
+         */
+        bytes[] memory balanceOfArgs = new bytes[](1);
+        // delegate call to get msg sender (ycVM)
+        balanceOfArgs[0] = getSelf;
+
+        bytes[] memory mathArgs = new bytes[](2);
+        // A function call to get the balance of us
+        mathArgs[0] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(erc20Token),
+                    balanceOfArgs,
+                    "balanceOf(address)",
+                    false
+                )
+            )
+        );
+
+        // We divide it by 2
+        mathArgs[1] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(2)
+        );
+
+        // The args for the staking call
+        bytes[] memory stakeArgs = new bytes[](2);
+
+        // The ERC20 contract address (we make a static call to the staking contract to get it
+        stakeArgs[0] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(stakingContract),
+                    new bytes[](0),
+                    "erc20Contract()",
+                    false
+                )
+            )
+        );
+
+        // The divisor command
+        stakeArgs[1] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(mathContract),
+                    mathArgs,
+                    "div(uint256,uint256)",
+                    false
+                )
+            )
+        );
+
+        /**
+         * We first also make an approve function call command on the ycVM to the staking contract so it could call transferFrom
+         */
+        bytes[] memory approveArgs = new bytes[](2);
+        approveArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(address(stakingContract))
+        );
+        approveArgs[1] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(type(uint256).max)
+        );
+
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(erc20Token),
+                        approveArgs,
+                        "approve(address,uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        // We make the call
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(stakingContract),
+                        stakeArgs,
+                        "stakeTokens(address,uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        /**
+         * At this point, we made a staking function call to the staking contract,
+         * which:
+         *
+         * 1) Called transferFrom on the ERC20 contract to transfer all of our balance to the ycVM
+         * 2) Called stakeTokens() from the ycVM on HALF of it's balance, the staked balance should be TOTAL SUPPLY / 2
+         */
+        assertEq(
+            stakingContract.balances(address(ycVM)),
+            ERC20_TOTAL_SUPPLY / 2,
+            "Staking Amount From ycVM Does Not Match Inputted Amount"
+        );
+
+        assertEq(
+            erc20Token.balanceOf(address(this)),
+            0,
+            "ERC20 Token Balance On Your Address Does Not Match Leftover Amount"
+        );
+
+        assertEq(
+            erc20Token.balanceOf(address(ycVM)),
+            ERC20_TOTAL_SUPPLY / 2,
+            "ERC20 Token Balance On ycVM Does Not Match Leftover Amount"
+        );
+
+        /**
+         * Now, we unstake the tokens. We make a call to withdraw all of our shares,
+         * by using a DELEGATECALL to get msg.sender (us) and retreiving the balance from storage
+         */
+        bytes[] memory unstakeArgs = new bytes[](2);
+
+        // The ERC20 contract address (we make a static call to the staking contract to get it
+        unstakeArgs[0] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(stakingContract),
+                    new bytes[](0),
+                    "erc20Contract()",
+                    false
+                )
+            )
+        );
+
+        // The call to get our tokens
+        bytes[] memory getUnstakeAmountArgs = new bytes[](1);
+        getUnstakeAmountArgs[0] = getSelf;
+        unstakeArgs[1] = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(stakingContract),
+                    getUnstakeAmountArgs,
+                    "balances(address)",
+                    false
+                )
+            )
+        );
+
+        // Make the unstake call
+        ycVM._runFunction(
+            bytes.concat(
+                CALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(
+                    FunctionCall(
+                        address(stakingContract),
+                        unstakeArgs,
+                        "unstakeTokens(address,uint256)",
+                        false
+                    )
+                )
+            )
+        );
+
+        // Assert staking balance for ycVM 0, and the balanceOf of ERC20 token to be total supply
+
+        assertEq(
+            stakingContract.balances(address(ycVM)),
+            0,
+            "Unstaking Failed - Balance Is Not 0 On Staking Contract"
+        );
+        assertEq(
+            erc20Token.balanceOf(address(ycVM)),
+            ERC20_TOTAL_SUPPLY,
+            "Unstaking Failed - Balance Is Not Total Supply On ERC20 Contract, on your address"
+        );
+
+        // We then transfer tokens back to us (test contract) from ycVM and mark this test as complete
+        bytes[] memory lastBalanceOfArgs = new bytes[](1);
+        lastBalanceOfArgs[0] = getSelf;
+        ycVM._runFunction(
+            erc20Token.encodeTransferForYCVM(
+                getMsgSender,
+                bytes.concat(
+                    STATICCALL_COMMAND_FLAG,
+                    VALUE_VAR_FLAG,
+                    abi.encode(
+                        FunctionCall(
+                            address(erc20Token),
+                            lastBalanceOfArgs,
+                            "balanceOf(address)",
+                            false
+                        )
+                    )
+                )
+            )
+        );
+
+        assertEq(
+            erc20Token.balanceOf(address(ycVM)),
+            0,
+            "Last Transfer Failed, ycVM balance is not 0."
+        );
+        assertEq(
+            erc20Token.balanceOf(address(this)),
+            ERC20_TOTAL_SUPPLY,
+            "Last Transfer Failed, your balance is not total supply."
+        );
     }
 }
