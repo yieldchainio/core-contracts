@@ -38,9 +38,7 @@ interface YieldchainTypes {
         address target_address;
         bytes[] args;
         string signature;
-        bool is_callback;
     }
-
 
     /**
      * @notice
@@ -71,7 +69,6 @@ interface YieldchainTypes {
         bytes func;
         uint256[] children_indexes;
         bytes[] conditions;
+        bool isCallback;
     }
 }
-
-

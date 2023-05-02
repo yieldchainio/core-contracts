@@ -43,8 +43,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory mixedFunctionCall = FunctionCall(
             address(this),
             args,
-            "generalFunction(string,uint256,string,(uint256,string,uint256))",
-            false
+            "generalFunction(string,uint256,string,(uint256,string,uint256))"
         );
 
         // Return encoded
@@ -91,8 +90,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory structFunctionCall = FunctionCall(
             address(this),
             args,
-            "multiplyFixedStructAndAssignString((uint256,string,uint256))",
-            false
+            "multiplyFixedStructAndAssignString((uint256,string,uint256))"
         );
 
         // Return encoded
@@ -122,8 +120,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory fixedLengthArrStaticcall = FunctionCall(
             address(this),
             args,
-            "fixedLengthStringArray(string[1])",
-            false
+            "fixedLengthStringArray(string[1])"
         );
 
         // Return encoded
@@ -156,8 +153,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory fixedLengthArrStaticcall = FunctionCall(
             address(this),
             args,
-            "fixedLengthStringArray(string[1])",
-            false
+            "fixedLengthStringArray(string[1])"
         );
 
         // Return encoded
@@ -178,8 +174,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory simpleNumStaticcall = FunctionCall(
             address(this),
             args,
-            "multiplySimpleNum(uint256)",
-            false
+            "multiplySimpleNum(uint256)"
         );
 
         return
@@ -211,8 +206,7 @@ contract GeneralFunctions is YieldchainTypes, Constants {
         FunctionCall memory stringArrFunctionCall = FunctionCall(
             address(this),
             args,
-            "dynamicLengthStringArray(string[])",
-            false
+            "dynamicLengthStringArray(string[])"
         );
 
         return

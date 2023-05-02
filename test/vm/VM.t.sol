@@ -196,8 +196,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         FunctionCall memory selfFunctionStaticCall = FunctionCall(
             address(0),
             args,
-            "self()",
-            false
+            "self()"
         );
 
         // Encode it
@@ -249,8 +248,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(erc20Token),
                     approveArgs,
-                    "approve(address,uint256)",
-                    false
+                    "approve(address,uint256)"
                 )
             )
         );
@@ -285,9 +283,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         transferFromArgs[1] = bytes.concat(
             STATICCALL_COMMAND_FLAG,
             VALUE_VAR_FLAG,
-            abi.encode(
-                FunctionCall(address(0), new bytes[](0), "self()", false)
-            )
+            abi.encode(FunctionCall(address(0), new bytes[](0), "self()"))
         );
 
         /**
@@ -307,8 +303,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(erc20Token),
                     balanceOfArgs,
-                    "balanceOf(address)",
-                    false
+                    "balanceOf(address)"
                 )
             )
         );
@@ -322,8 +317,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(erc20Token),
                         transferFromArgs,
-                        "transferFrom(address,address,uint256)",
-                        false
+                        "transferFrom(address,address,uint256)"
                     )
                 )
             )
@@ -351,8 +345,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(contextContract),
                     new bytes[](0),
-                    "msgSender()",
-                    false
+                    "msgSender()"
                 )
             )
         );
@@ -362,9 +355,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         balanceOfVMArgs[0] = bytes.concat(
             STATICCALL_COMMAND_FLAG,
             VALUE_VAR_FLAG,
-            abi.encode(
-                FunctionCall(address(0), new bytes[](0), "self()", false)
-            )
+            abi.encode(FunctionCall(address(0), new bytes[](0), "self()"))
         );
 
         transferArgs[1] = bytes.concat(
@@ -374,8 +365,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(erc20Token),
                     balanceOfVMArgs,
-                    "balanceOf(address)",
-                    false
+                    "balanceOf(address)"
                 )
             )
         );
@@ -388,8 +378,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(erc20Token),
                         transferArgs,
-                        "transfer(address,uint256)",
-                        false
+                        "transfer(address,uint256)"
                     )
                 )
             )
@@ -427,8 +416,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(contextContract),
                     new bytes[](0),
-                    "msgSender()",
-                    false
+                    "msgSender()"
                 )
             )
         );
@@ -439,9 +427,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
         bytes memory getSelf = bytes.concat(
             STATICCALL_COMMAND_FLAG,
             VALUE_VAR_FLAG,
-            abi.encode(
-                FunctionCall(address(0), new bytes[](0), "self()", false)
-            )
+            abi.encode(FunctionCall(address(0), new bytes[](0), "self()"))
         );
 
         /**
@@ -460,8 +446,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(stakingContract),
                     timestampArgs,
-                    "setTimestamp(uint256)",
-                    false
+                    "setTimestamp(uint256)"
                 )
             )
         );
@@ -496,8 +481,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(stakingContract),
                         timestampArgs,
-                        "setTimestamp(uint256)",
-                        false
+                        "setTimestamp(uint256)"
                     )
                 )
             )
@@ -526,8 +510,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(erc20Token),
                     balanceOfArgs,
-                    "balanceOf(address)",
-                    false
+                    "balanceOf(address)"
                 )
             )
         );
@@ -550,8 +533,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(stakingContract),
                     new bytes[](0),
-                    "erc20Contract()",
-                    false
+                    "erc20Contract()"
                 )
             )
         );
@@ -564,8 +546,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(mathContract),
                     mathArgs,
-                    "div(uint256,uint256)",
-                    false
+                    "div(uint256,uint256)"
                 )
             )
         );
@@ -593,8 +574,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(erc20Token),
                         approveArgs,
-                        "approve(address,uint256)",
-                        false
+                        "approve(address,uint256)"
                     )
                 )
             )
@@ -609,8 +589,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(stakingContract),
                         stakeArgs,
-                        "stakeTokens(address,uint256)",
-                        false
+                        "stakeTokens(address,uint256)"
                     )
                 )
             )
@@ -655,8 +634,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(stakingContract),
                     new bytes[](0),
-                    "erc20Contract()",
-                    false
+                    "erc20Contract()"
                 )
             )
         );
@@ -671,8 +649,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                 FunctionCall(
                     address(stakingContract),
                     getUnstakeAmountArgs,
-                    "balances(address)",
-                    false
+                    "balances(address)"
                 )
             )
         );
@@ -686,8 +663,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                     FunctionCall(
                         address(stakingContract),
                         unstakeArgs,
-                        "unstakeTokens(address,uint256)",
-                        false
+                        "unstakeTokens(address,uint256)"
                     )
                 )
             )
@@ -719,8 +695,7 @@ contract VMTest is Test, Constants, YieldchainTypes {
                         FunctionCall(
                             address(erc20Token),
                             lastBalanceOfArgs,
-                            "balanceOf(address)",
-                            false
+                            "balanceOf(address)"
                         )
                     )
                 )

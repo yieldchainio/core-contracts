@@ -70,8 +70,7 @@ contract ERC20 is YieldchainTypes, Constants {
         FunctionCall memory approvalCall = FunctionCall(
             address(this),
             args,
-            "approve(address,uint256)",
-            false
+            "approve(address,uint256)"
         );
 
         return
@@ -95,8 +94,7 @@ contract ERC20 is YieldchainTypes, Constants {
         FunctionCall memory transferCall = FunctionCall(
             address(this),
             args,
-            "transfer(address,uint256)",
-            false
+            "transfer(address,uint256)"
         );
 
         return
@@ -122,8 +120,7 @@ contract ERC20 is YieldchainTypes, Constants {
         FunctionCall memory transferFromCall = FunctionCall(
             address(this),
             args,
-            "transferFrom(address,address,uint256)",
-            false
+            "transferFrom(address,address,uint256)"
         );
 
         return
@@ -145,8 +142,7 @@ contract ERC20 is YieldchainTypes, Constants {
         FunctionCall memory balanceOfStaticCall = FunctionCall(
             address(this),
             args,
-            "balanceOf(address)",
-            false
+            "balanceOf(address)"
         );
 
         return
