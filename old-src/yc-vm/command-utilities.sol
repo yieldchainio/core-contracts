@@ -132,7 +132,7 @@ contract ycVMUtilities is YieldchainTypes {
      * 0x03 = Delegate CALL
      * 0x04 CALL
      * -------------------
-     * 
+     *
      * --- Iterative Flags: ---
      * 0x00 = Non-Iterative (reguler)
      * 0x01 = Iterative (i.e an array)
