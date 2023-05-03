@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "./Schema.sol";
+import "forge-std/console.sol";
 
 abstract contract OperationsQueue is IVault {
     // =====================
@@ -54,6 +55,8 @@ abstract contract OperationsQueue is IVault {
          * simply begin handling the queue offchain, taking in mind the lock state.
          * This allows the intervention of the offchain only when required.
          */
+        
+        
         if (!locked && front == rear - 1) routeQueueOperation();
         else
             emit RequestFullfill(

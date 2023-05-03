@@ -167,15 +167,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
             return handleWithdraw(operation);
 
         if (operation.action == ActionTypes.STRATEGY_RUN) {
-            uint256[] memory startingIndices = new uint256[](1);
-            startingIndices[0] = 0;
-            return
-                executeStepTree(
-                    STEPS,
-                    startingIndices,
-                    new bytes(0),
-                    ActionTypes.STRATEGY_RUN
-                );
+            return handleRunStrategy();
         }
 
         revert();
@@ -248,6 +240,27 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
 
         // Enqueue it, potentially beggining the operation
         enqueueOp(withdrawRequest);
+    }
+
+    /**
+     * @notice
+     * runStrategy()
+     * Requests a strategy execution operation
+     */
+    function runStrategy() external onlyDiamond {
+        /**
+         * We create a QueueItem for our run and enqueue it, which should either begin executing it,
+         * or begin waiting for it's turn
+         */
+        // Create the queue item
+        QueueItem memory runRequest = QueueItem(
+            ActionTypes.STRATEGY_RUN,
+            msg.sender,
+            new bytes[](0)
+        );
+
+        // Enqueue it, potentially beggining the operation
+        enqueueOp(runRequest);
     }
 
     /**
@@ -352,6 +365,25 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         balances[withdrawItem.initiator] -= debt;
         totalShares -= debt;
         DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
+    }
+
+    /**
+     * @notice
+     * handleRunStrategy()
+     * Handles a strategy run request
+     */
+    function handleRunStrategy() internal {
+        uint256[] memory startingIndices = new uint256[](1);
+        startingIndices[0] = 0;
+        for (uint256 i; i < STEPS.length; i++) {}
+
+        return
+            executeStepTree(
+                STEPS,
+                startingIndices,
+                new bytes(0),
+                ActionTypes.STRATEGY_RUN
+            );
     }
 
     // ==============================
@@ -485,6 +517,13 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
                 new bytes(0),
                 context
             );
+
+            /**
+             * @notice
+             * If our index is the last one in the array we got,
+             * we set locked to false.
+             */
+            if (stepIndex == virtualTree.length - 1) locked = false;
         }
     }
 }

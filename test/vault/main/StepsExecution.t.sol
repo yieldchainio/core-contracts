@@ -57,7 +57,8 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
          */
         vm.assume(depositAmount % 2 == 0);
         vm.assume(
-            depositAmount <= 1000000000 * 10 ** 18 && depositAmount >= 1 * 10 ** 16
+            depositAmount <= 1000000000 * 10 ** 18 &&
+                depositAmount >= 1 * 10 ** 16
         );
 
         // Assert the current balances and etc to be initial (0)
@@ -72,7 +73,7 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             depositAmount
         );
 
-        // Assert that we must have 100 tokens
+        // Assert that we must have *depositAmount* amount of tokens
         assertEq(
             vaultContract.DEPOSIT_TOKEN().balanceOf(address(this)),
             depositAmount,
@@ -122,6 +123,88 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             depositAmount,
             "Deposited, But User Shares Mismatche"
         );
+    }
+
+    /**
+     * Test the strategy body
+     */
+    function testStrategyRun(uint256 depositAmount) public {
+        /**
+         * @notice
+         * We begin by making a deposit like in the deposit test
+         */
+        vm.assume(depositAmount % 2 == 0);
+        vm.assume(
+            depositAmount <= 1000000000 * 10 ** 18 &&
+                depositAmount >= 1 * 10 ** 16
+        );
+
+        // Assert the current balances and etc to be initial (0)
+        assertEq(getDepositTokenBalance(), 0, "Initial Token Balance Is Not 0");
+        assertEq(getGmxStakingBalance(), 0, "Initial GMX Staking is not 0");
+        assertEq(getGNSStakingBalance(), 0, "Initial GNS Staking is not 0");
+
+        // Reward ourselves with some *depositAmount* tokens
+        deal(
+            address(vaultContract.DEPOSIT_TOKEN()),
+            address(this),
+            depositAmount
+        );
+
+        // Assert that we must have 100 tokens
+        assertEq(
+            vaultContract.DEPOSIT_TOKEN().balanceOf(address(this)),
+            depositAmount,
+            "vm.deal() did not reward"
+        );
+
+        // Approve the tokens to the vault
+        vaultContract.DEPOSIT_TOKEN().approve(
+            address(vaultContract),
+            type(uint256).max
+        );
+
+        // Deposit all 100 tokens we have
+        vaultContract.deposit(depositAmount);
+
+        // Assert that we deposited
+        assertEq(
+            vaultContract.balances(address(this)),
+            depositAmount,
+            "Deposit Shares Mismatch"
+        );
+
+        // Expect this to revert (We are not the yieldchain diamond)
+        vm.expectRevert();
+        vaultContract.runStrategy();
+
+        // Keep track of current balances prior to strategy run, to assert diffs later
+        uint256 preGMXPoolBalance = getGmxStakingBalance();
+        // uint256 preGNSPoolBalance = getGNSStakingBalance();
+
+        // Move time forward to simulate reward cumlation
+        vm.warp((block.timestamp * 110) / 100);
+
+        // Prank as the diamond
+        vm.prank(vaultContract.YC_DIAMOND());
+
+        // Make a strategy run
+        vaultContract.runStrategy();
+
+        // Assert that the pool balances be bigger than what they were
+        assertTrue(
+            getGmxStakingBalance() > preGMXPoolBalance,
+            "Strategy Run, But GMX Position Did Not Grow."
+        );
+
+        console.log(getGmxStakingBalance() - preGMXPoolBalance);
+
+        // @notice We do not assert the GNS staking balance as it does not grow like this w the block.timestamp
+        // TODO: Manual storage manipulation? not sure if worth it sine if GMX changed we know it worked.
+        // assertTrue(
+        //     getGNSStakingBalance() > preGNSPoolBalance,
+        //     "Strategy Run, But GNS Position Did Not Grow."
+        // );
     }
 
     // ==================
