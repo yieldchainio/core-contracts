@@ -100,7 +100,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
     /**
      * @dev The deposit token of the vault
      */
-    IERC20 immutable DEPOSIT_TOKEN;
+    IERC20 public immutable DEPOSIT_TOKEN;
 
     /**
      * @notice
@@ -195,7 +195,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
          * This will be checked offchain as well of course and on the deposit fullfil call,
          * but is done in order to ensure easy spamming
          */
-        if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) >= amount)
+        if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) < amount)
             revert InsufficientAllowance();
 
         /**
@@ -269,13 +269,21 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         /**
          * We require the allowance of the user to be sufficient
          */
-        if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) >= amount)
-            revert InsufficientAllowance();
+        if (
+            DEPOSIT_TOKEN.allowance(depositItem.initiator, address(this)) <
+            amount
+        ) revert InsufficientAllowance();
 
         /**
          * We do a safeTransferFrom to get the user's tokens
          */
         DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
+
+        /**
+         * We update the user's shares and the total supply
+         */
+        balances[depositItem.initiator] += amount;
+        totalShares += amount;
 
         /**
          * @notice  We begin executing the seed steps
@@ -335,9 +343,12 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         /**
          * After executing all of the steps, we get the balance difference,
          * and transfer to the user.
-         * We use safeERC20, so if the debt is 0, the execution reverts
+         * We use safeERC20, so if the debt is 0, the execution reverts.
+         * We also deduct the shares from the user's balance, and from the total shares supply
          */
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
+        balances[withdrawItem.initiator] -= debt;
+        totalShares -= debt;
         DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
     }
 
