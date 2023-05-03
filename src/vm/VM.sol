@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../types.sol";
 import "./Interpreters.sol";
+import "./Interface.sol";
 
-contract YCVM is YieldchainTypes, Interpreters {
+contract YCVM is Interpreters, IVM {
     // ================
     //    FUNCTIONS
     // ================
@@ -16,7 +16,7 @@ contract YCVM is YieldchainTypes, Interpreters {
      */
     function _runFunction(
         bytes memory encodedFunctionCall
-    ) public returns (bytes memory returnVal) {
+    ) public override returns (bytes memory returnVal) {
         /**
          * Seperate the FunctionCall command body from the typeflags
          */

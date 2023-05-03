@@ -4,9 +4,13 @@ pragma solidity ^0.8.18;
 // ===============
 //    IMPORTS
 // ===============
-import "../vm/VM.sol";
 import {SafeERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "./AccessControl.sol";
+import "./OperationsQueue.sol";
+import "./Schema.sol";
+import "../vm/VM.sol";
+import "./VaultUtilities.sol";
 
 /**
  * The part of the vault contract containing various
@@ -15,162 +19,9 @@ import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IER
  * This is the root contract being inherited
  */
 
-contract State is YCVM {
+contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
     // LIBS
     using SafeERC20 for IERC20;
-
-    // =====================
-    //        ENUMS
-    // =====================
-    /**
-     * ActionTypes
-     * Represents the different type of vault actions that can be queued
-     */
-    enum ActionTypes {
-        DEPOSIT,
-        WITHDRAW,
-        STRATEGY_RUN
-    }
-
-    // =====================
-    //       STRUCTS
-    // =====================
-    /**
-     * A struct representing a queue item.
-     * Action requests (i.e strategy runs, deposits, withdrawals) are queued in order to avoid clashing,
-     * and this struct represents one such request
-     * @param action - An ActionType enum representing the action to complete, handled by a switch case in the router
-     * @param initiator - The user address that initiated this queue request
-     * @param arguments - An arbitrary array of bytes being the arguments, usually would be something like an amount.
-     */
-    struct QueueItem {
-        ActionTypes action;
-        address initiator;
-        bytes[] arguments;
-    }
-
-    // =====================
-    //        EVENTS
-    // =====================
-    /**
-     * @notice
-     * RequestFullfill event,
-     * emitted in order to request an offchain fullfill of computations/actions.
-     * @param context - A string showcasing the executor your context. I.e, when running the deposit strategy,
-     * context would be "vault_deposit". So the executor will then know to fullfill requests to the array of seed
-     * steps, instead of the tree steps
-     * @param targetAction - The target "action" or function to execute - It tells the offchain what exactly to do.
-     * This would usually be classified as a function in the database, e.g: "lifiswap", "openlong", etc.
-     *
-     * @param index - If executed within a strategy/seed strategy/whatever run, you would often need to emit the index
-     * of the step as well, so that the offchain knows how to reenter the execution with the fullfilment.
-     *
-     * @param params - Any parameters you may want to pass to the offchain action to complete your execution
-     */
-    event RequestFullfill(
-        ActionTypes indexed context,
-        string indexed targetAction,
-        uint256 indexed index,
-        bytes[] params
-    );
-
-    /**
-     * Deposit
-     * Emitted when a deposit happens into the vault
-     * @param sender - The user that deposited
-     * @param amount - The amount that was deposited
-     */
-    event Deposit(address indexed sender, uint256 indexed amount);
-
-    /**
-     * Withdraw
-     * Emitted when a withdrawal finallizes from the vault
-     * @param receiver - The user who made the withdraw
-     * @param amount - The amount that was withdrawn
-     */
-    event Withdraw(address indexed receiver, uint256 indexed amount);
-
-    // =====================
-    //        ERRORS
-    // =====================
-    /**
-     * Insufficient allownace is thrown when a user attempts to complete an operation (deposit),
-     * but has not approved this vault contract for enough tokens
-     */
-    error InsufficientAllowance();
-
-    /**
-     * Insufficient shares is thrown when a user attempts to withdraw an amount of tokens that they do not own.
-     */
-    error InsufficientShares();
-
-    // =====================
-    //      MODIFIERS
-    // =====================
-    /**
-     * Requires the msg.sender to be the Yieldchain Diamond Contract.
-     */
-    modifier onlyDiamond() {
-        require(msg.sender == YC_DIAMOND, "You Are Not Yieldchain Diamond");
-        _;
-    }
-
-    /**
-     * Requires the msg.sender to be the vault's creator
-     */
-    modifier onlyCreator() {
-        require(msg.sender == CREATOR, "You Are Not Vault Creator");
-        _;
-    }
-
-    /**
-     * Requires the msg.sender to be a moderator of this vault
-     */
-    modifier onlyMods() {
-        require(mods[msg.sender], "You Are Not A Mod");
-        _;
-    }
-    /**
-     * Requires the msg.sender to be an admin of this vault
-     */
-    modifier onlyAdmins() {
-        require(admins[msg.sender], "You Are Not An Admin");
-        _;
-    }
-
-    /**
-     * Requires an inputted address to not be another moderator
-     * @notice We do allow it if msg.sender is an administrator (higher role)
-     */
-    modifier peaceAmongstMods(address otherMod) {
-        require(
-            admins[msg.sender] || !mods[otherMod],
-            "Mods Cannot Betray Mods"
-        );
-        _;
-    }
-
-    /**
-     * Requires an inputted address to not be another adminstrator
-     */
-    modifier peaceAmongstAdmins(address otherAdmin) {
-        require(
-            admins[msg.sender] || !admins[otherAdmin],
-            "Admins Cannot Betray Admins"
-        );
-        _;
-    }
-
-    /**
-     * Requires the msg.sender to either be whitelisted, or the vault be public
-     */
-    modifier onlyWhitelistedOrPublicVault() {
-        require(
-            isPublic || whitelistedUsers[msg.sender],
-            "You Are Not Whitelisted"
-        );
-        _;
-    }
 
     // =====================
     //      CONSTRUCTOR
@@ -299,142 +150,9 @@ contract State is YCVM {
      */
     mapping(address => uint256) public balances;
 
-    /**
-     * @dev
-     * Tracking whether the strategy is private or not,
-     * this is not immutable since we would allow to change it from the diamond (deploying) contract,
-     * if permmited.
-     */
-    bool isPublic;
-
-    /**
-     * @dev
-     * Keeping track of whitelisted users that are allowed to use this vault
-     * @notice This is only relevent for private vaults - In public vaults, everyone is allowed in.
-     */
-    mapping(address => bool) public whitelistedUsers;
-
-    /**
-     * @dev
-     * Keeping track of all of the admins of the vault,
-     * that can whitelist/blacklist users from using it,
-     * also only relevent for private vaults
-     */
-    mapping(address => bool) public mods;
-
-    /**
-     * @dev
-     * Keeping track of all of the administrators of the vault,
-     * Adminstrators have mods permissions but can also add/remove other mods,
-     * also only relevent for private vaults
-     */
-    mapping(address => bool) public admins;
-
-    /**
-     * @dev An operation "lock" mechanism,
-     * This is set to true when an operation (Strategy run, deposit, withdrawal, etc) begins, and false when it ends -
-     * And prevents execution of fullfils in the offchain queue of other operations until this becomes false,
-     */
-    bool locked;
-
     // ==============================
     //     VAULT CONFIG METHODS
     // ==============================
-
-    /**
-     * @dev
-     * changePrivacy()
-     * Changes the privacy of this vault.
-     * @notice ONLY callable by the Diamond. This is in order to enforce some rules logic, like:
-     * 1) A public vault cannot be changed to private in most cases
-     * 2) Vaults can only be private for premium users,
-     * etc.
-     *
-     * The logic may change in the future
-     *
-     * @param shouldBePublic - true: Public, false: private.
-     */
-    function changePrivacy(bool shouldBePublic) external onlyDiamond {
-        isPublic = shouldBePublic;
-    }
-
-    /**
-     * @dev
-     * Whitelist an address
-     * @param userAddress - The address to whitelist
-     */
-    function whitelist(address userAddress) external onlyMods {
-        whitelistedUsers[userAddress] = true;
-    }
-
-    /**
-     * @dev
-     * Blacklist an address
-     * @param userAddress - The address to whitelist
-     */
-    function blacklist(
-        address userAddress
-    ) external onlyMods peaceAmongstMods(userAddress) {
-        whitelistedUsers[userAddress] = false;
-    }
-
-    /**
-     * @dev
-     * Add a moderator
-     */
-    function addModerator(address userAddress) external onlyAdmins {
-        mods[userAddress] = true;
-    }
-
-    /**
-     * @dev
-     * Remove a moderator
-     */
-    function removeModerator(
-        address userAddress
-    ) external onlyAdmins peaceAmongstAdmins(userAddress) {
-        mods[userAddress] = false;
-    }
-
-    /**
-     * @dev
-     * Add an administrator
-     */
-    function addAdministrator(address userAddress) external onlyCreator {
-        mods[userAddress] = true;
-        admins[userAddress] = true;
-    }
-
-    /**
-     * @dev
-     * Remove an administrator
-     */
-    function removeAdministrator(address userAddress) external onlyCreator {
-        admins[userAddress] = false;
-        mods[userAddress] = false;
-    }
-
-    // ==============================
-    //      OPERATIONS MANAGER
-    // ==============================
-
-    /*********************************************************
-     * @notice
-     * Since all of our operations (strategy run, deposits, withdrawals...) may include mid-way
-     * offchain computations, it is required to keep a queue and a lock in order for them to execute one-by-one
-     * in an order, and not clash.
-     *********************************************************/
-
-    /**
-     * @dev Mapping keeping track of indexes to queued operations
-     */
-    mapping(uint256 => QueueItem) internal operationsQueue;
-
-    /**
-     * @dev We manually keep track of the current "front" and "rear" indexes of the queue
-     */
-    uint256 front;
-    uint256 rear;
 
     /**
      * routeQueueOperation
@@ -442,7 +160,7 @@ contract State is YCVM {
      * depending on the requested operation.
      * Does not take any arguments, just has to be initiated.
      */
-    function routeQueueOperation() public {
+    function routeQueueOperation() public override {
         // Require the lock state to be unlocked. Otherwise this will be required to be called whne it's unlocked later
         require(!locked, "Lock Is On");
         /**
@@ -453,52 +171,25 @@ contract State is YCVM {
         /**
          * Switch statement for the operation to run
          */
-        if (operation.action == ActionTypes.DEPOSIT) handleDeposit(operation);
-    }
+        if (operation.action == ActionTypes.DEPOSIT)
+            return handleDeposit(operation);
 
-    /**
-     * @dev Enqueue a queue item
-     */
-    function enqueueOp(QueueItem memory queueItem) internal {
-        operationsQueue[rear] = queueItem;
-        rear++;
+        if (operation.action == ActionTypes.WITHDRAW)
+            return handleWithdraw(operation);
 
-        /**
-         * @notice
-         * We check to see if the state is currently locked. If it isnt, and we are the first one in the queue,
-         * we simply call the routeQueueOperation(), and handle the request immediatly.
-         * Otherwise We emit a RequestFullfill event, with the action called "handle_ops_queue", which will, in turn,
-         * simply begin handling the queue offchain, taking in mind the lock state.
-         * This allows the intervention of the offchain only when required.
-         */
-        if (!locked && front == rear - 1) routeQueueOperation();
-        else
-            emit RequestFullfill(
-                // Action is just used randomly, does not matter here
-                queueItem.action,
-                "handle_ops_queue",
-                0,
-                new bytes[](0)
-            );
-    }
-
-    /**
-     * @dev Dequeue and retreive a queue item
-     */
-    function dequeueOp() internal returns (QueueItem memory currentItem) {
-        require(front < rear, "Queue Is Empty");
-
-        currentItem = operationsQueue[front];
-
-        delete operationsQueue[front];
-
-        front++;
-
-        // We reset front & rear to zero if the queue is empty, to save on future gas
-        if (front < rear) {
-            front = 0;
-            rear = 0;
+        if (operation.action == ActionTypes.STRATEGY_RUN) {
+            uint256[] memory startingIndices = new uint256[](1);
+            startingIndices[0] = 0;
+            return
+                executeStepTree(
+                    STEPS,
+                    startingIndices,
+                    new bytes(0),
+                    ActionTypes.STRATEGY_RUN
+                );
         }
+
+        revert();
     }
 
     // ==============================
@@ -780,58 +471,5 @@ contract State is YCVM {
                 context
             );
         }
-    }
-
-    /**
-     * @notice
-     * decodeAndRequestFullfill()
-     * Accepts an encoded FunctionCall struct, and some context, and emits a RequestFullfill event
-     * @param encodedFunctionCall - An encoded FunctionCall struct
-     * @param context - A string representing some context for the offchain executor, i.e "tree", "seed", "uproot"
-     * @param index - An index specifying a step to execute when re-entering onchain, within the provided context
-     */
-    function _decodeAndRequestFullfill(
-        bytes memory encodedFunctionCall,
-        ActionTypes context,
-        uint256 index
-    ) internal {
-        // We begin by decoding the function call
-        FunctionCall memory func = abi.decode(
-            encodedFunctionCall,
-            (FunctionCall)
-        );
-
-        // And then emitting the event
-        emit RequestFullfill(context, func.signature, index, func.args);
-    }
-
-    /**
-     * @notice
-     * _determineConditions()
-     * Accepts an array of YCStep's, which are meant to be the conditional step's children.
-     * It attempts to execute their YC commands in order - Once one resolves to true, it returns their index + 1.
-     * Otherwise, it returns 0 (indiciating none went through). The index is +1'ed so that we can use the 0 index as a nullish indicator,
-     * where none of the conditions resolved to true.
-     * @param conditions - An array of encoded YC steps, the conditions to execute
-     */
-    function _determineConditions(
-        bytes[] memory conditions
-    ) internal returns (uint256) {
-        for (uint256 i; i < conditions.length; i++) {
-            /**
-             * Decode the condition to a YC step
-             */
-            YCStep memory conditionalStep = abi.decode(conditions[i], (YCStep));
-
-            /**
-             * Attempt to execute the condition's complex YC command,
-             * if it resolves to true, we return it's index,
-             * otherwise, we continue
-             */
-            if (abi.decode(_runFunction(conditionalStep.func), (bool)))
-                return i + 1;
-        }
-
-        return 0;
     }
 }
