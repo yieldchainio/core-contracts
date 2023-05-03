@@ -47,13 +47,25 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
      * Test the deposit strategy
      * @param depositAmount - uint80, the amount to deposit (for fuzzing)
      */
-    function testDepositAndSeedStrategy(uint80 depositAmount) public {
+    function testDepositAndSeedStrategy(uint256 depositAmount) public {
+        /**
+         * @notice
+         * We make 2 assumptions:
+         * 1) Deposit amount is between 0.01 and 1B
+         * 2) Deposit amount is an even number. This is in order to be able to make assertions on the different balances/positions percisely
+         * (Since we usually use a divisor of 2 )
+         */
+        vm.assume(depositAmount % 2 == 0);
+        vm.assume(
+            depositAmount <= 1000000000 * 10 ** 18 && depositAmount >= 1 * 10 ** 16
+        );
+
         // Assert the current balances and etc to be initial (0)
         assertEq(getDepositTokenBalance(), 0, "Initial Token Balance Is Not 0");
         assertEq(getGmxStakingBalance(), 0, "Initial GMX Staking is not 0");
         assertEq(getGNSStakingBalance(), 0, "Initial GNS Staking is not 0");
 
-        // Reward ourselves with some 100 tokens
+        // Reward ourselves with some *depositAmount* tokens
         deal(
             address(vaultContract.DEPOSIT_TOKEN()),
             address(this),
@@ -88,14 +100,14 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(
             getGmxStakingBalance(),
-            depositAmount / 2,
+            (depositAmount * 100) / 200,
             "Deposited, But Vault's Staked GMX Mismatches"
         );
 
         // Assert that the vault's GNS Staking balance should now be half of that
         assertEq(
             getGNSStakingBalance(),
-            depositAmount / 2,
+            (depositAmount * 100) / 200,
             "Deposited, But Vault's Staked GNS Mismatches"
         );
 
