@@ -34,7 +34,7 @@ contract AccessControl {
      * this is not immutable since we would allow to change it from the diamond (deploying) contract,
      * if permmited.
      */
-    bool isPublic;
+    bool public isPublic;
 
     /**
      * @dev
@@ -66,7 +66,7 @@ contract AccessControl {
      * Requires the msg.sender to be the Yieldchain dimaond
      */
     modifier onlyDiamond() {
-        require(msg.sender == YC_DIAMOND, "You Are Not Vault Creator");
+        require(msg.sender == YC_DIAMOND, "You Are Not Yieldchain Diamond");
         _;
     }
 

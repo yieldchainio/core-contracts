@@ -72,6 +72,14 @@ contract BaseStrategy is UtilityEncoder {
          * we reuse this variable to avoid stack too deep
          */
         uint256[] memory childrenIndices = new uint256[](0);
+
+        childrenIndices = new uint256[](2);
+        childrenIndices[0] = 1;
+        childrenIndices[1] = 2;
+        SEED_STEPS[0] = abi.encode(
+            YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
+        );
+
         bytes[] memory funcArgs = new bytes[](0);
 
         // Stake 50% of GMX into GMX Protocol
@@ -80,13 +88,6 @@ contract BaseStrategy is UtilityEncoder {
         funcArgs[0] = encodeGetInvestmentAmount(
             encodeBalanceOf(address(depositToken)),
             200
-        );
-
-        childrenIndices = new uint256[](2);
-        childrenIndices[0] = 1;
-        childrenIndices[1] = 2;
-        SEED_STEPS[0] = abi.encode(
-            YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
         );
 
         SEED_STEPS[1] = abi.encode(
@@ -466,33 +467,19 @@ contract BaseStrategy is UtilityEncoder {
         );
 
         // Create pairs of approval
-        address[][] memory approvalPairs = new address[][](6);
+        address[2][] memory approvalPairs = new address[2][](6);
 
-        address[] memory currentApprovalPair = new address[](2);
+        approvalPairs[0] = [GMX_TOKEN_ADDRESS, GMX_STAKING_CONTRACT];
 
-        currentApprovalPair[0] = GMX_TOKEN_ADDRESS;
-        currentApprovalPair[1] = GMX_STAKING_CONTRACT;
-        approvalPairs[0] = currentApprovalPair;
+        approvalPairs[1] = [GMX_TOKEN_ADDRESS, GMX_REWARDS_ROUTER];
 
-        currentApprovalPair[0] = GMX_TOKEN_ADDRESS;
-        currentApprovalPair[1] = GMX_REWARDS_ROUTER;
-        approvalPairs[1] = currentApprovalPair;
+        approvalPairs[2] = [GNS_TOKEN_ADDRESS, GNS_STAKING_CONTRACT];
 
-        currentApprovalPair[0] = GNS_TOKEN_ADDRESS;
-        currentApprovalPair[1] = GNS_STAKING_CONTRACT;
-        approvalPairs[2] = currentApprovalPair;
+        approvalPairs[3] = [GNS_TOKEN_ADDRESS, address(dexContract)];
 
-        currentApprovalPair[0] = GNS_TOKEN_ADDRESS;
-        currentApprovalPair[1] = address(dexContract);
-        approvalPairs[3] = currentApprovalPair;
+        approvalPairs[4] = [DAI_TOKEN_ADDRESS, address(dexContract)];
 
-        currentApprovalPair[0] = DAI_TOKEN_ADDRESS;
-        currentApprovalPair[1] = address(dexContract);
-        approvalPairs[4] = currentApprovalPair;
-
-        currentApprovalPair[0] = WETH_TOKEN_CONTRACT;
-        currentApprovalPair[1] = address(dexContract);
-        approvalPairs[5] = currentApprovalPair;
+        approvalPairs[5] = [WETH_TOKEN_CONTRACT, address(dexContract)];
 
         // We deploy the vault contract
         return

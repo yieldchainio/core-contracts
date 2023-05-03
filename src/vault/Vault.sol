@@ -11,6 +11,7 @@ import "./OperationsQueue.sol";
 import "./Schema.sol";
 import "../vm/VM.sol";
 import "./VaultUtilities.sol";
+import "forge-std/console.sol";
 
 /**
  * The part of the vault contract containing various
@@ -48,7 +49,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         bytes[] memory steps,
         bytes[] memory seedSteps,
         bytes[] memory uprootSteps,
-        address[][] memory approvalPairs,
+        address[2][] memory approvalPairs,
         IERC20 depositToken,
         bool ispublic,
         address creator
@@ -291,6 +292,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         // Starting indices would be just the root step
         uint256[] memory startingIndices = new uint256[](1);
         startingIndices[0] = 0;
+
         executeStepTree(
             SEED_STEPS,
             startingIndices,
@@ -373,7 +375,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         uint256[] memory startingIndices,
         bytes memory fullfillCommand,
         ActionTypes context
-    ) public onlyDiamond {
+    ) internal {
         /**
          * Iterate over each one of the starting indices
          */
@@ -445,6 +447,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
             /**
              * If the step is not a callback, we execute the step's function
              */
+
             _runFunction(step.func);
 
             /**

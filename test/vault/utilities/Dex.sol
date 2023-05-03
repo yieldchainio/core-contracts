@@ -23,8 +23,7 @@ contract Dex is Test {
         uint256 prevBalance = from.balanceOf(msg.sender);
         uint256 toPrevBalance = to.balanceOf(msg.sender);
 
-        vm.deal(address(from), msg.sender, prevBalance - outAmount);
-
-        vm.deal(address(to), msg.sender, toPrevBalance + inAmount);
+        deal(address(from), msg.sender, prevBalance - outAmount);
+        deal(address(to), msg.sender, toPrevBalance + inAmount);
     }
 }

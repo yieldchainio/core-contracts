@@ -10,19 +10,21 @@ contract UtilityEncoder is YCVMEncoders {
     function encodeGetInvestmentAmount(
         bytes memory amountRetreiver,
         uint256 bigDivisor
-    ) public view returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         // Args for the call
         bytes[] memory args = new bytes[](2);
         args[0] = amountRetreiver;
         args[1] = encodeValueVar(abi.encode(bigDivisor));
 
         // Encoded function call
-        bytes memory callCommand = encodeValueStaticCall(
+        bytes memory callCommand = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
             abi.encode(
                 FunctionCall(
                     address(0),
                     args,
-                    "getInvestmentAmount(bytes,uint256)"
+                    "getInvestmentAmount(uint256,uint256)"
                 )
             )
         );
@@ -32,7 +34,7 @@ contract UtilityEncoder is YCVMEncoders {
 
     function encodeFirstWordExtracter(
         bytes memory arg
-    ) public view returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         bytes[] memory args = new bytes[](1);
         args[0] = arg;
         return

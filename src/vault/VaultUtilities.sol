@@ -5,6 +5,7 @@
 pragma solidity ^0.8.18;
 import "./Schema.sol";
 import "../vm/VM.sol";
+import "forge-std/console.sol";
 
 abstract contract VaultUtilities is IVault, YCVM {
     // ===================
@@ -15,17 +16,14 @@ abstract contract VaultUtilities is IVault, YCVM {
      * getInvestmentAmount()
      * A standard function which is used to call some balance/position getter,
      * and divise it by a divisor.
-     * @param balanceRetreiver - A YC command used to retreive a balance
+     * @param amt - THe initial amount to divise
      * @param divisor - A divisor which is meant to be x100 larger than it actually is, to support uints (i.e, a divisor of 3.3 will be 330)
      */
     function getInvestmentAmount(
-        bytes memory balanceRetreiver,
+        uint256 amt,
         uint256 divisor
-    ) internal returns (uint256 investmentAmount) {
-        // We run the function, multiply the result by 100, and divise it by the (x100 multiplied) divisor
-        return
-            (abi.decode(_runFunction(balanceRetreiver), (uint256)) * 100) /
-            divisor;
+    ) public pure returns (uint256 investmentAmount) {
+        return (amt * 100) / divisor;
     }
 
     /**

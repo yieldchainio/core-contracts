@@ -36,8 +36,7 @@ contract YCVMEncoders is Constants, YieldchainTypes {
     function encodeCall(
         bytes memory callCommand
     ) public pure returns (bytes memory) {
-        return
-            bytes.concat(STATICCALL_COMMAND_FLAG, VALUE_VAR_FLAG, callCommand);
+        return bytes.concat(CALL_COMMAND_FLAG, VALUE_VAR_FLAG, callCommand);
     }
 
     function encodeArray(
@@ -49,11 +48,7 @@ contract YCVMEncoders is Constants, YieldchainTypes {
             bytes.concat(
                 STATICCALL_COMMAND_FLAG,
                 VALUE_VAR_FLAG,
-                encodeCall(
-                    abi.encode(
-                        FunctionCall(address(0), new bytes[](0), "self()")
-                    )
-                )
+                abi.encode(FunctionCall(address(0), new bytes[](0), "self()"))
             );
     }
 }

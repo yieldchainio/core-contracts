@@ -45,20 +45,25 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
 
     /**
      * Test the deposit strategy
+     * @param depositAmount - uint80, the amount to deposit (for fuzzing)
      */
-    function testDepositAndSeedStrategy() public {
+    function testDepositAndSeedStrategy(uint80 depositAmount) public {
         // Assert the current balances and etc to be initial (0)
         assertEq(getDepositTokenBalance(), 0, "Initial Token Balance Is Not 0");
         assertEq(getGmxStakingBalance(), 0, "Initial GMX Staking is not 0");
         assertEq(getGNSStakingBalance(), 0, "Initial GNS Staking is not 0");
 
         // Reward ourselves with some 100 tokens
-        vm.deal(address(vaultContract.DEPOSIT_TOKEN()), 100 * 10 ** 18);
+        deal(
+            address(vaultContract.DEPOSIT_TOKEN()),
+            address(this),
+            depositAmount
+        );
 
         // Assert that we must have 100 tokens
         assertEq(
             vaultContract.DEPOSIT_TOKEN().balanceOf(address(this)),
-            100 * 10 ** 18,
+            depositAmount,
             "vm.deal() did not reward"
         );
 
@@ -73,21 +78,37 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             vaultContract.DEPOSIT_TOKEN().allowance(
                 address(this),
                 address(vaultContract)
-            ) >= 100 * 10 ** 18,
+            ) > depositAmount,
             "Insufficient Allowance"
         );
 
-        // Assert that our balance is sufficient
-        
-
         // Deposit all 100 tokens we have
-        vaultContract.deposit(100 * 10 ** 18);
+        vaultContract.deposit(depositAmount);
 
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(
             getGmxStakingBalance(),
-            50 * 10 ** 18,
+            depositAmount / 2,
             "Deposited, But Vault's Staked GMX Mismatches"
+        );
+
+        // Assert that the vault's GNS Staking balance should now be half of that
+        assertEq(
+            getGNSStakingBalance(),
+            depositAmount / 2,
+            "Deposited, But Vault's Staked GNS Mismatches"
+        );
+
+        // Assert that the vault's total supply is now depositAmount, and so are our shares
+        assertEq(
+            vaultContract.totalShares(),
+            depositAmount,
+            "Deposited, But Total Supply Mismatches"
+        );
+        assertEq(
+            vaultContract.balances(address(this)),
+            depositAmount,
+            "Deposited, But User Shares Mismatche"
         );
     }
 
