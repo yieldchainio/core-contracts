@@ -7,11 +7,15 @@ pragma solidity ^0.8.18;
 
 import "forge-std/Test.sol";
 
-abstract contract Forks is Test {
+contract Forks is Test {
     // ==================
     //     CONSTANTS
     // ==================
-    uint256 internal immutable ARBITRUM;
+    uint256 public ARBITRUM;
+
+    function setUp() public {
+        ARBITRUM = vm.createFork("https://arb1.arbitrum.io/rpc");
+    }
 
     constructor() {
         ARBITRUM = vm.createFork("https://arb1.arbitrum.io/rpc");

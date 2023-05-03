@@ -8,10 +8,26 @@ import "./Schema.sol";
 
 contract AccessControl {
     // ===================
+    //      ABSTRACTS
+    // ===================
+    /**
+     * @dev The address of the Yieldchain diamond contract
+     */
+    address public immutable YC_DIAMOND;
+
+    /**
+     * @dev The address of the creator of this strategy
+     */
+    address public immutable CREATOR;
+
+    constructor(address creator, address diamond) {
+        CREATOR = creator;
+        YC_DIAMOND = diamond;
+    }
+
+    // ===================
     //      STORAGE
     // ===================
-   
-
     /**
      * @dev
      * Tracking whether the strategy is private or not,
@@ -50,7 +66,7 @@ contract AccessControl {
      * Requires the msg.sender to be the Yieldchain dimaond
      */
     modifier onlyDiamond() {
-        require(msg.sender == address(0), "You Are Not Vault Creator");
+        require(msg.sender == YC_DIAMOND, "You Are Not Vault Creator");
         _;
     }
 
@@ -58,7 +74,7 @@ contract AccessControl {
      * Requires the msg.sender to be the vault's creator
      */
     modifier onlyCreator() {
-        require(msg.sender == address(0), "You Are Not Vault Creator");
+        require(msg.sender == CREATOR, "You Are Not Vault Creator");
         _;
     }
 
@@ -83,7 +99,7 @@ contract AccessControl {
      */
     modifier peaceAmongstMods(address otherMod) {
         require(
-            admins[msg.sender] || !mods[otherMod],
+            !mods[otherMod] || (admins[msg.sender] && !admins[otherMod]),
             "Mods Cannot Betray Mods"
         );
         _;
@@ -94,7 +110,7 @@ contract AccessControl {
      */
     modifier peaceAmongstAdmins(address otherAdmin) {
         require(
-            admins[msg.sender] || !admins[otherAdmin],
+            admins[msg.sender] && !admins[otherAdmin],
             "Admins Cannot Betray Admins"
         );
         _;
@@ -157,6 +173,7 @@ contract AccessControl {
      */
     function addModerator(address userAddress) external onlyAdmins {
         mods[userAddress] = true;
+        whitelistedUsers[userAddress] = true;
     }
 
     /**
@@ -176,6 +193,7 @@ contract AccessControl {
     function addAdministrator(address userAddress) external onlyCreator {
         mods[userAddress] = true;
         admins[userAddress] = true;
+        whitelistedUsers[userAddress] = true;
     }
 
     /**

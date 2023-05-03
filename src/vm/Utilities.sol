@@ -205,14 +205,4 @@ contract Utilities {
             }
         }
     }
-
-    /**
-     * NON-CORE
-     * self()
-     * get own address
-     * @return ownAddress
-     */
-    function self() public view returns (address ownAddress) {
-        ownAddress = address(this);
-    }
 }

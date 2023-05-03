@@ -7,7 +7,7 @@ pragma solidity ^0.8.18;
 import "../types.sol";
 import "./Constants.sol";
 
-contract YCVMEncoders is Constants {
+contract YCVMEncoders is Constants, YieldchainTypes {
     function encodeValueVar(
         bytes memory value
     ) public pure returns (bytes memory) {
@@ -43,4 +43,17 @@ contract YCVMEncoders is Constants {
     function encodeArray(
         bytes memory callCommand
     ) public pure returns (bytes memory) {}
+
+    function encodeSelfCommand() public pure returns (bytes memory) {
+        return
+            bytes.concat(
+                STATICCALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
+                encodeCall(
+                    abi.encode(
+                        FunctionCall(address(0), new bytes[](0), "self()")
+                    )
+                )
+            );
+    }
 }

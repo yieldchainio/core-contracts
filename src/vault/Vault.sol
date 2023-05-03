@@ -52,17 +52,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         IERC20 depositToken,
         bool ispublic,
         address creator
-    ) {
-        /**
-         * @dev We set the Diamond address to the msg.sender (deployer of this)
-         */
-        YC_DIAMOND = msg.sender;
-
-        /**
-         * @dev We set the creator's address
-         */
-        CREATOR = creator;
-
+    ) AccessControl(creator, msg.sender) {
         /**
          * @dev We set the immutable set of steps, seed steps, and uproot steps
          */
@@ -94,20 +84,18 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
                 type(uint256).max
             );
         }
+
+        /**
+         * @dev We also add mods and admin permission to the creator
+         */
+        admins[creator] = true;
+        mods[creator] = true;
+        whitelistedUsers[creator] = true;
     }
 
     // =====================
     //      IMMUTABLES
     // =====================
-    /**
-     * @dev The address of the Yieldchain diamond contract
-     */
-    address immutable YC_DIAMOND;
-
-    /**
-     * @dev The address of the creator of this strategy
-     */
-    address immutable CREATOR;
 
     /**
      * @dev The deposit token of the vault
@@ -311,11 +299,6 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      */
     function handleWithdraw(QueueItem memory withdrawItem) internal {
         /**
-         * @notice Lock the execution of other operations in the meantime
-         */
-        locked = true;
-
-        /**
          * Decode the first byte argument as an amount
          */
         uint256 amount = abi.decode(withdrawItem.arguments[0], (uint256));
@@ -324,6 +307,16 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
          * We require the shares of the user to be sufficient
          */
         if (balances[msg.sender] > amount) revert InsufficientShares();
+
+        /**
+         * @notice Lock the execution of other operations in the meantime
+         */
+        locked = true;
+
+        /**
+         * @notice We keep track of what the deposit token balance was prior to the execution
+         */
+        uint256 preVaultBalance = DEPOSIT_TOKEN.balanceOf(address(this));
 
         /**
          * @notice  We begin executing the uproot (reverse) steps
@@ -338,6 +331,14 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
             new bytes(0),
             ActionTypes.DEPOSIT
         );
+
+        /**
+         * After executing all of the steps, we get the balance difference,
+         * and transfer to the user.
+         * We use safeERC20, so if the debt is 0, the execution reverts
+         */
+        uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
+        DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
     }
 
     // ==============================

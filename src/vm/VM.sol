@@ -2,8 +2,9 @@
 pragma solidity ^0.8.18;
 import "./Interpreters.sol";
 import "./Interface.sol";
+import "./Opcodes.sol";
 
-contract YCVM is Interpreters, IVM {
+contract YCVM is Interpreters, IVM, Opcodes {
     // ================
     //    FUNCTIONS
     // ================
