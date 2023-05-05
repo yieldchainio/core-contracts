@@ -312,22 +312,6 @@ contract BaseStrategy is UtilityEncoder {
          */
         bytes[] memory UPROOT_STEPS = new bytes[](6);
 
-        // We withdraw GNS staking, swap GNS to GMX, Swap DAI to GMX,
-        // then withdraw GMX staking, swap WETH to GMX.
-        funcArgs = new bytes[](1);
-        bytes[] memory amountGetterArgs = new bytes[](1);
-        amountGetterArgs[0] = encodeSelfCommand();
-        funcArgs[0] = encodeFirstWordExtracter(
-            encodeValueStaticCall(
-                abi.encode(
-                    FunctionCall(
-                        GNS_STAKING_CONTRACT,
-                        amountGetterArgs,
-                        "users(address)"
-                    )
-                )
-            )
-        );
         // The root uproot command
         childrenIndices = new uint256[](2);
         childrenIndices[0] = 1;
@@ -336,6 +320,31 @@ contract BaseStrategy is UtilityEncoder {
         UPROOT_STEPS[0] = abi.encode(
             YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
         );
+
+        // We withdraw GNS staking, swap GNS to GMX, Swap DAI to GMX,
+        // then withdraw GMX staking, swap WETH to GMX.
+        funcArgs = new bytes[](1);
+        bytes[] memory amountGetterArgs = new bytes[](1);
+        amountGetterArgs[0] = encodeSelfCommand();
+        funcArgs[0] = encodeGetInvestmentAmount(
+            encodeFirstWordExtracter(
+                bytes.concat(
+                    STATICCALL_COMMAND_FLAG,
+                    RAW_REF_VAR_FLAG,
+                    abi.encode(
+                        FunctionCall(
+                            GNS_STAKING_CONTRACT,
+                            amountGetterArgs,
+                            "users(address)"
+                        )
+                    )
+                )
+            ),
+            encodeWithdrawSharesGetter()
+        );
+
+        // 0xb23a13a400000000000000000000000000000000000000000000ec64736f6c63430008120000000000000000000000000000000000000000000022fd21df2677d31feb29000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        // 0xb23a13a4000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000ec64736f6c63430008120000000000000000000000000000000000000000000022fd21df2677d31feb29000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
         childrenIndices = new uint256[](2);
         childrenIndices[0] = 3;
@@ -414,16 +423,21 @@ contract BaseStrategy is UtilityEncoder {
         amountGetterArgs = new bytes[](1);
         amountGetterArgs[0] = encodeSelfCommand();
 
-        funcArgs[0] = encodeValueStaticCall(
-            abi.encode(
-                FunctionCall(
-                    GMX_REWARDS_ROUTER,
-                    amountGetterArgs,
-                    "stakedAmounts(address)"
+        funcArgs[0] = encodeGetInvestmentAmount(
+            encodeValueStaticCall(
+                abi.encode(
+                    FunctionCall(
+                        GMX_REWARDS_ROUTER,
+                        amountGetterArgs,
+                        "stakedAmounts(address)"
+                    )
                 )
-            )
+            ),
+            encodeWithdrawSharesGetter()
         );
 
+        childrenIndices = new uint256[](1);
+        childrenIndices[0] = 5;
         UPROOT_STEPS[2] = abi.encode(
             YCStep(
                 encodeCall(
@@ -435,7 +449,7 @@ contract BaseStrategy is UtilityEncoder {
                         )
                     )
                 ),
-                new uint256[](0),
+               childrenIndices,
                 new bytes[](0),
                 false
             )

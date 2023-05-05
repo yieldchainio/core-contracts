@@ -12,6 +12,7 @@ import "./Schema.sol";
 import "../vm/VM.sol";
 import "./VaultUtilities.sol";
 import "forge-std/console.sol";
+import "./Constants.sol";
 
 /**
  * The part of the vault contract containing various
@@ -20,7 +21,13 @@ import "forge-std/console.sol";
  * This is the root contract being inherited
  */
 
-contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
+contract Vault is
+    YCVM,
+    OperationsQueue,
+    AccessControl,
+    VaultUtilities,
+    VaultConstants
+{
     // LIBS
     using SafeERC20 for IERC20;
 
@@ -139,6 +146,13 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      */
     mapping(address => uint256) public balances;
 
+    /**
+     * @notice
+     * Active share percentage,
+     * used to track withdrawals incase of an offchain execution required mid way
+     */
+    uint256 activeShare;
+
     // ==============================
     //     VAULT CONFIG METHODS
     // ==============================
@@ -147,27 +161,36 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      * routeQueueOperation
      * Dequeues an item from the queue and handles it,
      * depending on the requested operation.
-     * Does not take any arguments, just has to be initiated.
+     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
+     * Note that this would be different, if the routeQueueOperation() call is a fullfill from a previous callback
+     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
      */
-    function routeQueueOperation() public override {
+    function routeQueueOperation(
+        uint256[] memory startingIndices,
+        bytes memory fullfillCommand
+    ) public override {
         // Require the lock state to be unlocked. Otherwise this will be required to be called whne it's unlocked later
         require(!locked, "Lock Is On");
         /**
-         * We dequeue & retreive the current operation to handle
+         * We retreive the current operation to handle.
+         * Note that we do not dequeue it, as we want it to remain visible in storage
+         * until the operation fully completes (incase there is an offchain break inbetween execution steps).
+         * Dequeuing it & resaving to storage would be highly unneccsery gas-wise, and hence we leave it in the queue,
+         * and leave it upto the handling function to dequeue it
          */
-        QueueItem memory operation = dequeueOp();
+        QueueItem memory operation = operationsQueue[front];
 
         /**
          * Switch statement for the operation to run
          */
         if (operation.action == ActionTypes.DEPOSIT)
-            return handleDeposit(operation);
+            return handleDeposit(operation, startingIndices, fullfillCommand);
 
         if (operation.action == ActionTypes.WITHDRAW)
-            return handleWithdraw(operation);
+            return handleWithdraw(operation, startingIndices, fullfillCommand);
 
         if (operation.action == ActionTypes.STRATEGY_RUN) {
-            return handleRunStrategy();
+            return handleRunStrategy(startingIndices, fullfillCommand);
         }
 
         revert();
@@ -222,7 +245,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
          * We assert the user's shares are sufficient
          * Note this is re-checked when handling the actual withdrawal
          */
-        if (balances[msg.sender] > amount) revert InsufficientShares();
+        if (amount > balances[msg.sender]) revert InsufficientShares();
 
         /**
          * We create a QueueItem for our withdrawal and enqueue it, which should either begin executing it,
@@ -268,8 +291,14 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      * handleDeposit()
      * The actual deposit execution handler
      * @param depositItem - QueueItem from the operations queue, representing the deposit request
+     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
+     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
      */
-    function handleDeposit(QueueItem memory depositItem) internal {
+    function handleDeposit(
+        QueueItem memory depositItem,
+        uint256[] memory startingIndices,
+        bytes memory fullfillCommand
+    ) internal {
         /**
          * @notice Lock the execution of other operations in the meantime
          */
@@ -279,6 +308,13 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
          * Decode the first byte argument as an amount
          */
         uint256 amount = abi.decode(depositItem.arguments[0], (uint256));
+
+        assembly {
+            // We MSTORE at the deposit amount memory location the deposit amount (may be accessed by commands to determine amount arguments)
+            mstore(DEPOSIT_AMT_MEM_LOCATION, amount)
+            // Update the free mem pointer (we know it in advanced no need to mload on existing stored ptr)
+            mstore(0x40, add(DEPOSIT_AMT_MEM_LOCATION, 0x20))
+        }
 
         /**
          * We require the allowance of the user to be sufficient
@@ -302,16 +338,21 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         /**
          * @notice  We begin executing the seed steps
          */
-        // Starting indices would be just the root step
-        uint256[] memory startingIndices = new uint256[](1);
-        startingIndices[0] = 0;
-
         executeStepTree(
             SEED_STEPS,
             startingIndices,
-            new bytes(0),
+            fullfillCommand,
             ActionTypes.DEPOSIT
         );
+
+        /**
+         * @notice We check to see if our state is currently locked. If it isn't, it means
+         * the last step executed successfully and unlocked the state, and we can complete the operation by dequeuing it.
+         * Otherwise, it means we have not yet completed the operation (offchain break), and we do not dequeue it;
+         * The queue item will be re-accssed from the queue in storage, and probably we will be inputted an additional
+         * fullfill command to input to the ``executeStepTree()`` function.
+         */
+        if (!locked) dequeueOp();
     }
 
     /**
@@ -319,17 +360,35 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      * handleWithdraw()
      * The actual withdraw execution handler
      * @param withdrawItem - QueueItem from the operations queue, representing the withdrawal request
+     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
+     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
      */
-    function handleWithdraw(QueueItem memory withdrawItem) internal {
+    function handleWithdraw(
+        QueueItem memory withdrawItem,
+        uint256[] memory startingIndices,
+        bytes memory fullfillCommand
+    ) internal {
         /**
          * Decode the first byte argument as an amount
          */
         uint256 amount = abi.decode(withdrawItem.arguments[0], (uint256));
+        uint256 shareOfVaultInPercentage = totalShares / amount;
+
+        assembly {
+            // We MSTORE at the withdraw share memory location the % share of the withdraw amount of the total vault, times 100
+            // (e.g, 100 shares to withdraw, 1000 total shares = 1000 / 100 * 100(%) = 1000 (10% multipled by 100, for safe maths...))
+            mstore(
+                WITHDRAW_SHARES_MEM_LOCATION,
+                mul(shareOfVaultInPercentage, 100)
+            )
+            // Update the free mem pointer (we know it in advanced no need to mload on existing stored ptr)
+            mstore(0x40, add(WITHDRAW_SHARES_MEM_LOCATION, 0x20))
+        }
 
         /**
          * We require the shares of the user to be sufficient
          */
-        if (balances[msg.sender] > amount) revert InsufficientShares();
+        if (amount > balances[msg.sender]) revert InsufficientShares();
 
         /**
          * @notice Lock the execution of other operations in the meantime
@@ -342,18 +401,36 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
         uint256 preVaultBalance = DEPOSIT_TOKEN.balanceOf(address(this));
 
         /**
+         * We deduct the user's shares and total supply
+         */
+        console.log("Initiator Balance:");
+        console.log(balances[withdrawItem.initiator]);
+        console.log("Initiator Amount:");
+        console.log(amount);
+        console.log("Total Shares:");
+        console.log(totalShares);
+
+        balances[withdrawItem.initiator] -= amount;
+        totalShares -= amount;
+
+        /**
          * @notice  We begin executing the uproot (reverse) steps
          */
-        // Starting indices would be just the root step
-        // TODO: New approach for reverse strategies?
-        uint256[] memory startingIndices = new uint256[](1);
-        startingIndices[0] = 0;
         executeStepTree(
             UPROOTING_STEPS,
             startingIndices,
-            new bytes(0),
+            fullfillCommand,
             ActionTypes.DEPOSIT
         );
+
+        /**
+         * @notice We check to see if our state is currently locked. If it isn't, it means
+         * the last step executed successfully and unlocked the state, and we can complete the operation by dequeuing it.
+         * Otherwise, it means we have not yet completed the operation (offchain break), and we do not dequeue it;
+         * The queue item will be re-accessed from the queue in storage, and probably we will be inputted an additional
+         * fullfill command to input to the ``executeStepTree()`` function.
+         */
+        if (!locked) dequeueOp();
 
         /**
          * After executing all of the steps, we get the balance difference,
@@ -362,8 +439,6 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
          * We also deduct the shares from the user's balance, and from the total shares supply
          */
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
-        balances[withdrawItem.initiator] -= debt;
-        totalShares -= debt;
         DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
     }
 
@@ -371,19 +446,31 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
      * @notice
      * handleRunStrategy()
      * Handles a strategy run request
+     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
+     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
      */
-    function handleRunStrategy() internal {
-        uint256[] memory startingIndices = new uint256[](1);
-        startingIndices[0] = 0;
-        for (uint256 i; i < STEPS.length; i++) {}
+    function handleRunStrategy(
+        uint256[] memory startingIndices,
+        bytes memory fullfillCommand
+    ) internal {
+        /**
+         * Execute the strategy's tree of steps with the provided startingIndices and fullfill command
+         */
+        executeStepTree(
+            STEPS,
+            startingIndices,
+            fullfillCommand,
+            ActionTypes.STRATEGY_RUN
+        );
 
-        return
-            executeStepTree(
-                STEPS,
-                startingIndices,
-                new bytes(0),
-                ActionTypes.STRATEGY_RUN
-            );
+        /**
+         * @notice We check to see if our state is currently locked. If it isn't, it means
+         * the last step executed successfully and unlocked the state, and we can complete the operation by dequeuing it.
+         * Otherwise, it means we have not yet completed the operation (offchain break), and we do not dequeue it;
+         * The queue item will be re-accessed from the queue in storage, and probably we will be inputted an additional
+         * fullfill command to input to the ``executeStepTree()`` function.
+         */
+        if (!locked) dequeueOp();
     }
 
     // ==============================
@@ -523,6 +610,7 @@ contract Vault is YCVM, OperationsQueue, AccessControl, VaultUtilities {
              * If our index is the last one in the array we got,
              * we set locked to false.
              */
+
             if (stepIndex == virtualTree.length - 1) locked = false;
         }
     }

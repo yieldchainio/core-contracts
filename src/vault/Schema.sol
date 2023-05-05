@@ -136,7 +136,9 @@ abstract contract IVault {
      * routeQueueOperation
      * Dequeues an item from the queue and handles it,
      * depending on the requested operation.
-     * Does not take any arguments, just has to be initiated.
      */
-    function routeQueueOperation() public virtual;
+    function routeQueueOperation(
+        uint256[] memory startingIndices,
+        bytes memory fullfillCommand
+    ) public virtual;
 }

@@ -4,6 +4,7 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+import "forge-std/console.sol";
 
 contract Opcodes {
     /**
@@ -21,7 +22,7 @@ contract Opcodes {
      */
     function extractFirstWord(
         bytes memory arg
-    ) public pure returns (bytes memory firstWord) {
+    ) public pure returns (bytes32 firstWord) {
         assembly {
             firstWord := mload(add(arg, 0x20))
         }

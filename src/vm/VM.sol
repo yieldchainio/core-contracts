@@ -30,7 +30,8 @@ contract YCVM is Interpreters, IVM, Opcodes {
          * Assert that the typeflag must be either 0x04, 0x05, or 0x06 (The function call flags)
          */
         require(
-            typeflag < 0x07 && typeflag > 0x03,
+            typeflag <= DELEGATECALL_COMMAND_FLAG &&
+                typeflag >= STATICCALL_COMMAND_FLAG,
             "ycVM: Invalid Function Typeflag"
         );
 
@@ -60,6 +61,32 @@ contract YCVM is Interpreters, IVM, Opcodes {
         FunctionCall memory func,
         bytes1 typeflag
     ) internal returns (bytes memory returnVal) {
+        /**
+         * @notice
+         * First check is to always see if the typeflag is equal to the INTERNAL_LOAD_FLAG,
+         * which would mean we need to manually MLOAD at the first item in the function's arguments (supposed to be a pointer).
+         * This is because a caller may want to access an in-memory state variable - And when making low level calls, the memory stack
+         * is reset on the new call (a new one is created), which means the current "inline" or "internal" memory stack would not
+         * be accessible.
+         * Note that it only supports fixed-length variables for now
+         */
+        if (typeflag == INTERNAL_LOAD_FLAG) {
+            /**
+             * The standard for an internal load is, there is a single
+             * arg which is the ABI encoded pointer. We get it's 32 byte value (the actual pointer)
+             */
+            bytes32 argPtr = bytes32(func.args[0]);
+
+            // We load the word using assembly and return an ABI encoded version of this value
+            bytes32 loadedWord;
+            assembly {
+                // We assign to the return value the mloaded variable
+                loadedWord := mload(argPtr)
+            }
+            returnVal = abi.encode(loadedWord);
+            return returnVal;
+        }
+
         /**
          * First, build the calldata for the function & it's args
          */
@@ -214,17 +241,25 @@ contract YCVM is Interpreters, IVM, Opcodes {
         typeFlag = typeflag;
 
         /**
-         * If the typeflag is 0x00, it's a value variable and we just return it (simplest case)
+         * If the typeflag is VALUE_VAR_FLAG, it's a value variable and we just return it (simplest case)
          */
         if (typeflag == VALUE_VAR_FLAG) return (parsedPrimitiveValue, typeflag);
 
         /**
-         * If the typeflag is 0x01, it's a ref variable (string, array...), we parse and return it
+         * If the typeflag is REF_VAR_FLAG, it's a ref variable (string, array...), we parse and return it
          */
         if (typeflag == REF_VAR_FLAG) {
-            parsedPrimitiveValue = _parseDynamicVar(parsedPrimitiveValue);
-            return (parsedPrimitiveValue, typeflag);
+            return (_parseDynamicVar(parsedPrimitiveValue), typeflag);
         }
+
+        /**
+         * If the typeflag is RAW_REF_VAR_FLAG, then it means it's a VALUE_VAR that needs to be ABI encoded, in order to be interpreted as a ref var
+         */
+        if (typeflag == RAW_REF_VAR_FLAG)
+            return (
+                _parseDynamicVar(abi.encode(parsedPrimitiveValue)),
+                REF_VAR_FLAG
+            );
 
         /**
          * If the typeflag equals to the commands array flag, we call the interpretCommandsArray() function,
@@ -271,7 +306,10 @@ contract YCVM is Interpreters, IVM, Opcodes {
          */
         uint256 refVarsAmt = 0;
         for (uint256 i = 0; i < ycCommands.length; i++) {
-            if (ycCommands[i][1] == REF_VAR_FLAG) ++refVarsAmt;
+            if (
+                ycCommands[i][1] == REF_VAR_FLAG ||
+                ycCommands[i][1] == RAW_REF_VAR_FLAG
+            ) ++refVarsAmt;
         }
 
         /**

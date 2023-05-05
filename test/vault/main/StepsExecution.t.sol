@@ -37,6 +37,10 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
     Vault public vaultContract;
     uint256 networkID;
 
+    function setVaultContract(Vault _vaultContract) public {
+        vaultContract = _vaultContract;
+    }
+
     function setUp() public {
         networkID = new Forks().ARBITRUM();
         vm.selectFork(networkID);
@@ -60,11 +64,6 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             depositAmount <= 1000000000 * 10 ** 18 &&
                 depositAmount >= 1 * 10 ** 16
         );
-
-        // Assert the current balances and etc to be initial (0)
-        assertEq(getDepositTokenBalance(), 0, "Initial Token Balance Is Not 0");
-        assertEq(getGmxStakingBalance(), 0, "Initial GMX Staking is not 0");
-        assertEq(getGNSStakingBalance(), 0, "Initial GNS Staking is not 0");
 
         // Reward ourselves with some *depositAmount* tokens
         deal(
@@ -95,27 +94,32 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             "Insufficient Allowance"
         );
 
+        // Pre balances of the vault ins taking pools
+        uint256 preGMXBalance = getGmxStakingBalance();
+        uint256 preGNSBalance = getGNSStakingBalance();
+        uint256 preTotalShares = vaultContract.totalShares();
+
         // Deposit all 100 tokens we have
         vaultContract.deposit(depositAmount);
 
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(
             getGmxStakingBalance(),
-            (depositAmount * 100) / 200,
+            preGMXBalance + ((depositAmount * 100) / 200),
             "Deposited, But Vault's Staked GMX Mismatches"
         );
 
         // Assert that the vault's GNS Staking balance should now be half of that
         assertEq(
             getGNSStakingBalance(),
-            (depositAmount * 100) / 200,
+            preGNSBalance + ((depositAmount * 100) / 200),
             "Deposited, But Vault's Staked GNS Mismatches"
         );
 
         // Assert that the vault's total supply is now depositAmount, and so are our shares
         assertEq(
             vaultContract.totalShares(),
-            depositAmount,
+            preTotalShares + depositAmount,
             "Deposited, But Total Supply Mismatches"
         );
         assertEq(
@@ -139,40 +143,8 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
                 depositAmount >= 1 * 10 ** 16
         );
 
-        // Assert the current balances and etc to be initial (0)
-        assertEq(getDepositTokenBalance(), 0, "Initial Token Balance Is Not 0");
-        assertEq(getGmxStakingBalance(), 0, "Initial GMX Staking is not 0");
-        assertEq(getGNSStakingBalance(), 0, "Initial GNS Staking is not 0");
-
-        // Reward ourselves with some *depositAmount* tokens
-        deal(
-            address(vaultContract.DEPOSIT_TOKEN()),
-            address(this),
-            depositAmount
-        );
-
-        // Assert that we must have 100 tokens
-        assertEq(
-            vaultContract.DEPOSIT_TOKEN().balanceOf(address(this)),
-            depositAmount,
-            "vm.deal() did not reward"
-        );
-
-        // Approve the tokens to the vault
-        vaultContract.DEPOSIT_TOKEN().approve(
-            address(vaultContract),
-            type(uint256).max
-        );
-
-        // Deposit all 100 tokens we have
-        vaultContract.deposit(depositAmount);
-
-        // Assert that we deposited
-        assertEq(
-            vaultContract.balances(address(this)),
-            depositAmount,
-            "Deposit Shares Mismatch"
-        );
+        // Begin by re-running deposit test
+        testDepositAndSeedStrategy(depositAmount);
 
         // Expect this to revert (We are not the yieldchain diamond)
         vm.expectRevert();
@@ -197,14 +169,163 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
             "Strategy Run, But GMX Position Did Not Grow."
         );
 
-        console.log(getGmxStakingBalance() - preGMXPoolBalance);
-
         // @notice We do not assert the GNS staking balance as it does not grow like this w the block.timestamp
         // TODO: Manual storage manipulation? not sure if worth it sine if GMX changed we know it worked.
         // assertTrue(
         //     getGNSStakingBalance() > preGNSPoolBalance,
         //     "Strategy Run, But GNS Position Did Not Grow."
         // );
+    }
+
+    /**
+     * Test withdrawls
+     */
+
+    function testWithdrawAndUprootStrategy(uint256 depositAmount) public {
+        // Begin by rerunning strategy test, which will deposit & run the strategy
+        testStrategyRun(depositAmount);
+        // Make the vault public
+        vm.prank(vaultContract.YC_DIAMOND());
+        vaultContract.changePrivacy(true);
+
+        // Then, "deploy" a new test contract and begin pranking it as Bob, and have him deposit a similar amount
+        address Bob = address(1);
+        vm.startPrank(Bob);
+        deal(address(vaultContract.DEPOSIT_TOKEN()), Bob, depositAmount);
+        vaultContract.DEPOSIT_TOKEN().approve(
+            address(vaultContract),
+            type(uint256).max
+        );
+        vaultContract.deposit(depositAmount);
+        vm.stopPrank();
+
+        vm.prank(vaultContract.YC_DIAMOND());
+        vaultContract.runStrategy();
+
+        // Keep track of GMX and GNS balances, totalShares, our balance and Bob's blaance b4 the withdrawal
+        uint256 preGMXPoolBalance = getGmxStakingBalance();
+        uint256 preGNSPoolBalance = getGNSStakingBalance();
+
+        uint256 preTotalShares = vaultContract.totalShares();
+        uint256 preSelfShares = vaultContract.balances(address(this));
+        uint256 preBobShares = vaultContract.balances(Bob);
+
+        // Assert existing shares amount
+        assertEq(
+            preTotalShares / preSelfShares,
+            2,
+            "Pre Self Shares Incorrrect"
+        );
+        assertEq(preTotalShares / preBobShares, 2, "Pre Bob Shares Incorrrect");
+
+        // Execute a withdrawal of all of our shares (should be 50% of total shares)
+        vaultContract.withdraw(preSelfShares);
+
+        // Assert that the shares of us are now 0
+        assertEq(
+            vaultContract.balances(address(this)),
+            0,
+            "Withdrawn, But Shares Are Not 0"
+        );
+        // Assert that Bob's shares now equal to 100% of the shares
+        assertEq(
+            vaultContract.balances(Bob),
+            vaultContract.totalShares(),
+            "Withdrawn, But Bob Does Not Hold All Shares"
+        );
+        // Assert that the total shares are now exacrtly half from before
+        assertEq(
+            vaultContract.totalShares(),
+            preTotalShares / 2,
+            "Withdrawan, But Total Shares mismatch"
+        );
+
+        // Assert that our GMX balance is bigger than our deposit amount
+        assertTrue(
+            vaultContract.DEPOSIT_TOKEN().balanceOf(address(this)) >
+                depositAmount,
+            "Withdrawan, But Did Not Receive Extra GMX"
+        );
+
+        // PRE:121876424073932558078
+        // POS 91408122474697096249
+
+        // Assert that vault contract's GMX balance is 0
+        assertEq(
+            vaultContract.DEPOSIT_TOKEN().balanceOf(address(vaultContract)),
+            0,
+            "Withdrawan But GMX remains in pool"
+        );
+
+        // Assert that the GMX  & GNS pool balances of the vault are now half from prev
+        assertTrue(
+            getGmxStakingBalance() == preGMXPoolBalance / 2 ||
+                getGmxStakingBalance() == preGMXPoolBalance / 2 - 1 ||
+                getGmxStakingBalance() == preGMXPoolBalance / 2 + 1,
+            "Withdrawn, but GMX pool balance mismatch"
+        );
+        assertTrue(
+            getGNSStakingBalance() == preGNSPoolBalance / 2 ||
+                getGNSStakingBalance() == preGNSPoolBalance / 2 - 1 ||
+                getGNSStakingBalance() == preGNSPoolBalance / 2 + 1,
+            "Withdrawn, but GNS pool balance mismatch"
+        );
+
+        // Keep track of GMX and GNS balances, totalShares, our balance and Bob's blaance b4 the withdrawal
+        preGMXPoolBalance = getGmxStakingBalance();
+        preGNSPoolBalance = getGNSStakingBalance();
+        preTotalShares = vaultContract.totalShares();
+        preSelfShares = vaultContract.balances(address(this));
+        preBobShares = vaultContract.balances(Bob);
+
+        // Prank Bob Contract, Withdraw his shares as him
+        vm.startPrank(Bob);
+        vaultContract.withdraw(vaultContract.balances(Bob) / 2);
+        vm.stopPrank();
+
+        // BOB Got THis Amount: 61070876437181831762585
+        // Deposit Amount Was:  61070476549147019107646
+        // We Got this Amount: 61070876437181831762585
+        // Deposit Amount Was: 61070476549147019107646
+
+        // Assert that his balance & total shares are 0
+        assertEq(
+            vaultContract.balances(Bob),
+            depositAmount / 2,
+            "Bob Withdrawn But Shares Mismatch"
+        );
+        assertEq(
+            vaultContract.totalShares(),
+            depositAmount / 2,
+            "Bob Withdrawn But Total Shares Mismatch"
+        );
+
+        // Assert that the vault's GMX and GNS balances in pools are now 0
+        assertTrue(
+            getGmxStakingBalance() == preGMXPoolBalance / 2 ||
+                getGmxStakingBalance() == preGMXPoolBalance / 2 - 1 ||
+                getGmxStakingBalance() == preGMXPoolBalance / 2 + 1,
+            "Bob Withdrawan But GMX Remains In Pool"
+        );
+        assertTrue(
+            getGNSStakingBalance() == preGNSPoolBalance / 2 ||
+                getGNSStakingBalance() == preGNSPoolBalance / 2 - 1 ||
+                getGNSStakingBalance() == preGNSPoolBalance / 2 + 1,
+            "Bob Withdrawan But GNS Remains In Pool"
+        );
+
+        // Assert that Bob's GMX balance is bigger than his deposited amount
+        assertTrue(
+            vaultContract.DEPOSIT_TOKEN().balanceOf(Bob) > depositAmount / 2,
+            "Bob Withdrawan But Did Not Receive Extra GMX"
+        );
+
+        // Assert that vault contract's GMX balance is 0
+        assertEq(
+            vaultContract.DEPOSIT_TOKEN().balanceOf(address(vaultContract)),
+            0,
+            "Bob Withdrawan But GMX remains in pool"
+        );
     }
 
     // ==================

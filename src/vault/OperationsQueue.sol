@@ -55,10 +55,13 @@ abstract contract OperationsQueue is IVault {
          * simply begin handling the queue offchain, taking in mind the lock state.
          * This allows the intervention of the offchain only when required.
          */
-        
-        
-        if (!locked && front == rear - 1) routeQueueOperation();
-        else
+        if (!locked && front == rear - 1) {
+            // This is a new request so starting indices would always be just the root step,
+            // and the fullfill command empty.
+            uint256[] memory startingIndices = new uint256[](1);
+            startingIndices[0] = 0;
+            routeQueueOperation(startingIndices, new bytes(0));
+        } else
             emit RequestFullfill(
                 // Action is just used randomly, does not matter here
                 queueItem.action,

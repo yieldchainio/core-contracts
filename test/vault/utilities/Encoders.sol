@@ -7,6 +7,15 @@ import "../../../src/vm/Encoders.sol";
  */
 
 contract UtilityEncoder is YCVMEncoders {
+    /**
+     * Constant memory location for where user's withdraw shares are stored in memory
+     */
+    uint256 internal constant WITHDRAW_SHARES_MEM_LOCATION = 0x2c0;
+    /**
+     * Constant memory location for where user's deposit amount is stored in memory
+     */
+    uint256 internal constant DEPOSIT_AMT_MEM_LOCATION = 0x2c0;
+
     function encodeGetInvestmentAmount(
         bytes memory amountRetreiver,
         uint256 bigDivisor
@@ -32,13 +41,40 @@ contract UtilityEncoder is YCVMEncoders {
         return callCommand;
     }
 
+    function encodeGetInvestmentAmount(
+        bytes memory amountRetreiver,
+        bytes memory bigDivisor
+    ) public pure returns (bytes memory) {
+        // Args for the call
+        bytes[] memory args = new bytes[](2);
+        args[0] = amountRetreiver;
+        args[1] = bigDivisor;
+
+        // Encoded function call
+        bytes memory callCommand = bytes.concat(
+            STATICCALL_COMMAND_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(
+                FunctionCall(
+                    address(0),
+                    args,
+                    "getInvestmentAmount(uint256,uint256)"
+                )
+            )
+        );
+
+        return callCommand;
+    }
+
     function encodeFirstWordExtracter(
         bytes memory arg
     ) public pure returns (bytes memory) {
         bytes[] memory args = new bytes[](1);
         args[0] = arg;
         return
-            encodeValueStaticCall(
+            bytes.concat(
+                STATICCALL_COMMAND_FLAG,
+                VALUE_VAR_FLAG,
                 abi.encode(
                     FunctionCall(address(0), args, "extractFirstWord(bytes)")
                 )
@@ -89,4 +125,32 @@ contract UtilityEncoder is YCVMEncoders {
                 abi.encode(balanceOfStaticCall) // Encoded balanceOf staticcall
             );
     }
+
+    function encodeDepositAmountGetter() public pure returns (bytes memory) {
+        bytes[] memory mloadArgs = new bytes[](1);
+        mloadArgs[0] = abi.encode(DEPOSIT_AMT_MEM_LOCATION);
+
+        return
+            bytes.concat(
+                INTERNAL_LOAD_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(FunctionCall(address(0), mloadArgs, "MLOAD"))
+            );
+    }
+
+    function encodeWithdrawSharesGetter() public pure returns (bytes memory) {
+        bytes[] memory mloadArgs = new bytes[](1);
+        mloadArgs[0] = abi.encode(WITHDRAW_SHARES_MEM_LOCATION);
+
+        return
+            bytes.concat(
+                INTERNAL_LOAD_FLAG,
+                VALUE_VAR_FLAG,
+                abi.encode(FunctionCall(address(0), mloadArgs, "MLOAD"))
+            );
+    }
 }
+
+// 0x000000000000000000000000000000000000000000001cd4e87913aadcac9a6a
+
+// 0x000000000000000000000000000000000000000000001cd4e87913aadcac9a6a
