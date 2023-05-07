@@ -9,3 +9,15 @@
 [submodule "lib/solidity-stringutils"]
 	path = lib/solidity-stringutils
 	url = https://github.com/Arachnid/solidity-stringutils
+
+# [submodule "Diamond-Foundry"]
+# 	path = Diamond-Foundry
+# 	url = https://github.com/FydeTreasury/Diamond-Foundry
+
+# [submodule "diamond-3-hardhat"]
+# 	path = diamond-3-hardhat
+# 	url = https://github.com/mudgen/diamond-3-hardhat
+
+# [submodule "diamond-3-hardhat-penis"]
+# 	path = diamond-3-penis
+# 	url = https://github.com/mudgen/diamond-3-hardhat
