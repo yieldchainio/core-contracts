@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../../../src/vault/Vault.sol";
-import "../../../src/vm/Encoders.sol";
 import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
@@ -14,7 +13,7 @@ import "../../utils/Forks.t.sol";
  * i.e adding admins/moderators, etc
  */
 
-contract AccessControlTest is Test, YieldchainTypes, YCVMEncoders {
+contract AccessControlTest is Test, YCVMEncoders {
     // ==================
     //     CONSTRUCTOR
     // ==================

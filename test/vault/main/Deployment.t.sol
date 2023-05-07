@@ -7,12 +7,11 @@ pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../../../src/vault/Vault.sol";
-import "../../../src/vm/Encoders.sol";
 import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
 
-contract TestVaultDeployment is Test, YieldchainTypes, YCVMEncoders {
+contract TestVaultDeployment is Test, YCVMEncoders {
     address public constant GMX_TOKEN_ADDRESS =
         0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a;
 

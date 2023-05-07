@@ -4,12 +4,11 @@ pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../../../src/vault/Vault.sol";
-import "../../../src/vm/Encoders.sol";
 import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
 
-contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
+contract ExecutionTest is Test, YCVMEncoders {
     address public constant GMX_TOKEN_ADDRESS =
         0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a;
 
@@ -101,6 +100,7 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
 
         // Deposit all 100 tokens we have
         vaultContract.deposit(depositAmount);
+        routeLatestRequest();
 
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(
@@ -162,6 +162,7 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
 
         // Make a strategy run
         vaultContract.runStrategy();
+        routeLatestRequest();
 
         // Assert that the pool balances be bigger than what they were
         assertTrue(
@@ -198,9 +199,11 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
         );
         vaultContract.deposit(depositAmount);
         vm.stopPrank();
+        routeLatestRequest();
 
         vm.prank(vaultContract.YC_DIAMOND());
         vaultContract.runStrategy();
+        routeLatestRequest();
 
         // Keep track of GMX and GNS balances, totalShares, our balance and Bob's blaance b4 the withdrawal
         uint256 preGMXPoolBalance = getGmxStakingBalance();
@@ -220,6 +223,7 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
 
         // Execute a withdrawal of all of our shares (should be 50% of total shares)
         vaultContract.withdraw(preSelfShares);
+        routeLatestRequest();
 
         // Assert that the shares of us are now 0
         assertEq(
@@ -282,6 +286,7 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
         vm.startPrank(Bob);
         vaultContract.withdraw(vaultContract.balances(Bob) / 2);
         vm.stopPrank();
+        routeLatestRequest();
 
         // BOB Got THis Amount: 61070876437181831762585
         // Deposit Amount Was:  61070476549147019107646
@@ -373,5 +378,12 @@ contract ExecutionTest is Test, YieldchainTypes, YCVMEncoders {
 
     function getDepositTokenBalance() public view returns (uint256 balance) {
         return vaultContract.DEPOSIT_TOKEN().balanceOf(address(vaultContract));
+    }
+
+    function routeLatestRequest() internal {
+        uint256 lastIndex = vaultContract.getOperationRequests().length;
+        vm.startPrank(vaultContract.YC_DIAMOND());
+        vaultContract.hydrateAndExecuteRun(lastIndex - 1, new bytes[](0));
+        vm.stopPrank();
     }
 }

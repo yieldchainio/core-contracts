@@ -10,7 +10,7 @@ import "./utilities/Staking.sol";
 import "./utilities/Context.sol";
 import "./utilities/Math.sol";
 
-contract VMTest is Test, Constants, YieldchainTypes {
+contract VMTest is Test, Constants {
     // =====================
     //       CONTRACTS
     // =====================

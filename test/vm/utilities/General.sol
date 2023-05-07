@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 import "../../../src/types.sol";
 import "../../../src/vm/Constants.sol";
 
-contract GeneralFunctions is YieldchainTypes, Constants {
+contract GeneralFunctions is Constants {
     // =====================
     //       STRUCTS
     // =====================

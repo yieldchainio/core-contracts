@@ -5,14 +5,14 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../../src/vault/Vault.sol";
-import "../../../src/vm/Encoders.sol";
-import "../utilities/Dex.sol";
-import "../utilities/Encoders.sol";
-import "../../vm/utilities/ERC20.sol";
 import "forge-std/console.sol";
+import "../utilities/Dex.sol";
+import "../../../src/vault/Vault.sol";
+import "../utilities/Encoders.sol";
+import "forge-std/Test.sol";
+import "../../../src/diamond/facets/core/TokenStash.sol";
 
-contract BaseStrategy is UtilityEncoder {
+contract BaseStrategy is UtilityEncoder, Test {
     function setUp() public {}
 
     // ==================
@@ -449,7 +449,7 @@ contract BaseStrategy is UtilityEncoder {
                         )
                     )
                 ),
-               childrenIndices,
+                childrenIndices,
                 new bytes[](0),
                 false
             )
@@ -481,7 +481,7 @@ contract BaseStrategy is UtilityEncoder {
         );
 
         // Create pairs of approval
-        address[2][] memory approvalPairs = new address[2][](6);
+        address[2][] memory approvalPairs = new address[2][](7);
 
         approvalPairs[0] = [GMX_TOKEN_ADDRESS, GMX_STAKING_CONTRACT];
 
@@ -495,16 +495,23 @@ contract BaseStrategy is UtilityEncoder {
 
         approvalPairs[5] = [WETH_TOKEN_CONTRACT, address(dexContract)];
 
-        // We deploy the vault contract
-        return
-            new Vault(
-                STEPS,
-                SEED_STEPS,
-                UPROOT_STEPS,
-                approvalPairs,
-                IERC20(address(depositToken)),
-                isPublic,
-                msg.sender
-            );
+        approvalPairs[6] = [GMX_TOKEN_ADDRESS, address(50)];
+
+        // We deploy the vault contract as a diamond
+        vm.etch(address(50), type(TokenStash).runtimeCode);
+        vm.startPrank(address(50));
+
+        Vault newVault = new Vault(
+            SEED_STEPS,
+            STEPS,
+            UPROOT_STEPS,
+            approvalPairs,
+            IERC20(address(depositToken)),
+            isPublic,
+            msg.sender
+        );
+        vm.stopPrank();
+
+        return newVault;
     }
 }

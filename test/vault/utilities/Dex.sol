@@ -7,8 +7,7 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/Test.sol";
-import "../../../src/vault/Vault.sol";
-import "../../vm/utilities/ERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 contract Dex is Test {
     mapping(ERC20 => mapping(ERC20 => uint256)) public swapRates;
