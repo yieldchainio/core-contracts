@@ -15,7 +15,8 @@ docs/
 
 
 # Added by cargo
-
+lib/forge-std
+forge-std
 /target
 
 node_modules
