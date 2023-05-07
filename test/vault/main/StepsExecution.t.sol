@@ -7,8 +7,12 @@ import "../../../src/vault/Vault.sol";
 import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
+import "../../diamond/Deployment.t.sol";
 
-contract ExecutionTest is Test, YCVMEncoders {
+contract ExecutionTest is Test, YCVMEncoders, DiamondDeploymentTest {
+    // ==================
+    //     CONSTANTS
+    // ==================
     address public constant GMX_TOKEN_ADDRESS =
         0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a;
 
@@ -29,23 +33,43 @@ contract ExecutionTest is Test, YCVMEncoders {
 
     address public constant DAI_TOKEN_ADDRESS =
         0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
+
     // ==================
-    //     CONSTRUCTOR
+    //      STATES
     // ==================
 
     Vault public vaultContract;
     uint256 networkID;
 
-    function setVaultContract(Vault _vaultContract) public {
-        vaultContract = _vaultContract;
-    }
-
-    function setUp() public {
+    // ==================
+    //     CONSTRUCTOR
+    // ==================
+    function setUp() public virtual override {
+        super.setUp();
         networkID = new Forks().ARBITRUM();
         vm.selectFork(networkID);
-        vaultContract = new BaseStrategy().getVaultContract();
+        (
+            bytes[] memory SEED_STEPS,
+            bytes[] memory STEPS,
+            bytes[] memory UPROOT_STEPS,
+            address[2][] memory approvalPairs,
+            IERC20 depositToken,
+            bool isPublic,
+
+        ) = new BaseStrategy().getVaultArgs();
+        vaultContract = FactoryFacet(address(diamond)).createVault(
+            SEED_STEPS,
+            STEPS,
+            UPROOT_STEPS,
+            approvalPairs,
+            ERC20(address(depositToken)),
+            isPublic
+        );
     }
 
+    // ==================
+    //      TESTS
+    // ==================
     /**
      * Test the deposit strategy
      * @param depositAmount - uint80, the amount to deposit (for fuzzing)
@@ -183,6 +207,7 @@ contract ExecutionTest is Test, YCVMEncoders {
      */
 
     function testWithdrawAndUprootStrategy(uint256 depositAmount) public {
+        vm.assume(depositAmount < type(uint256).max / 10);
         // Begin by rerunning strategy test, which will deposit & run the strategy
         testStrategyRun(depositAmount);
         // Make the vault public
@@ -255,6 +280,7 @@ contract ExecutionTest is Test, YCVMEncoders {
         // POS 91408122474697096249
 
         // Assert that vault contract's GMX balance is 0
+
         assertEq(
             vaultContract.DEPOSIT_TOKEN().balanceOf(address(vaultContract)),
             0,
@@ -262,6 +288,8 @@ contract ExecutionTest is Test, YCVMEncoders {
         );
 
         // Assert that the GMX  & GNS pool balances of the vault are now half from prev
+        console.log(preGMXPoolBalance);
+        console.log(getGmxStakingBalance());
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
                 getGmxStakingBalance() == preGMXPoolBalance / 2 - 1 ||
@@ -381,9 +409,13 @@ contract ExecutionTest is Test, YCVMEncoders {
     }
 
     function routeLatestRequest() internal {
-        uint256 lastIndex = vaultContract.getOperationRequests().length;
+        uint256 len = vaultContract.getOperationRequests().length;
         vm.startPrank(vaultContract.YC_DIAMOND());
-        vaultContract.hydrateAndExecuteRun(lastIndex - 1, new bytes[](0));
+        vaultContract.hydrateAndExecuteRun(len - 1, new bytes[](0));
         vm.stopPrank();
+    }
+
+    function setVaultContract(Vault _vaultContract) public {
+        vaultContract = _vaultContract;
     }
 }

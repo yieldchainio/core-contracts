@@ -48,7 +48,18 @@ contract BaseStrategy is UtilityEncoder, Test {
     // ==================
     constructor() {}
 
-    function getVaultContract() public returns (Vault contractVault) {
+    function getVaultArgs()
+        public
+        returns (
+            bytes[] memory SEED_STEPS,
+            bytes[] memory STEPS,
+            bytes[] memory UPROOT_STEPS,
+            address[2][] memory approvalPairs,
+            IERC20 depositTokenToInput,
+            bool isPublic,
+            address deployer
+        )
+    {
         dexContract = new Dex();
         /**
          * @notice
@@ -59,13 +70,13 @@ contract BaseStrategy is UtilityEncoder, Test {
          */
         ERC20 depositToken = ERC20(GMX_TOKEN_ADDRESS);
 
-        bool isPublic = false;
+        isPublic = true;
 
         /**
          * Seed steps:
          * 1) Stake 50% of deposited GMX into GMX
          */
-        bytes[] memory SEED_STEPS = new bytes[](4);
+        SEED_STEPS = new bytes[](4);
 
         /**
          * @notice
@@ -169,7 +180,7 @@ contract BaseStrategy is UtilityEncoder, Test {
          * We move onto strategy body,
          * Where we harvest tokens from GMX, swap the WETH from it to other GMX, then restake. And also, swap DAI from GNS to GNS, and restake.
          */
-        bytes[] memory STEPS = new bytes[](7);
+        STEPS = new bytes[](7);
 
         childrenIndices = new uint256[](2);
         childrenIndices[0] = 1;
@@ -310,7 +321,7 @@ contract BaseStrategy is UtilityEncoder, Test {
         /**
          * Create the reverse strategy
          */
-        bytes[] memory UPROOT_STEPS = new bytes[](6);
+        UPROOT_STEPS = new bytes[](6);
 
         // The root uproot command
         childrenIndices = new uint256[](2);
@@ -481,7 +492,7 @@ contract BaseStrategy is UtilityEncoder, Test {
         );
 
         // Create pairs of approval
-        address[2][] memory approvalPairs = new address[2][](7);
+        approvalPairs = new address[2][](7);
 
         approvalPairs[0] = [GMX_TOKEN_ADDRESS, GMX_STAKING_CONTRACT];
 
@@ -495,13 +506,9 @@ contract BaseStrategy is UtilityEncoder, Test {
 
         approvalPairs[5] = [WETH_TOKEN_CONTRACT, address(dexContract)];
 
-        approvalPairs[6] = [GMX_TOKEN_ADDRESS, address(50)];
+        approvalPairs[6] = [GMX_TOKEN_ADDRESS, address(0)];
 
-        // We deploy the vault contract as a diamond
-        vm.etch(address(50), type(TokenStash).runtimeCode);
-        vm.startPrank(address(50));
-
-        Vault newVault = new Vault(
+        return (
             SEED_STEPS,
             STEPS,
             UPROOT_STEPS,
@@ -510,8 +517,5 @@ contract BaseStrategy is UtilityEncoder, Test {
             isPublic,
             msg.sender
         );
-        vm.stopPrank();
-
-        return newVault;
     }
 }

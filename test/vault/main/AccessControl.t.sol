@@ -8,29 +8,49 @@ import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
 
+import "../../diamond/Deployment.t.sol";
+
 /**
  * Testing the access control of the vault contract,
  * i.e adding admins/moderators, etc
  */
 
-contract AccessControlTest is Test, YCVMEncoders {
+contract AccessControlTest is Test, YCVMEncoders, DiamondDeploymentTest {
     // ==================
-    //     CONSTRUCTOR
+    //      STATES
     // ==================
-
     Vault public vaultContract;
     uint256 networkID;
 
-    function setUp() public {
+    // ==================
+    //     CONSTRUCTOR
+    // ==================
+    function setUp() public virtual override {
+        super.setUp();
         networkID = new Forks().ARBITRUM();
         vm.selectFork(networkID);
-        vaultContract = new BaseStrategy().getVaultContract();
+        (
+            bytes[] memory SEED_STEPS,
+            bytes[] memory STEPS,
+            bytes[] memory UPROOT_STEPS,
+            address[2][] memory approvalPairs,
+            IERC20 depositToken,
+            bool isPublic,
+
+        ) = new BaseStrategy().getVaultArgs();
+        vaultContract = FactoryFacet(address(diamond)).createVault(
+            SEED_STEPS,
+            STEPS,
+            UPROOT_STEPS,
+            approvalPairs,
+            ERC20(address(depositToken)),
+            isPublic
+        );
     }
 
     // ==================
     //      TESTS
     // ==================
-
     /**
      * Test Creator Permissions
      */

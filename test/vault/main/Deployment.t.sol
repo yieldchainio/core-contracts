@@ -10,8 +10,13 @@ import "../../../src/vault/Vault.sol";
 import "../utilities/Dex.sol";
 import "./Base.sol";
 import "../../utils/Forks.t.sol";
+import "../../diamond/Deployment.t.sol";
+import "../../../src/diamond/facets/core/Factory.sol";
 
-contract TestVaultDeployment is Test, YCVMEncoders {
+contract TestVaultDeployment is Test, YCVMEncoders, DiamondDeploymentTest {
+    // =================
+    //    CONSTANTS
+    // =================
     address public constant GMX_TOKEN_ADDRESS =
         0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a;
 
@@ -33,18 +38,42 @@ contract TestVaultDeployment is Test, YCVMEncoders {
     address public constant DAI_TOKEN_ADDRESS =
         0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
 
-    // ==================
-    //     CONSTRUCTOR
-    // ==================
+    // =================
+    //     STATES
+    // =================
 
     Vault public vaultContract;
     uint256 networkID;
 
-    function setUp() public {
+    // ==================
+    //     CONSTRUCTOR
+    // ==================
+    function setUp() public virtual override {
+        super.setUp();
         networkID = new Forks().ARBITRUM();
         vm.selectFork(networkID);
-        vaultContract = new BaseStrategy().getVaultContract();
+        (
+            bytes[] memory SEED_STEPS,
+            bytes[] memory STEPS,
+            bytes[] memory UPROOT_STEPS,
+            address[2][] memory approvalPairs,
+            IERC20 depositToken,
+            bool isPublic,
+
+        ) = new BaseStrategy().getVaultArgs();
+        vaultContract = FactoryFacet(address(diamond)).createVault(
+            SEED_STEPS,
+            STEPS,
+            UPROOT_STEPS,
+            approvalPairs,
+            ERC20(address(depositToken)),
+            isPublic
+        );
     }
+
+    // ==================
+    //      TESTS
+    // ==================
 
     /**
      * Test the dry configurations
@@ -61,8 +90,8 @@ contract TestVaultDeployment is Test, YCVMEncoders {
         );
 
         // Assert that the publicty should be private
-        assertFalse(vaultContract.isPublic(), "Privacy Incorrect");
+        assertTrue(vaultContract.isPublic(), "Privacy Incorrect");
 
-        // Assert 
+        // Assert
     }
 }
