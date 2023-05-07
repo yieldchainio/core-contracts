@@ -80,15 +80,16 @@ contract Vault is
         isPublic = ispublic;
 
         /**
-         * @dev We set the initial admin & mod (The creator)
-         */
-
-        /**
          * @dev We iterate over each approval pair and approve them as needed.
          */
         for (uint256 i = 0; i < approvalPairs.length; i++) {
+            address addressToApprove = approvalPairs[i][1];
+            addressToApprove = addressToApprove == address(0)
+                ? msg.sender // The diamond
+                : addressToApprove;
+
             IERC20(approvalPairs[i][0]).approve(
-                approvalPairs[i][1],
+                addressToApprove,
                 type(uint256).max
             );
         }
@@ -350,6 +351,7 @@ contract Vault is
          * Dequeuing it & resaving to storage would be highly unneccsery gas-wise, and hence we leave it in the queue,
          * and leave it upto the handling function to dequeue it
          */
+
         operation = operationRequests[operationIndex];
 
         // We lock the contract state
@@ -480,7 +482,11 @@ contract Vault is
          * Decode the first byte argument as an amount
          */
         uint256 amount = abi.decode(withdrawItem.arguments[0], (uint256));
-        uint256 shareOfVaultInPercentage = totalShares / amount;
+
+        /**
+         * The share in % this amount represnets of the total shares (Plus the amount b4 dividing, since we already deducted from it in the initial function)
+         */
+        uint256 shareOfVaultInPercentage = (totalShares + amount) / amount;
 
         assembly {
             // We MSTORE at the withdraw share memory location the % share of the withdraw amount of the total vault, times 100
@@ -533,7 +539,7 @@ contract Vault is
         /**
          * Execute the strategy's tree of steps with the provided startingIndices and fullfill command
          */
-        uint256[] memory startingIndices = new uint256[](0);
+        uint256[] memory startingIndices = new uint256[](1);
         startingIndices[0] = 0;
         executeStepTree(STEPS, startingIndices);
     }
@@ -553,7 +559,7 @@ contract Vault is
     function executeStepTree(
         bytes[] memory virtualTree,
         uint256[] memory startingIndices
-    ) public onlySelf {
+    ) public onlyDiamond {
         /**
          * Iterate over each one of the starting indices
          */
