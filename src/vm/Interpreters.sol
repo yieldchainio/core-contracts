@@ -13,7 +13,7 @@ import "../types.sol";
 import "./Constants.sol";
 import "./Utilities.sol";
 
-contract Interpreters is YieldchainTypes, Constants, Utilities {
+contract Interpreters is Constants, Utilities {
     /**
      * _parseDynamicVar
      * @param _arg - The dynamic-length argument to parse

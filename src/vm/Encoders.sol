@@ -7,7 +7,13 @@ pragma solidity ^0.8.18;
 import "../types.sol";
 import "./Constants.sol";
 
-contract YCVMEncoders is Constants, YieldchainTypes {
+contract YCVMEncoders is Constants {
+    // struct FunctionCall {
+    //     address target_address;
+    //     bytes[] args; // [FunctionCall("getAmount()", args[0xETHTOKEN, ])]
+    //     string signature; // "addLiquidity(uint256,uint256)"
+    // }
+
     function encodeValueVar(
         bytes memory value
     ) public pure returns (bytes memory) {

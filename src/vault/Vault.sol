@@ -6,13 +6,13 @@ pragma solidity ^0.8.18;
 // ===============
 import {SafeERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "../vm/VM.sol";
 import "./AccessControl.sol";
 import "./OperationsQueue.sol";
-import "./Schema.sol";
-import "../vm/VM.sol";
-import "./VaultUtilities.sol";
 import "forge-std/console.sol";
 import "./Constants.sol";
+import "../diamond/interfaces/ITokenStash.sol";
+import "./VaultUtilities.sol";
 
 /**
  * The part of the vault contract containing various
@@ -53,8 +53,8 @@ contract Vault is
      * @param ispublic - Whether the vault is publicly accessible or not
      */
     constructor(
-        bytes[] memory steps,
         bytes[] memory seedSteps,
+        bytes[] memory steps,
         bytes[] memory uprootSteps,
         address[2][] memory approvalPairs,
         IERC20 depositToken,
@@ -129,6 +129,12 @@ contract Vault is
      */
     bytes[] internal UPROOTING_STEPS;
 
+    /**
+     * @notice @dev
+     * Used in offchain simulations when hydrating calldata
+     */
+    bool isMainnet = true;
+
     // ==============================
     //           STORAGE
     // ==============================
@@ -153,51 +159,42 @@ contract Vault is
      */
     uint256 activeShare;
 
-    // ==============================
-    //     VAULT CONFIG METHODS
-    // ==============================
+    /**
+     * @notice
+     * @dev
+     * We keep track of the approximate gas required to execute withdraw and deposit operations.
+     * This is in order to charge users for the gas they are going to cost the executor
+     * after their offchain hydration.
+     *
+     * We also keep track of the gas for the strategy run operation, mainly for analytical purposes, tho.
+     */
+    uint256 approxWithdrawalGas;
+
+    uint256 approxDepositGas;
+
+    uint256 approxStrategyGas;
 
     /**
-     * routeQueueOperation
-     * Dequeues an item from the queue and handles it,
-     * depending on the requested operation.
-     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
-     * Note that this would be different, if the routeQueueOperation() call is a fullfill from a previous callback
-     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
+     * @dev This state variable indiciates whether we are locked or not,
+     * this is used by the offchain in order to not process additional requests until
+     * we are unlocked
      */
-    function routeQueueOperation(
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand
-    ) public override {
-        // Require the lock state to be unlocked. Otherwise this will be required to be called whne it's unlocked later
-        require(!locked, "Lock Is On");
-        /**
-         * We retreive the current operation to handle.
-         * Note that we do not dequeue it, as we want it to remain visible in storage
-         * until the operation fully completes (incase there is an offchain break inbetween execution steps).
-         * Dequeuing it & resaving to storage would be highly unneccsery gas-wise, and hence we leave it in the queue,
-         * and leave it upto the handling function to dequeue it
-         */
-        QueueItem memory operation = operationsQueue[front];
+    bool locked;
 
-        /**
-         * Switch statement for the operation to run
-         */
-        if (operation.action == ActionTypes.DEPOSIT)
-            return handleDeposit(operation, startingIndices, fullfillCommand);
-
-        if (operation.action == ActionTypes.WITHDRAW)
-            return handleWithdraw(operation, startingIndices, fullfillCommand);
-
-        if (operation.action == ActionTypes.STRATEGY_RUN) {
-            return handleRunStrategy(startingIndices, fullfillCommand);
-        }
-
+    // =====================
+    //        GETTERS
+    // =====================
+    function getVirtualStepsTree(
+        ExecutionTypes executionType
+    ) external view returns (bytes[] memory) {
+        if (executionType == ExecutionTypes.SEED) return SEED_STEPS;
+        if (executionType == ExecutionTypes.TREE) return STEPS;
+        if (executionType == ExecutionTypes.UPROOT) return UPROOTING_STEPS;
         revert();
     }
 
     // ==============================
-    //      VAULT OPS METHODS
+    //     PUBLIC VAULT METHODS
     // ==============================
 
     /**
@@ -205,34 +202,57 @@ contract Vault is
      * Request A Deposit Into The Vault
      * @param amount - The amount of the deposit token to deposit
      */
-    function deposit(uint256 amount) external onlyWhitelistedOrPublicVault {
+    function deposit(
+        uint256 amount
+    ) external payable onlyWhitelistedOrPublicVault {
         /**
-         * We assert that the user must have given us appropriate allowance.
-         * This will be checked offchain as well of course and on the deposit fullfil call,
-         * but is done in order to ensure easy spamming
+         * We assert that the user must have given us appropriate allowance of the deposit token,
+         * so that we can transfer the amount to us
          */
         if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) < amount)
             revert InsufficientAllowance();
 
         /**
+         * @dev We assert that the msg.value of this call is atleast of the deposit approximation * the delta
+         */
+        if (msg.value < approxDepositGas * GAS_FEE_APPROXIMATION_DELTA)
+            revert InsufficientGasPrepay();
+
+        /**
          * @notice
-         * We do not transfer the user's funds right away and begin the operation - But enqueue the request
-         * in order to avoid clashes with other operations, which may not be completed in a single transaction.
+         * We get the user's tokens into our balance, and then @dev stash it on the Yieldchain Diamond's TokenStasher facet.
+         * This is in order for us to get the tokens right away, without messing with the balances of other operations
          */
 
-        // We create an args array which includes our amount - Deposit processor will look for this
+        // Transfer to us
+        DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Stash in TokenStasher
+        ITokenStash(YC_DIAMOND).stashTokens(address(DEPOSIT_TOKEN), amount);
+
+        // Increment total shares supply & user's balance
+        totalShares += amount;
+        balances[msg.sender] += amount;
+
+        /**
+         * Create an operation item, and request it (adding to the state array & emitting an event w a request to handle)
+         */
+
+        // Create the args array which just includes the encoded amount
         bytes[] memory depositArgs = new bytes[](1);
         depositArgs[0] = abi.encode(amount);
 
         // Create the queue item
-        QueueItem memory depositRequest = QueueItem(
-            ActionTypes.DEPOSIT,
+        OperationItem memory depositRequest = OperationItem(
+            ExecutionTypes.SEED,
             msg.sender,
-            depositArgs
+            msg.value,
+            depositArgs,
+            new bytes[](0)
         );
 
-        // Enqueue it, potentially beggining the operation
-        enqueueOp(depositRequest);
+        // Request the operation
+        requestOperation(depositRequest);
     }
 
     /**
@@ -240,7 +260,9 @@ contract Vault is
      * Request to withdraw out of the vault
      * @param amount - the amount of shares to withdraw
      */
-    function withdraw(uint256 amount) external onlyWhitelistedOrPublicVault {
+    function withdraw(
+        uint256 amount
+    ) external payable onlyWhitelistedOrPublicVault {
         /**
          * We assert the user's shares are sufficient
          * Note this is re-checked when handling the actual withdrawal
@@ -248,27 +270,41 @@ contract Vault is
         if (amount > balances[msg.sender]) revert InsufficientShares();
 
         /**
-         * We create a QueueItem for our withdrawal and enqueue it, which should either begin executing it,
-         * or begin waiting for it's turn
+         * @dev We assert that the msg.value of this call is atleast of the withdraw approximation * the delta
+         */
+        if (msg.value < approxWithdrawalGas * GAS_FEE_APPROXIMATION_DELTA)
+            revert InsufficientGasPrepay();
+
+        /**
+         * We deduct the total shares & balance from the user
+         */
+        balances[msg.sender] -= amount;
+        totalShares -= amount;
+
+        /**
+         * We create an Operation request item for our withdrawal and add it to the state, whilst requesting an offchain hydration & reentrance
          */
         bytes[] memory withdrawArgs = new bytes[](1);
         withdrawArgs[0] = abi.encode(amount);
 
         // Create the queue item
-        QueueItem memory withdrawRequest = QueueItem(
-            ActionTypes.WITHDRAW,
+        OperationItem memory withdrawRequest = OperationItem(
+            ExecutionTypes.UPROOT,
             msg.sender,
-            withdrawArgs
+            msg.value,
+            withdrawArgs,
+            new bytes[](0)
         );
 
-        // Enqueue it, potentially beggining the operation
-        enqueueOp(withdrawRequest);
+        // Request the operation
+        requestOperation(withdrawRequest);
     }
 
     /**
      * @notice
      * runStrategy()
-     * Requests a strategy execution operation
+     * Requests a strategy execution operation,
+     * only called by the diamond (i.e from an executor on the diamond)
      */
     function runStrategy() external onlyDiamond {
         /**
@@ -276,33 +312,132 @@ contract Vault is
          * or begin waiting for it's turn
          */
         // Create the queue item
-        QueueItem memory runRequest = QueueItem(
-            ActionTypes.STRATEGY_RUN,
-            msg.sender,
+        OperationItem memory runRequest = OperationItem(
+            // Request to execute the strategy tree
+            ExecutionTypes.TREE,
+            // Initiator is YC diamond
+            YC_DIAMOND,
+            // Gas not required here (using gas balance of entire vault)
+            0,
+            // No custom args, and ofc no calldata atm (will be set by the offchain handler if any)
+            new bytes[](0),
             new bytes[](0)
         );
 
-        // Enqueue it, potentially beggining the operation
-        enqueueOp(runRequest);
+        // Request the run
+        requestOperation(runRequest);
+    }
+
+    // =========================================
+    //       DIAMOND-PERMISSIONED METHODS
+    // =========================================
+
+    /**
+     * hydrateAndExecuteRun
+     * Hydrates an OperationItem from storage with provided calldatas and executes it
+     * @param operationIndex - The index of the operation from within storage
+     * @param commandCalldatas - Array of arbitrary YC commands, should be the fullfilling calldatas for the
+     * run if required
+     */
+    function hydrateAndExecuteRun(
+        uint256 operationIndex,
+        bytes[] memory commandCalldatas
+    ) external onlyDiamond returns (OperationItem memory operation) {
+        /**
+         * We retreive the current operation to handle.
+         * Note that we do not dequeue it, as we want it to remain visible in storage
+         * until the operation fully completes (incase there is an offchain break inbetween execution steps).
+         * Dequeuing it & resaving to storage would be highly unneccsery gas-wise, and hence we leave it in the queue,
+         * and leave it upto the handling function to dequeue it
+         */
+        operation = operationRequests[operationIndex];
+
+        // We lock the contract state
+        locked = true;
+
+        /**
+         * We hydrate it with the command calldatas
+         */
+        operation.commandCalldatas = commandCalldatas;
+
+        /**
+         * Switch statement for the operation to run
+         */
+        if (operation.action == ExecutionTypes.SEED) executeDeposit(operation);
+        else if (operation.action == ExecutionTypes.UPROOT)
+            executeWithdraw(operation);
+        else if (operation.action == ExecutionTypes.TREE) executeStrategy();
+        else revert();
+
+        // We unlock the contract state once the operation has completed
+        locked = false;
     }
 
     /**
-     * @notice
-     * handleDeposit()
-     * The actual deposit execution handler
-     * @param depositItem - QueueItem from the operations queue, representing the deposit request
-     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
-     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
+     * @dev
+     * Claim gas paid by an operation request
+     * @param operationIndex - The index of the operation in storage
+     * @param receiver - The address of the executor that should receive this transfer
+     * @param claimAmount - The amount of gas to claim
      */
-    function handleDeposit(
-        QueueItem memory depositItem,
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand
-    ) internal {
+    function claimOperationGas(
+        uint256 operationIndex,
+        address payable receiver,
+        uint256 claimAmount
+    ) external onlyDiamond {
+        // Get the amount of gas that was included in this request
+        OperationItem memory opRequest = operationRequests[operationIndex];
+        uint256 availableAmt = opRequest.gas;
+
+        // Make sure claim amount is sufficient to the available amount
+        require(
+            availableAmt >= claimAmount,
+            "Insufficient Request Gas To Claim"
+        );
+
+        // Set the gas in the storage item to 0, since we now claim the gas there shouldnt be a need for that
+        operationRequests[operationIndex].gas = 0;
+
+        // Transfer requested gas to diamond
+        // Note that the Diamond is responsible for refunding unused gas at the end.
+        payable(receiver).transfer(claimAmount);
+    }
+
+    /**
+     * storeGasApproximation()
+     * Stores a gas approximation for some action
+     * @param operationType - ExecutionType enum so that we know where to store to
+     * @param approximation - The approximation of gas
+     */
+    function storeGasApproximation(
+        ExecutionTypes operationType,
+        uint256 approximation
+    ) external onlyDiamond {
+        // Switch case based on the type
+        if (operationType == ExecutionTypes.SEED)
+            approxDepositGas = approximation;
+        else if (operationType == ExecutionTypes.UPROOT)
+            approxWithdrawalGas = approximation;
+        else if (operationType == ExecutionTypes.TREE)
+            approxStrategyGas = approximation;
+    }
+
+    // ============================
+    //       INTERNAL METHODS
+    // ============================
+    /**
+     * @notice
+     * executeDeposit()
+     * The actual deposit execution handler,
+     * @dev Should be called once hydrated with the operation offchain computed data
+     * @param depositItem - OperationItem from the operations queue, representing the deposit request
+     */
+    function executeDeposit(OperationItem memory depositItem) internal {
         /**
-         * @notice Lock the execution of other operations in the meantime
+         * @dev
+         * At this point, we have transferred the user's funds to our stash in the Diamond,
+         * and had the offchain handler hydrate our item's calldatas (if any are required).
          */
-        locked = true;
 
         /**
          * Decode the first byte argument as an amount
@@ -317,57 +452,30 @@ contract Vault is
         }
 
         /**
-         * We require the allowance of the user to be sufficient
+         * We unstash the user's tokens from the Yieldchain Diamond, so that it is (obv) used within the operation
          */
-        if (
-            DEPOSIT_TOKEN.allowance(depositItem.initiator, address(this)) <
-            amount
-        ) revert InsufficientAllowance();
+        ITokenStash(YC_DIAMOND).unstashTokens(address(DEPOSIT_TOKEN), amount);
 
         /**
-         * We do a safeTransferFrom to get the user's tokens
+         * @notice  We execute the seed steps, starting from the root step
          */
-        DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
-
-        /**
-         * We update the user's shares and the total supply
-         */
-        balances[depositItem.initiator] += amount;
-        totalShares += amount;
-
-        /**
-         * @notice  We begin executing the seed steps
-         */
-        executeStepTree(
-            SEED_STEPS,
-            startingIndices,
-            fullfillCommand,
-            ActionTypes.DEPOSIT
-        );
-
-        /**
-         * @notice We check to see if our state is currently locked. If it isn't, it means
-         * the last step executed successfully and unlocked the state, and we can complete the operation by dequeuing it.
-         * Otherwise, it means we have not yet completed the operation (offchain break), and we do not dequeue it;
-         * The queue item will be re-accssed from the queue in storage, and probably we will be inputted an additional
-         * fullfill command to input to the ``executeStepTree()`` function.
-         */
-        if (!locked) dequeueOp();
+        uint256[] memory startingIndices = new uint256[](1);
+        startingIndices[0] = 0;
+        executeStepTree(SEED_STEPS, startingIndices);
     }
 
     /**
      * @notice
      * handleWithdraw()
      * The actual withdraw execution handler
-     * @param withdrawItem - QueueItem from the operations queue, representing the withdrawal request
-     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
-     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
+     * @param withdrawItem - OperationItem from the operations queue, representing the withdrawal request
      */
-    function handleWithdraw(
-        QueueItem memory withdrawItem,
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand
-    ) internal {
+    function executeWithdraw(OperationItem memory withdrawItem) internal {
+        /**
+         * @dev At this point, we have deducted the shares from the user's balance and the total supply
+         * when the request was made.
+         */
+
         /**
          * Decode the first byte argument as an amount
          */
@@ -386,42 +494,16 @@ contract Vault is
         }
 
         /**
-         * We require the shares of the user to be sufficient
-         */
-        if (amount > balances[msg.sender]) revert InsufficientShares();
-
-        /**
-         * @notice Lock the execution of other operations in the meantime
-         */
-        locked = true;
-
-        /**
          * @notice We keep track of what the deposit token balance was prior to the execution
          */
         uint256 preVaultBalance = DEPOSIT_TOKEN.balanceOf(address(this));
 
         /**
-         * We deduct the user's shares and total supply
-         */
-        console.log("Initiator Balance:");
-        console.log(balances[withdrawItem.initiator]);
-        console.log("Initiator Amount:");
-        console.log(amount);
-        console.log("Total Shares:");
-        console.log(totalShares);
-
-        balances[withdrawItem.initiator] -= amount;
-        totalShares -= amount;
-
-        /**
          * @notice  We begin executing the uproot (reverse) steps
          */
-        executeStepTree(
-            UPROOTING_STEPS,
-            startingIndices,
-            fullfillCommand,
-            ActionTypes.DEPOSIT
-        );
+        uint256[] memory startingIndices = new uint256[](1);
+        startingIndices[0] = 0;
+        executeStepTree(UPROOTING_STEPS, startingIndices);
 
         /**
          * @notice We check to see if our state is currently locked. If it isn't, it means
@@ -430,7 +512,7 @@ contract Vault is
          * The queue item will be re-accessed from the queue in storage, and probably we will be inputted an additional
          * fullfill command to input to the ``executeStepTree()`` function.
          */
-        if (!locked) dequeueOp();
+        // if (!locked) dequeueOp();
 
         /**
          * After executing all of the steps, we get the balance difference,
@@ -446,31 +528,14 @@ contract Vault is
      * @notice
      * handleRunStrategy()
      * Handles a strategy run request
-     * @param startingIndices - The starting indices of the steps execution. Default should be an array with one item pointing to 0 (Root step).
-     * @param fullfillCommand - An optional fullfill command if being re-entered from the offchain. Default should be bytes(0)
      */
-    function handleRunStrategy(
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand
-    ) internal {
+    function executeStrategy() internal {
         /**
          * Execute the strategy's tree of steps with the provided startingIndices and fullfill command
          */
-        executeStepTree(
-            STEPS,
-            startingIndices,
-            fullfillCommand,
-            ActionTypes.STRATEGY_RUN
-        );
-
-        /**
-         * @notice We check to see if our state is currently locked. If it isn't, it means
-         * the last step executed successfully and unlocked the state, and we can complete the operation by dequeuing it.
-         * Otherwise, it means we have not yet completed the operation (offchain break), and we do not dequeue it;
-         * The queue item will be re-accessed from the queue in storage, and probably we will be inputted an additional
-         * fullfill command to input to the ``executeStepTree()`` function.
-         */
-        if (!locked) dequeueOp();
+        uint256[] memory startingIndices = new uint256[](0);
+        startingIndices[0] = 0;
+        executeStepTree(STEPS, startingIndices);
     }
 
     // ==============================
@@ -484,17 +549,11 @@ contract Vault is
      *
      * @param virtualTree - A linked list array of YCSteps to execute
      * @param startingIndices - An array of indicies of the steps to begin executing the tree from
-     * @param fullfillCommand - An optional fullfilling YC command. If a step is a callback, and this is an empty byte -
-     * we emit an event requesting the offchain fullfill, which should in turn re-enter this function with the fullfillment.
-     * @param context - An ActionTypes enum representing the context to emit in RequestFullfill events (i.e, when executing seed strategy,
-     * it would be "DEPOSIT", so that the offchain knows which steps to reenter with)
      */
     function executeStepTree(
         bytes[] memory virtualTree,
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand,
-        ActionTypes context
-    ) internal {
+        uint256[] memory startingIndices
+    ) public onlySelf {
         /**
          * Iterate over each one of the starting indices
          */
@@ -547,10 +606,6 @@ contract Vault is
                  * Note that in this case we stop the execution of the step here, as we do not want to execute it's
                  * children any further. This will be handled by the offchain when re-entering.
                  */
-                if (bytes32(fullfillCommand) != bytes32(0)) {
-                    _runFunction(fullfillCommand);
-                    return;
-                }
                 /**
                  * Otherwise, it means this is the first touch of the function, and we should emit the appropriate event to request
                  * the offchain processing of it
@@ -560,7 +615,7 @@ contract Vault is
                  * - The arguments of the FunctionCall are the data we pass to the event
                  * We decode the step's function call manually and emit an event using the DecodeAndRequestFullfill() function
                  */
-                else _decodeAndRequestFullfill(step.func, context, stepIndex);
+                // _decodeAndRequestFullfill(step.func, context, stepIndex);
             }
 
             /**
@@ -598,20 +653,7 @@ contract Vault is
              * of starting indices, rather than a single starting index. (Offchain actions will be batched per transaction and executed together here,
              * rather than per-event).
              */
-            executeStepTree(
-                virtualTree,
-                childrenStartingIndices,
-                new bytes(0),
-                context
-            );
-
-            /**
-             * @notice
-             * If our index is the last one in the array we got,
-             * we set locked to false.
-             */
-
-            if (stepIndex == virtualTree.length - 1) locked = false;
+            executeStepTree(virtualTree, childrenStartingIndices);
         }
     }
 }

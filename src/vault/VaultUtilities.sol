@@ -3,9 +3,9 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "./Schema.sol";
 import "../vm/VM.sol";
 import "forge-std/console.sol";
+import "./Schema.sol";
 
 abstract contract VaultUtilities is IVault, YCVM {
     // ===================
@@ -31,12 +31,10 @@ abstract contract VaultUtilities is IVault, YCVM {
      * decodeAndRequestFullfill()
      * Accepts an encoded FunctionCall struct, and some context, and emits a RequestFullfill event
      * @param encodedFunctionCall - An encoded FunctionCall struct
-     * @param context - A string representing some context for the offchain executor, i.e "tree", "seed", "uproot"
      * @param index - An index specifying a step to execute when re-entering onchain, within the provided context
      */
     function _decodeAndRequestFullfill(
         bytes memory encodedFunctionCall,
-        ActionTypes context,
         uint256 index
     ) internal {
         // We begin by decoding the function call
@@ -46,7 +44,7 @@ abstract contract VaultUtilities is IVault, YCVM {
         );
 
         // And then emitting the event
-        emit RequestFullfill(context, func.signature, index, func.args);
+        emit RequestFullfill(index, func.signature, func.args);
     }
 
     /**

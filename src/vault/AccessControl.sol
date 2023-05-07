@@ -70,6 +70,11 @@ contract AccessControl {
         _;
     }
 
+    modifier onlySelf() {
+        require(msg.sender == address(this), "Only self");
+        _;
+    }
+
     /**
      * Requires the msg.sender to be the vault's creator
      */

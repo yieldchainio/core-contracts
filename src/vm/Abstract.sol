@@ -6,7 +6,7 @@
 pragma solidity ^0.8.18;
 import "../Types.sol";
 
-abstract contract IYCVM is YieldchainTypes {
+abstract contract IYCVM {
     function _runFunction(
         bytes memory command
     ) internal virtual returns (bytes memory);

@@ -4,60 +4,34 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+import "../types.sol";
 
 abstract contract IVault {
-    // =====================
-    //        ENUMS
-    // =====================
-    /**
-     * ActionTypes
-     * Represents the different type of vault actions that can be queued
-     */
-    enum ActionTypes {
-        DEPOSIT,
-        WITHDRAW,
-        STRATEGY_RUN
-    }
-
-    // =====================
-    //       STRUCTS
-    // =====================
-    /**
-     * A struct representing a queue item.
-     * Action requests (i.e strategy runs, deposits, withdrawals) are queued in order to avoid clashing,
-     * and this struct represents one such request
-     * @param action - An ActionType enum representing the action to complete, handled by a switch case in the router
-     * @param initiator - The user address that initiated this queue request
-     * @param arguments - An arbitrary array of bytes being the arguments, usually would be something like an amount.
-     */
-    struct QueueItem {
-        ActionTypes action;
-        address initiator;
-        bytes[] arguments;
-    }
-
     // =====================
     //        EVENTS
     // =====================
     /**
      * @notice
+     * HydrateRun event
+     * Emitted when a new operation request is received (e.g deposit, withdraw, or strategy run), as a request
+     * to hydrate it's command calldatas in place.
+     * those calldatas are used in steps which are classified as "offchain" steps, whom require some computation
+     * to run offchain.
+     * @param operationKey - The key of the operation within out "queue" mapping
+     */
+    event HydrateRun(uint256 indexed operationKey);
+
+    /**
+     * @notice
      * RequestFullfill event,
-     * emitted in order to request an offchain fullfill of computations/actions.
-     * @param context - A string showcasing the executor your context. I.e, when running the deposit strategy,
-     * context would be "vault_deposit". So the executor will then know to fullfill requests to the array of seed
-     * steps, instead of the tree steps
-     * @param targetAction - The target "action" or function to execute - It tells the offchain what exactly to do.
-     * This would usually be classified as a function in the database, e.g: "lifiswap", "openlong", etc.
-     *
-     * @param index - If executed within a strategy/seed strategy/whatever run, you would often need to emit the index
-     * of the step as well, so that the offchain knows how to reenter the execution with the fullfilment.
-     *
-     * @param params - Any parameters you may want to pass to the offchain action to complete your execution
+     * emitted in order to request an offchain fullfill of computations/actions, when simulating them in an hydration run request
+     * @param stepIndex - the index of the step within the run requesting the offchain computation
+     * @param targetAction - a string specifying the action to target offchain. Would be classified as a function in the yieldchain DB
+     * @param params - Arbitrary array of bytes, specifying the arguments to use. Note that this would be encoded as a YC command (argument).
      */
     event RequestFullfill(
-        ActionTypes indexed context,
+        uint256 indexed stepIndex,
         string indexed targetAction,
-        uint256 indexed index,
         bytes[] params
     );
 
@@ -91,54 +65,12 @@ abstract contract IVault {
      */
     error InsufficientShares();
 
-    // // =====================
-    // //      MODIFIERS
-    // // =====================
-    // /**
-    //  * Requires the msg.sender to be the Yieldchain Diamond Contract.
-    //  */
-    // modifier onlyDiamond() virtual;
-
-    // /**
-    //  * Requires the msg.sender to be the vault's creator
-    //  */
-    // modifier onlyCreator() virtual;
-
-    // /**
-    //  * Requires the msg.sender to be a moderator of this vault
-    //  */
-    // modifier onlyMods() virtual;
-    // /**
-    //  * Requires the msg.sender to be an admin of this vault
-    //  */
-    // modifier onlyAdmins() virtual;
-
-    // /**
-    //  * Requires an inputted address to not be another moderator
-    //  * @notice We do allow it if msg.sender is an administrator (higher role)
-    //  */
-    // modifier peaceAmongstMods(address otherMod) virtual;
-
-    // /**
-    //  * Requires an inputted address to not be another adminstrator
-    //  */
-    // modifier peaceAmongstAdmins(address otherAdmin) virtual;
-
-    // /**
-    //  * Requires the msg.sender to either be whitelisted, or the vault be public
-    //  */
-    // modifier onlyWhitelistedOrPublicVault() virtual;
+    /**
+     * When there is insufficient gas prepayance (msg.value)
+     */
+    error InsufficientGasPrepay();
 
     // =====================
     //      FUNCTIONS
     // =====================
-    /**
-     * routeQueueOperation
-     * Dequeues an item from the queue and handles it,
-     * depending on the requested operation.
-     */
-    function routeQueueOperation(
-        uint256[] memory startingIndices,
-        bytes memory fullfillCommand
-    ) public virtual;
 }
