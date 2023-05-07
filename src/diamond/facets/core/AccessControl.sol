@@ -8,7 +8,7 @@ import "../../storage/Strategies.sol";
 import "../../storage/AccessControl.sol";
 import "../../Modifiers.sol";
 
-contract ExecutorsAccessControl is Modifiers {
+contract AccessControlFacet is Modifiers {
     // ======================
     //      CONSTRUCTOR
     // ======================

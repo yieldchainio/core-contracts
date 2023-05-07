@@ -9,7 +9,7 @@ import "../../Modifiers.sol";
 import "../../storage/Strategies.sol";
 import "./Factory.sol";
 
-contract Execution is Modifiers {
+contract ExecutionFacet is Modifiers {
     // ===================
     //     CONSTANTS
     // ===================
@@ -104,7 +104,7 @@ contract Execution is Modifiers {
                 tx.gasprice;
 
             // Deduct it from the vault's gas balance and send to the executor
-            VaultFactory(address(this)).deductAndTransferVaultGas(
+            FactoryFacet(address(this)).deductAndTransferVaultGas(
                 strategy,
                 payable(msg.sender),
                 gasSpent

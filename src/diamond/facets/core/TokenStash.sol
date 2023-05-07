@@ -15,7 +15,7 @@ pragma solidity ^0.8.18;
 import "../../Modifiers.sol";
 import "../../storage/TokenStash.sol";
 
-contract TokenStash is Modifiers {
+contract TokenStashFacet is Modifiers {
     /**
      * @notice Stash a token by a vault
      * Note that the msg.sender should be the vault address

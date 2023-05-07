@@ -6,7 +6,7 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 
-contract Registry  {
+contract Registry {
     /**
      * Register a trigger on a strategy
      * @param strategy - The strategy vault to register the trigger on
@@ -17,12 +17,16 @@ contract Registry  {
         Vault strategy,
         Triggers trigger,
         bytes memory triggerSettings
-    ) public {
+    ) public view {
         /**
          * @notice
          * We make a switch case per trigger case and call it's specific registry,
          *  with the provided setting
          */
-        if (trigger == Triggers.AUTOMATION) {}
+        if (trigger == Triggers.AUTOMATION) {
+            strategy;
+            triggerSettings;
+        }
+        address(this);
     }
 }

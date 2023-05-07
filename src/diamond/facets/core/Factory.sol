@@ -10,7 +10,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../triggers/Registry.sol";
 import "../../Modifiers.sol";
 
-contract VaultFactory is Modifiers {
+contract FactoryFacet is Modifiers {
     // ==================
     //     MODIFIERS
     // ==================
@@ -26,14 +26,35 @@ contract VaultFactory is Modifiers {
         _;
     }
 
+    // ==================
+    //     GETTERS
+    // ==================
+    function getStrategiesList()
+        external
+        view
+        returns (Vault[] memory strategies)
+    {
+        strategies = StrategiesStorageLib.getStrategiesStorage().strategies;
+    }
+
+    function getStrategyState(
+        Vault strategy
+    ) external view returns (StrategyState memory strategyState) {
+        strategyState = StrategiesStorageLib
+            .getStrategiesStorage()
+            .strategiesState[strategy];
+    }
+
+    // ==================
+    //     METHODS
+    // ==================
     /**
      * @notice
      * Create & Deploy A Vault
      * @param seedSteps - The seed steps that run on a deposit trigger
      * @param treeSteps - The tree of steps that run on any of the strategy's triggers
      * @param uprootSteps - The uproot steps that run on a withdrawal trigger
-     * @param triggers - An array of the Triggers enum, specifying the different triggers that will be registered for the vault
-     * @param triggersSettings - An arbitrary array of bytes, specifying the settings for each of the triggers
+    // 
      * @param approvalPairs - A 2D array of [ERC20Token, addressToApprove]. Which will be approved on deployment of the vault
      * @param depositToken - An ERC20 token which is used for deposits into the vault
      * @param isPublic - The visibility/privacy of this vault. Private only allowed for premium users!!
@@ -43,8 +64,8 @@ contract VaultFactory is Modifiers {
         bytes[] memory seedSteps,
         bytes[] memory treeSteps,
         bytes[] memory uprootSteps,
-        Triggers[] memory triggers,
-        bytes[] memory triggersSettings,
+        // Triggers[] memory triggers,
+        // bytes[] memory triggersSettings,
         address[2][] memory approvalPairs,
         ERC20 depositToken,
         bool isPublic
@@ -56,10 +77,10 @@ contract VaultFactory is Modifiers {
         /**
          * Assert that the triggers & triggers settings lengths math
          */
-        require(
-            triggers.length == triggersSettings.length,
-            "Triggers & settings length mismatch"
-        );
+        // require(
+        //     triggers.length == triggersSettings.length,
+        //     "Triggers & settings length mismatch"
+        // );
 
         /**
          * Begin by deploying the vault contract (With the msg.sender of this call as the creator)
@@ -81,18 +102,22 @@ contract VaultFactory is Modifiers {
             createdVault
         );
 
+        StrategiesStorageLib.getStrategiesStorage().strategiesState[
+                createdVault
+            ] = StrategyState(true, 0);
+
         /**
          * Finally, we move onto registering each one of the triggers on the Registry facet.
          * The Registry facet will register it on the corresponding trigger-specific facet,
          * and on the strategy's mapping in the general storage, where we store an array of the registered triggers.
          */
-        for (uint256 i; i < triggers.length; i++) {
-            Registry(address(this)).registerTrigger(
-                createdVault,
-                triggers[i],
-                triggersSettings[i]
-            );
-        }
+        // for (uint256 i; i < triggers.length; i++) {
+        //     Registry(address(this)).registerTrigger(
+        //         createdVault,
+        //         triggers[i],
+        //         triggersSettings[i]
+        //     );
+        // }
     }
 
     /**
