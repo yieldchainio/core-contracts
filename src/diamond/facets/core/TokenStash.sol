@@ -16,6 +16,27 @@ import "../../Modifiers.sol";
 import "../../storage/TokenStash.sol";
 
 contract TokenStashFacet is Modifiers {
+    // ==================
+    //      GETTERS
+    // ==================
+    /**
+     * Get a strategy's token's stash amount
+     * @param vault - The vault to check
+     * @param token - The token to check
+     * @return stashedAmount - The token amount stashed by this strategy
+     */
+    function getStrategyStash(
+        Vault vault,
+        ERC20 token
+    ) external view returns (uint256 stashedAmount) {
+        stashedAmount = TokenStashStorageLib
+            .getTokenStasherStorage()
+            .strategyStashes[vault][token];
+    }
+
+    // ==================
+    //     FUNCTIONS
+    // ==================
     /**
      * @notice Stash a token by a vault
      * Note that the msg.sender should be the vault address
