@@ -17,6 +17,31 @@ contract AccessControlFacet is Modifiers {
     }
 
     // ======================
+    //       GETTERS
+    // ======================
+
+    /**
+     * Get all executors
+     * @return executors - list of all executors
+     */
+    function getExecutors() external view returns (address[] memory executors) {
+        executors = AccessControlStorageLib.getAccessControlStorage().executors;
+    }
+
+    /**
+     * Whether or not a certain executor is whitelisted
+     * @param suspect - The address of the executor to check
+     * @return isExecutor - Boolean
+     */
+    function isAnExecutor(
+        address suspect
+    ) external view returns (bool isExecutor) {
+        isExecutor = AccessControlStorageLib
+            .getAccessControlStorage()
+            .isWhitelisted[suspect];
+    }
+
+    // ======================
     //       FUNCTIONS
     // ======================
     /**

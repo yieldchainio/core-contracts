@@ -15,7 +15,7 @@ import "../../diamond/Deployment.t.sol";
  * i.e adding admins/moderators, etc
  */
 
-contract AccessControlTest is Test, YCVMEncoders, DiamondDeploymentTest {
+contract AccessControlTest is DiamondTest, YCVMEncoders {
     // ==================
     //      STATES
     // ==================

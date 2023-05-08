@@ -23,7 +23,7 @@ import "../../src/diamond/interfaces/IERC173.sol";
 import "./HelperContract.sol";
 import "../utils/Forks.t.sol";
 
-contract DiamondDeploymentTest is Test, HelperContract {
+contract DiamondTest is Test, HelperContract {
     // ===================
     //      STATES
     // ===================

@@ -13,7 +13,7 @@ import "../../utils/Forks.t.sol";
 import "../../diamond/Deployment.t.sol";
 import "../../../src/diamond/facets/core/Factory.sol";
 
-contract TestVaultDeployment is Test, YCVMEncoders, DiamondDeploymentTest {
+contract TestVaultDeployment is DiamondTest, YCVMEncoders {
     // =================
     //    CONSTANTS
     // =================

@@ -9,7 +9,7 @@ import "./Base.sol";
 import "../../utils/Forks.t.sol";
 import "../../diamond/Deployment.t.sol";
 
-contract ExecutionTest is Test, YCVMEncoders, DiamondDeploymentTest {
+contract ExecutionTest is DiamondTest, YCVMEncoders {
     // ==================
     //     CONSTANTS
     // ==================
@@ -207,7 +207,6 @@ contract ExecutionTest is Test, YCVMEncoders, DiamondDeploymentTest {
      */
 
     function testWithdrawAndUprootStrategy(uint256 depositAmount) public {
-        vm.assume(depositAmount < type(uint256).max / 10);
         // Begin by rerunning strategy test, which will deposit & run the strategy
         testStrategyRun(depositAmount);
         // Make the vault public

@@ -8,7 +8,7 @@ import "../Deployment.t.sol";
 import "../../vault/main/Base.sol";
 import "../../../src/diamond/facets/core/Factory.sol";
 
-contract FactoryFacetTest is Test, DiamondDeploymentTest {
+contract FactoryFacetTest is DiamondTest {
     // =================
     //      STATES
     // =================
@@ -21,12 +21,6 @@ contract FactoryFacetTest is Test, DiamondDeploymentTest {
     // =================
     function setUp() public virtual override {
         super.setUp();
-    }
-
-    /**
-     * Test that we deploy a vault in the factory, and it is saved as a registered vault
-     */
-    function testVaultDeploymentAndRegistration() public {
         // Get the args for deployment and deploy the vault
         (
             bytes[] memory SEED_STEPS,
@@ -47,7 +41,12 @@ contract FactoryFacetTest is Test, DiamondDeploymentTest {
             ERC20(address(depositToken)),
             isPublic
         );
+    }
 
+    /**
+     * Test that we deploy a vault in the factory, and it is saved as a registered vault
+     */
+    function testVaultDeploymentAndRegistration() public {
         // Make sure the dry configurations match on the vault contract
 
         // Assert that the creator must be us
