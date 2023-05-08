@@ -2,7 +2,7 @@ name: Foundry Tess
 
 on:
   push:
-    branches: 'main'
+    branches: "main"
 
 env:
   FOUNDRY_PROFILE: ci
@@ -32,5 +32,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test --ffi -vvv
         id: test
