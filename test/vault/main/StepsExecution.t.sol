@@ -275,9 +275,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             "Withdrawan, But Did Not Receive Extra GMX"
         );
 
-        // PRE:121876424073932558078
-        // POS 91408122474697096249
-
         // Assert that vault contract's GMX balance is 0
 
         assertEq(
@@ -287,8 +284,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         );
 
         // Assert that the GMX  & GNS pool balances of the vault are now half from prev
-        console.log(preGMXPoolBalance);
-        console.log(getGmxStakingBalance());
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
                 getGmxStakingBalance() == preGMXPoolBalance / 2 - 1 ||

@@ -28,27 +28,6 @@ abstract contract VaultUtilities is IVault, YCVM {
 
     /**
      * @notice
-     * decodeAndRequestFullfill()
-     * Accepts an encoded FunctionCall struct, and some context, and emits a RequestFullfill event
-     * @param encodedFunctionCall - An encoded FunctionCall struct
-     * @param index - An index specifying a step to execute when re-entering onchain, within the provided context
-     */
-    function _decodeAndRequestFullfill(
-        bytes memory encodedFunctionCall,
-        uint256 index
-    ) internal {
-        // We begin by decoding the function call
-        FunctionCall memory func = abi.decode(
-            encodedFunctionCall,
-            (FunctionCall)
-        );
-
-        // And then emitting the event
-        emit RequestFullfill(index, func.signature, func.args);
-    }
-
-    /**
-     * @notice
      * _determineConditions()
      * Accepts an array of YCStep's, which are meant to be the conditional step's children.
      * It attempts to execute their YC commands in order - Once one resolves to true, it returns their index + 1.

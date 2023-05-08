@@ -17,7 +17,11 @@ contract ExecutionFacet is Modifiers {
     uint256 internal constant ETHER_TRANSFER_COST = 28925;
 
     // Cost of storing a gas approximation on the vault contract
-    uint256 internal constant GAS_APPROXIMATION_STORAGE_COST = 30000;
+    uint256 internal constant GAS_APPROXIMATION_STORAGE_COST = 0;
+
+    // Base cost of the call to the function, is deducted before we can even access it
+    // TODO: is this even true? how can we access it?
+    // uint256 internal constant BASE_RUN_FEE = 31250000000000000;
 
     /**
      * @notice
@@ -27,18 +31,21 @@ contract ExecutionFacet is Modifiers {
      * @param operationIndex - The index of the operation within the strategy's Operations state
      * @param commandCalldatas - The offchain pre-computed YC Commands that should be used for the offchain-related steps, if any.
      */
+
     function hydrateAndExecuteRun(
         Vault strategy,
         uint256 operationIndex,
         bytes[] memory commandCalldatas
-    ) external onlyExecutors {
+    ) external  onlyExecutors returns (uint256 gasSpent) {
+        console.log("Initial Gas:", gasleft() * tx.gasprice);
+
         /**
          * @notice
          * @dev
          * We Save a variable for the initial gas on the transaction, to keep track later
          * on of how much it costs, and update balances/compensate accordingly
          */
-        uint256 initialGas = gasleft() * tx.gasprice;
+        uint256 initialGas = gasleft();
 
         // Storage ref shorthand
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
@@ -80,17 +87,28 @@ contract ExecutionFacet is Modifiers {
             // Store the gas used (+ the cost of storing it) in the vault contract for future approximations
             strategy.storeGasApproximation(
                 operation.action,
-                gasleft() +
+                (initialGas -
+                    gasleft() +
                     ETHER_TRANSFER_COST +
-                    GAS_APPROXIMATION_STORAGE_COST *
-                    tx.gasprice
+                    GAS_APPROXIMATION_STORAGE_COST) * tx.gasprice
             );
 
             // The gas that was spent up until now (+ the cost of an ether transfer)
-            uint256 gasSpent = initialGas -
-                gasleft() +
-                ETHER_TRANSFER_COST *
+            gasSpent =
+                (initialGas - gasleft() + ETHER_TRANSFER_COST) *
                 tx.gasprice;
+
+            if (
+                gasleft() * tx.gasprice >
+                (ETHER_TRANSFER_COST * 2 + 2500) * tx.gasprice
+            ) gasSpent -= (ETHER_TRANSFER_COST + 2500);
+
+            console.log(
+                "Gonna Transfer to Bob:",
+                gasSpent,
+                "Gas Left:",
+                gasleft() * tx.gasprice
+            );
 
             // We send gas cost to executor
             payable(msg.sender).transfer(gasSpent);
@@ -98,7 +116,8 @@ contract ExecutionFacet is Modifiers {
         // Else if it's a strategy run, we deduct the gas from the vault's gas balance
         else {
             // The amount of gas we should transfer
-            uint256 gasSpent = initialGas -
+            gasSpent =
+                initialGas -
                 gasleft() +
                 ETHER_TRANSFER_COST *
                 tx.gasprice;
@@ -110,12 +129,17 @@ contract ExecutionFacet is Modifiers {
                 gasSpent
             );
         }
-
+        // Sufficient check to see executor is not overpaying
+        if (gasSpent > operation.gas) revert();
         // We reimbruse remaining gas to initiator if there's any left for a transfer
         // Note 1000 is just some safety delta
-        if (gasleft() * tx.gasprice > ETHER_TRANSFER_COST + 1000 * tx.gasprice)
+        if (
+            gasSpent <= operation.gas &&
+            operation.gas - gasSpent > ETHER_TRANSFER_COST * tx.gasprice
+        ) {
             payable(operation.initiator).transfer(
-                gasleft() - ETHER_TRANSFER_COST * tx.gasprice
+                (operation.gas - gasSpent) * tx.gasprice
             );
+        }
     }
 }
