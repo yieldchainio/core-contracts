@@ -20,7 +20,7 @@ contract DeployScript is Script, HelperContract {
     function run() external {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployerAddress = vm.envAddress("PUBLIC_KEY");
+        // address deployerAddress = vm.envAddress("PUBLIC_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
 
@@ -29,14 +29,14 @@ contract DeployScript is Script, HelperContract {
         DiamondLoupeFacet dLoupeF = new DiamondLoupeFacet();
         OwnershipFacet ownerF = new OwnershipFacet();
 
-        DiamondInit diamondInit = new DiamondInit();
+        // DiamondInit diamondInit = new DiamondInit();
 
         // diamod arguments
-        DiamondArgs memory _args = DiamondArgs({
-            owner: deployerAddress,
-            init: address(diamondInit),
-            initCalldata: abi.encodeWithSignature("init()")
-        });
+        // DiamondArgs memory _args = DiamondArgs({
+        //     owner: deployerAddress,
+        //     init: address(diamondInit),
+        //     initCalldata: abi.encodeWithSignature("init()")
+        // });
 
         // FacetCut array which contains the three standard facets to be added
         FacetCut[] memory cut = new FacetCut[](3);
@@ -64,7 +64,7 @@ contract DeployScript is Script, HelperContract {
         );
 
         // deploy diamond
-        Diamond diamond = new Diamond(cut, _args);
+        // Diamond diamond = new Diamond(cut, _args);
 
         vm.stopBroadcast();
     }
