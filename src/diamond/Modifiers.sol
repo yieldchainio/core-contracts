@@ -8,17 +8,14 @@
 pragma solidity ^0.8.18;
 import "./storage/AccessControl.sol";
 import "./storage/Strategies.sol";
+import {LibDiamond} from "./libraries/LibDiamond.sol";
 
 contract Modifiers {
     /**
      * Only allow owner of the diamond to access
      */
     modifier onlyOwner() {
-        require(
-            msg.sender ==
-                AccessControlStorageLib.getAccessControlStorage().owner,
-            "ERR: Only Owner"
-        );
+        require(msg.sender == LibDiamond.contractOwner(), "ERR: Only Owner");
         _;
     }
 

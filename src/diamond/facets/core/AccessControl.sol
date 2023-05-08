@@ -1,5 +1,6 @@
 /**
  * Access control, managing execution permissions to whitelisted executors
+ * @notice Uses the Ownership facet to enforce ownership
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
@@ -7,15 +8,9 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/AccessControl.sol";
 import "../../Modifiers.sol";
+import {LibDiamond} from "../../libraries/LibDiamond.sol";
 
 contract AccessControlFacet is Modifiers {
-    // ======================
-    //      CONSTRUCTOR
-    // ======================
-    constructor() {
-        AccessControlStorageLib.getAccessControlStorage().owner = msg.sender;
-    }
-
     // ======================
     //       GETTERS
     // ======================
@@ -39,6 +34,14 @@ contract AccessControlFacet is Modifiers {
         isExecutor = AccessControlStorageLib
             .getAccessControlStorage()
             .isWhitelisted[suspect];
+    }
+
+    /**
+     * Owner/manager
+     * @return ownerAddress - The owner of this Diamond
+     */
+    function getOwner() external view returns (address ownerAddress) {
+        ownerAddress = LibDiamond.contractOwner();
     }
 
     // ======================

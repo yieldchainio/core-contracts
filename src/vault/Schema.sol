@@ -17,17 +17,17 @@ abstract contract IVault {
      * to hydrate it's command calldatas in place.
      * those calldatas are used in steps which are classified as "offchain" steps, whom require some computation
      * to run offchain.
-     * @param operationKey - The key of the operation within out "queue" mapping
+     * @param operationKey - The key of the operation within the operation requests array in storage
      */
     event HydrateRun(uint256 indexed operationKey);
 
     /**
      * @notice
      * RequestFullfill event,
-     * emitted in order to request an offchain fullfill of computations/actions, when simulating them in an hydration run request
+     * emitted in order to request an offchain fullfill of computations/actions, when simulating them in an hydration run request offchain.
      * @param stepIndex - the index of the step within the run requesting the offchain computation
      * @param targetAction - a string specifying the action to target offchain. Would be classified as a function in the yieldchain DB
-     * @param params - Arbitrary array of bytes, specifying the arguments to use. Note that this would be encoded as a YC command (argument).
+     * @param params - Arbitrary array of bytes, specifying the arguments to use. Note that these would be encoded YC commands.
      */
     event RequestFullfill(
         uint256 indexed stepIndex,
@@ -69,8 +69,4 @@ abstract contract IVault {
      * When there is insufficient gas prepayance (msg.value)
      */
     error InsufficientGasPrepay();
-
-    // =====================
-    //      FUNCTIONS
-    // =====================
 }
