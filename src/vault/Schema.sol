@@ -26,13 +26,11 @@ abstract contract IVault {
      * RequestFullfill event,
      * emitted in order to request an offchain fullfill of computations/actions, when simulating them in an hydration run request offchain.
      * @param stepIndex - the index of the step within the run requesting the offchain computation
-     * @param targetAction - a string specifying the action to target offchain. Would be classified as a function in the yieldchain DB
-     * @param params - Arbitrary array of bytes, specifying the arguments to use. Note that these would be encoded YC commands.
+     * @param ycCommand - The yc command to execute offchain
      */
     event RequestFullfill(
         uint256 indexed stepIndex,
-        string indexed targetAction,
-        bytes[] params
+        bytes indexed ycCommand
     );
 
     /**
@@ -69,4 +67,9 @@ abstract contract IVault {
      * When there is insufficient gas prepayance (msg.value)
      */
     error InsufficientGasPrepay();
+
+    /**
+     * When we execute a callback step, there's no calldata hydrated for it and we are on mainnet
+     */
+    error NoOffchainComputedCommand(uint256 stepIndex);
 }

@@ -368,7 +368,8 @@ contract Vault is
         if (operation.action == ExecutionTypes.SEED) executeDeposit(operation);
         else if (operation.action == ExecutionTypes.UPROOT)
             executeWithdraw(operation);
-        else if (operation.action == ExecutionTypes.TREE) executeStrategy();
+        else if (operation.action == ExecutionTypes.TREE)
+            executeStrategy(operation);
         else revert();
 
         // We unlock the contract state once the operation has completed
@@ -463,7 +464,7 @@ contract Vault is
          */
         uint256[] memory startingIndices = new uint256[](1);
         startingIndices[0] = 0;
-        executeStepTree(SEED_STEPS, startingIndices);
+        executeStepTree(SEED_STEPS, startingIndices, depositItem);
     }
 
     /**
@@ -509,7 +510,7 @@ contract Vault is
          */
         uint256[] memory startingIndices = new uint256[](1);
         startingIndices[0] = 0;
-        executeStepTree(UPROOTING_STEPS, startingIndices);
+        executeStepTree(UPROOTING_STEPS, startingIndices, withdrawItem);
 
         /**
          * @notice We check to see if our state is currently locked. If it isn't, it means
@@ -535,13 +536,13 @@ contract Vault is
      * handleRunStrategy()
      * Handles a strategy run request
      */
-    function executeStrategy() internal {
+    function executeStrategy(OperationItem memory strategyRunRequest) internal {
         /**
          * Execute the strategy's tree of steps with the provided startingIndices and fullfill command
          */
         uint256[] memory startingIndices = new uint256[](1);
         startingIndices[0] = 0;
-        executeStepTree(STEPS, startingIndices);
+        executeStepTree(STEPS, startingIndices, strategyRunRequest);
     }
 
     // ==============================
@@ -558,7 +559,8 @@ contract Vault is
      */
     function executeStepTree(
         bytes[] memory virtualTree,
-        uint256[] memory startingIndices
+        uint256[] memory startingIndices,
+        OperationItem memory operationRequest
     ) public onlyDiamond {
         /**
          * Iterate over each one of the starting indices
@@ -607,28 +609,30 @@ contract Vault is
              */
             if (step.isCallback) {
                 /**
-                 * If we got a fullfill function, we execute it - It means that this is a reenterence from the offchain
-                 * after the external computation was completed, with the final YC command.
-                 * Note that in this case we stop the execution of the step here, as we do not want to execute it's
-                 * children any further. This will be handled by the offchain when re-entering.
+                 * @notice @dev
+                 * A callback step means it requires offchain-computed data to be used.
+                 * When the initial request for this operation run was made, it was re-entered with the offchain-computed data,
+                 * and set on our operation item in an array of YC commands.
+                 * We check to see if, at our (step) index, the command calldata exists. If it does, we run it.
+                 * Otherwise, we check to see if we are on mainnet currently. If we are, it means something is wrong, and we shall revert.
+                 * If we are on a fork, we emit a "RequestFullfill" event. Which will be used by the offchain simulator to create the command calldata,
+                 * which we should have on every mainnet execution for callback steps.
                  */
-                /**
-                 * Otherwise, it means this is the first touch of the function, and we should emit the appropriate event to request
-                 * the offchain processing of it
-                 *
-                 * @notice The standard for offchain action requests is the following:
-                 * - The signature of the function is the string of the action name
-                 * - The arguments of the FunctionCall are the data we pass to the event
-                 * We decode the step's function call manually and emit an event using the DecodeAndRequestFullfill() function
-                 */
-                // _decodeAndRequestFullfill(step.func, context, stepIndex);
-            }
+                if (
+                    bytes32(operationRequest.commandCalldatas[stepIndex]) !=
+                    bytes32(0)
+                )
+                    _runFunction(operationRequest.commandCalldatas[stepIndex]);
 
+                    // Revert if we are on mainnet
+                else if (isMainnet) revert NoOffchainComputedCommand(stepIndex);
+                // Emit a fullfill event otherwise
+                else emit RequestFullfill(stepIndex, step.func);
+            }
             /**
              * If the step is not a callback, we execute the step's function
              */
-
-            _runFunction(step.func);
+            else _runFunction(step.func);
 
             /**
              * @notice
@@ -659,7 +663,11 @@ contract Vault is
              * of starting indices, rather than a single starting index. (Offchain actions will be batched per transaction and executed together here,
              * rather than per-event).
              */
-            executeStepTree(virtualTree, childrenStartingIndices);
+            executeStepTree(
+                virtualTree,
+                childrenStartingIndices,
+                operationRequest
+            );
         }
     }
 }
