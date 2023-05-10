@@ -6,6 +6,7 @@ pragma solidity ^0.8.18;
 import "../vm/VM.sol";
 import "forge-std/console.sol";
 import "./Schema.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 abstract contract VaultUtilities is IVault, YCVM {
     // ===================
@@ -24,6 +25,19 @@ abstract contract VaultUtilities is IVault, YCVM {
         uint256 divisor
     ) public pure returns (uint256 investmentAmount) {
         return (amt * 100) / divisor;
+    }
+
+    /**
+     * @notice
+     * balanceOf
+     * Accepts an ERC20 token address, returns balance of the vault on it
+     * @param token - Address of the ERC20 token
+     * @return erc20Balance - The balance of the vault on that ERC20 token
+     */
+    function balanceOf(
+        address token
+    ) public view returns (uint256 erc20Balance) {
+        return ERC20(token).balanceOf(address(this));
     }
 
     /**
