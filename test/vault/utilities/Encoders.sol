@@ -87,10 +87,10 @@ contract UtilityEncoder is YCVMEncoders {
         // The args for the function call
         bytes[] memory args = new bytes[](1);
 
-        args[0] = encodeSelfCommand();
+        args[0] = encodeValueVar(abi.encode(tokenAddress));
 
         FunctionCall memory balanceOfStaticCall = FunctionCall(
-            tokenAddress,
+            address(0),
             args,
             "balanceOf(address)"
         );

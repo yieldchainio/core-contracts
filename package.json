@@ -1,11 +1,13 @@
 {
   "name": "core-contracts",
+  "type": "module",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/yieldchainio/core-contracts.git",
   "author": "OfirYC <ofir@yieldchain.io>",
   "license": "MIT",
   "devDependencies": {
+    "ethers": "^6.3.0",
     "prettier-plugin-solidity": "^1.1.3"
   }
 }
