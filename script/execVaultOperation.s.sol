@@ -30,7 +30,7 @@ contract ExecutionScript is Script, HelperContract {
             payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
         );
         Vault vaultAddress = Vault(0xfe7068021265392eA0F171Dfa1ab2366F8B5DEAD);
-        uint256 operationIdx = 0;
+        uint256 operationIdx = 2;
         bytes[] memory calldatas = new bytes[](0);
 
         console.logBytes(

@@ -96,6 +96,10 @@ contract ExecutionFacet is Modifiers {
                 (initialGas - gasleft() + ETHER_TRANSFER_COST) *
                 tx.gasprice;
 
+            // Sufficient check to see executor is not overpaying
+            if (gasSpent > operation.gas)
+                revert("Operation Gas Lower Than Required Gas");
+
             if (
                 gasleft() * tx.gasprice >
                 (ETHER_TRANSFER_COST * 2) * tx.gasprice
@@ -109,9 +113,7 @@ contract ExecutionFacet is Modifiers {
         else {
             // The amount of gas we should transfer
             gasSpent =
-                initialGas -
-                gasleft() +
-                ETHER_TRANSFER_COST *
+                (initialGas - gasleft() + ETHER_TRANSFER_COST) *
                 tx.gasprice;
 
             // Deduct it from the vault's gas balance and send to the executor
@@ -121,8 +123,7 @@ contract ExecutionFacet is Modifiers {
                 gasSpent
             );
         }
-        // Sufficient check to see executor is not overpaying
-        if (gasSpent > operation.gas) revert();
+
         // We reimbruse remaining gas to initiator if there's any left for a transfer
         // Note 1000 is just some safety delta
         if (
@@ -132,10 +133,32 @@ contract ExecutionFacet is Modifiers {
             payable(operation.initiator).transfer(operation.gas - gasSpent);
         }
     }
-}
 
-// dfasfasfsaf: 2892500000000
-// The mistake: 6035000000000
-// Transferred: 82184799968575
-// Sholda been: 94254799968575
-// Real paid g: 172681000000000
+    /**
+     * triggerStrategyRun()
+     * Trigger a run request on a strategy
+     * @param strategy - The address of the strategy
+     */
+    function triggerStrategyRun(Vault strategy) external onlyExecutors {
+        // Storage ref shorthand
+        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
+            .getStrategiesStorage();
+
+        // Make sure the strategy is registered
+        require(
+            strategiesStorage.strategiesState[strategy].registered,
+            "Strategy Does Not Exist"
+        );
+
+        // Make sure it has a sufficient gas balance
+        require(
+            FactoryFacet(address(this))
+                .getStrategyState(strategy)
+                .gasBalanceWei >= strategy.approxStrategyGas(),
+            "Vault Has Insufficient Gas Balance (As Per Approximation)"
+        );
+
+        // Trigger it
+        strategy.runStrategy();
+    }
+}
