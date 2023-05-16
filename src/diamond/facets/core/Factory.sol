@@ -12,6 +12,18 @@ import "../../Modifiers.sol";
 
 contract FactoryFacet is Modifiers {
     // ==================
+    //      EVENTS
+    // ==================
+    /**
+     * Deployed on strategy deployment
+     */
+    event VaultCreated(
+        address indexed strategyAddress,
+        address indexed creator,
+        address indexed depositToken
+    );
+
+    // ==================
     //     MODIFIERS
     // ==================
     /**
@@ -104,6 +116,11 @@ contract FactoryFacet is Modifiers {
                 createdVault
             ] = StrategyState(true, 0);
 
+        emit VaultCreated(
+            address(createdVault),
+            msg.sender,
+            address(depositToken)
+        );
         /**
          * Finally, we move onto registering each one of the triggers on the Registry facet.
          * The Registry facet will register it on the corresponding trigger-specific facet,
