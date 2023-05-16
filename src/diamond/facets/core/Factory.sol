@@ -64,8 +64,6 @@ contract FactoryFacet is Modifiers {
         bytes[] memory seedSteps,
         bytes[] memory treeSteps,
         bytes[] memory uprootSteps,
-        // Triggers[] memory triggers,
-        // bytes[] memory triggersSettings,
         address[2][] memory approvalPairs,
         ERC20 depositToken,
         bool isPublic

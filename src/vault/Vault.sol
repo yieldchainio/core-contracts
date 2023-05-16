@@ -9,7 +9,7 @@ import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IER
 import "../vm/VM.sol";
 import "./AccessControl.sol";
 import "./OperationsQueue.sol";
-import "forge-std/console.sol";
+
 import "./Constants.sol";
 import "../diamond/interfaces/ITokenStash.sol";
 import "./VaultUtilities.sol";
@@ -596,7 +596,7 @@ contract Vault is
             if (step.conditions.length > 0) {
                 // Sufficient check to make sure there are as many conditions as there are children
                 require(
-                    step.conditions.length == step.children_indexes.length,
+                    step.conditions.length == step.childrenIndices.length,
                     "Conditions & Children Mismatch"
                 );
 
@@ -647,13 +647,13 @@ contract Vault is
 
             // If offspring idx is valid, we assign to index 0 it's index
             if (chosenOffspringIdx > 0)
-                childrenStartingIndices[0] = step.children_indexes[
+                childrenStartingIndices[0] = step.childrenIndices[
                     // Note we -1 here, since the chosenOffspringIdx would have upped it up by 1 (to retain 0 as the falsy indicator)
                     chosenOffspringIdx - 1
                 ];
 
                 // Else it equals to all of the step's children
-            else childrenStartingIndices = step.children_indexes;
+            else childrenStartingIndices = step.childrenIndices;
 
             /**
              * We now iterate over each children and @recruse the function call

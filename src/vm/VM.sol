@@ -3,7 +3,6 @@ pragma solidity ^0.8.18;
 import "./Interpreters.sol";
 import "./Interface.sol";
 import "./Opcodes.sol";
-import "forge-std/console.sol";
 
 contract YCVM is Interpreters, IVM, Opcodes {
     // ================

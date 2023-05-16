@@ -89,14 +89,14 @@ struct FunctionCall {
  * @TokenFlow[]
  * An array of TokenFlow structs, consumed by frontends.
  *
- * @param children_indexes
+ * @param childrenIndices
  * @uint256
  * A uint representing the index within the strategy's containers array of the step's children container.
  * -----------------------------
  */
 struct YCStep {
     bytes func;
-    uint256[] children_indexes;
+    uint256[] childrenIndices;
     bytes[] conditions;
     bool isCallback;
 }

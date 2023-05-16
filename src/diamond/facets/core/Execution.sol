@@ -36,9 +36,7 @@ contract ExecutionFacet is Modifiers {
         Vault strategy,
         uint256 operationIndex,
         bytes[] memory commandCalldatas
-    ) external  onlyExecutors returns (uint256 gasSpent) {
-        console.log("Initial Gas:", gasleft() * tx.gasprice);
-
+    ) external onlyExecutors returns (uint256 gasSpent) {
         /**
          * @notice
          * @dev
@@ -102,13 +100,6 @@ contract ExecutionFacet is Modifiers {
                 gasleft() * tx.gasprice >
                 (ETHER_TRANSFER_COST * 2 + 2500) * tx.gasprice
             ) gasSpent -= (ETHER_TRANSFER_COST + 2500);
-
-            console.log(
-                "Gonna Transfer to Bob:",
-                gasSpent,
-                "Gas Left:",
-                gasleft() * tx.gasprice
-            );
 
             // We send gas cost to executor
             payable(msg.sender).transfer(gasSpent);
