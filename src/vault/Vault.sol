@@ -630,9 +630,9 @@ contract Vault is
                 else emit RequestFullfill(stepIndex, step.func);
             }
             /**
-             * If the step is not a callback, we execute the step's function
+             * If the step is not a callback (And also not empty), we execute the step's function
              */
-            else _runFunction(step.func);
+            else if (bytes32(step.func) != bytes32(0)) _runFunction(step.func);
 
             /**
              * @notice
