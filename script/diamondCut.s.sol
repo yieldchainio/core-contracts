@@ -54,28 +54,25 @@ contract DiamondCutScript is Script, HelperContract {
         // dLoupe = new DiamondLoupeFacet();
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
-        // executionFacet = new ExecutionFacet();
-        factoryFacet = new FactoryFacet();
+        executionFacet = new ExecutionFacet();
+        // factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
 
         FacetCut[] memory cut = new FacetCut[](1);
 
         cut[0] = (
             FacetCut({
-                facetAddress: address(factoryFacet),
+                facetAddress: address(executionFacet),
                 action: FacetCutAction.Replace,
-                functionSelectors: generateSelectors("FactoryFacet")
+                functionSelectors: generateSelectors("ExecutionFacet")
             })
         );
 
         // deploy diamond
-        DiamondCutFacet(address(diamond)).diamondCut(
-            cut,
-            address(0),
-            hex"00"
-        );
-
+        DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), hex"00");
 
         vm.stopBroadcast();
     }
 }
+
+// forge script ./script/diamondCut.s.sol:DiamondCutScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --etherscan-api-key $ARBISCAN_API_KEY --verifier-url https://api.arbiscan.io/api --broadcast --verify -vvvv --ffi
