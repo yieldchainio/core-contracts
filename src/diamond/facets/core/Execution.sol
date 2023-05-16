@@ -98,8 +98,9 @@ contract ExecutionFacet is Modifiers {
 
             if (
                 gasleft() * tx.gasprice >
-                (ETHER_TRANSFER_COST * 2 + 2500) * tx.gasprice
-            ) gasSpent -= (ETHER_TRANSFER_COST + 2500);
+                (ETHER_TRANSFER_COST * 2) * tx.gasprice
+                // TODO: This is supposed to be +=, not -= ( i think)
+            ) gasSpent += (ETHER_TRANSFER_COST * tx.gasprice);
 
             // We send gas cost to executor
             payable(msg.sender).transfer(gasSpent);
@@ -128,9 +129,13 @@ contract ExecutionFacet is Modifiers {
             gasSpent <= operation.gas &&
             operation.gas - gasSpent > ETHER_TRANSFER_COST * tx.gasprice
         ) {
-            payable(operation.initiator).transfer(
-                (operation.gas - gasSpent) * tx.gasprice
-            );
+            payable(operation.initiator).transfer(operation.gas - gasSpent);
         }
     }
 }
+
+// dfasfasfsaf: 2892500000000
+// The mistake: 6035000000000
+// Transferred: 82184799968575
+// Sholda been: 94254799968575
+// Real paid g: 172681000000000
