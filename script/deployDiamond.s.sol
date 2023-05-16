@@ -9,47 +9,81 @@ pragma solidity ^0.8.0;
 /******************************************************************************/
 
 import "forge-std/Script.sol";
-import "../src/diamond/Diamond.sol";
-import "../src/diamond/facets/diamond-core/DiamondCutFacet.sol";
-import "../src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
-import "../src/diamond/facets/diamond-core/OwnershipFacet.sol";
-import "../src/diamond/upgradeInitializers/DiamondInit.sol";
+import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
+import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
+import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
+import "src/diamond/facets/core/AccessControl.sol";
+import "src/diamond/facets/core/Execution.sol";
+import "src/diamond/facets/core/Factory.sol";
+import "src/diamond/facets/core/TokenStash.sol";
+import "src/diamond/facets/core/Users.sol";
+import "src/diamond/Diamond.sol";
+import "src/diamond/interfaces/IDiamond.sol";
+import "src/diamond/interfaces/IDiamondCut.sol";
+import "src/diamond/interfaces/IDiamondLoupe.sol";
+import "src/diamond/interfaces/IERC165.sol";
+import "src/diamond/interfaces/IERC173.sol";
+import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
 
 contract DeployScript is Script, HelperContract {
+    // ===================
+    //      STATES
+    // ===================
+    //contract types of facets to be deployed
+    Diamond diamond;
+    DiamondCutFacet dCutFacet;
+    DiamondLoupeFacet dLoupe;
+    OwnershipFacet ownerF;
+
+    AccessControlFacet accessControlFacet;
+    ExecutionFacet executionFacet;
+    FactoryFacet factoryFacet;
+    TokenStashFacet tokenStashFacet;
+
+    //interfaces with Facet ABI connected to diamond address
+    IDiamondLoupe ILoupe;
+    IDiamondCut ICut;
+
+    string[] facetNames;
+    address[] facetAddressList;
+
     function run() external {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        // address deployerAddress = vm.envAddress("PUBLIC_KEY");
+        address deployerAddress = vm.envAddress("PUBLIC_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        //deploy facets and init contract
-        DiamondCutFacet dCutF = new DiamondCutFacet();
-        DiamondLoupeFacet dLoupeF = new DiamondLoupeFacet();
-        OwnershipFacet ownerF = new OwnershipFacet();
+        //deploy facets
+        dCutFacet = new DiamondCutFacet();
+        dLoupe = new DiamondLoupeFacet();
+        ownerF = new OwnershipFacet();
+        accessControlFacet = new AccessControlFacet();
+        executionFacet = new ExecutionFacet();
+        factoryFacet = new FactoryFacet();
+        tokenStashFacet = new TokenStashFacet();
 
-        // DiamondInit diamondInit = new DiamondInit();
+        DiamondInit diamondInit = new DiamondInit();
 
-        // diamod arguments
-        // DiamondArgs memory _args = DiamondArgs({
-        //     owner: deployerAddress,
-        //     init: address(diamondInit),
-        //     initCalldata: abi.encodeWithSignature("init()")
-        // });
+        // diamond arguments
+        DiamondArgs memory _args = DiamondArgs({
+            owner: deployerAddress,
+            init: address(diamondInit),
+            initCalldata: abi.encodeWithSignature("init()")
+        });
 
-        // FacetCut array which contains the three standard facets to be added
-        FacetCut[] memory cut = new FacetCut[](3);
+        FacetCut[] memory cut = new FacetCut[](7);
 
         cut[0] = FacetCut({
-            facetAddress: address(dCutF),
-            action: IDiamond.FacetCutAction.Add,
+            facetAddress: address(dCutFacet),
+            action: FacetCutAction.Add,
             functionSelectors: generateSelectors("DiamondCutFacet")
         });
 
         cut[1] = (
             FacetCut({
-                facetAddress: address(dLoupeF),
+                facetAddress: address(dLoupe),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("DiamondLoupeFacet")
             })
@@ -63,9 +97,41 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
+        cut[3] = (
+            FacetCut({
+                facetAddress: address(accessControlFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("AccessControlFacet")
+            })
+        );
+
+        cut[4] = (
+            FacetCut({
+                facetAddress: address(executionFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("ExecutionFacet")
+            })
+        );
+        cut[5] = (
+            FacetCut({
+                facetAddress: address(factoryFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("FactoryFacet")
+            })
+        );
+        cut[6] = (
+            FacetCut({
+                facetAddress: address(tokenStashFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("TokenStashFacet")
+            })
+        );
+
         // deploy diamond
-        // Diamond diamond = new Diamond(cut, _args);
+        diamond = new Diamond(cut, _args);
 
         vm.stopBroadcast();
     }
 }
+// forge script ./script/deployDiamond.s.sol:DeployScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --etherscan-api-key $ARBISCAN_API_KEY --verifier-url https://api.arbiscan.io/api --broadcast --verify -vvvv --ffi
+// forge script ./script/deployDiamond.s.sol:DeployScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL  --broadcast --verify -vvvv --ffi
