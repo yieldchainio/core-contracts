@@ -1,0 +1,32 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": null,
+      "function": null,
+      "arguments": null,
+      "rpc": "https://arb1.arbitrum.io/rpc",
+      "transaction": {
+        "type": "0x00",
+        "from": "0x634176ecc95d326cae16829d923c1373df6ece95",
+        "to": "0xdda4fcf0c099aa9900c38f1e6a01b8b96b1480d3",
+        "value": "0x0",
+        "data": "0x4d7133ec000000000000000000000000551ef14393dbe77fa809c3881f6b9906cd4ddbdb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
+        "nonce": "0x4b"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "path": "/Users/ofirsmolinsky/Desktop/core-contracts/broadcast/execVaultOperation.s.sol/42161/run-latest.json",
+  "returns": {},
+  "timestamp": 1684216921,
+  "chain": 42161,
+  "multi": false,
+  "commit": "c88143f"
+}

@@ -123,7 +123,8 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         uint256 preTotalShares = vaultContract.totalShares();
 
         // Deposit all 100 tokens we have
-        vaultContract.deposit(depositAmount);
+        uint256 requiredGasPrepay = vaultContract.approxDepositGas();
+        vaultContract.deposit{value: requiredGasPrepay * 2}(depositAmount);
         routeLatestRequest();
 
         // Assert that the vault's GMX staking balance should now be half of that
@@ -213,15 +214,20 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         vm.prank(vaultContract.YC_DIAMOND());
         vaultContract.changePrivacy(true);
 
+        vm.deal(address(this), 2 ether);
+
         // Then, "deploy" a new test contract and begin pranking it as Bob, and have him deposit a similar amount
         address Bob = address(1);
+        vm.deal(Bob, 2 ether);
+
         vm.startPrank(Bob);
         deal(address(vaultContract.DEPOSIT_TOKEN()), Bob, depositAmount);
         vaultContract.DEPOSIT_TOKEN().approve(
             address(vaultContract),
             type(uint256).max
         );
-        vaultContract.deposit(depositAmount);
+        uint256 requiredGasPrepay = vaultContract.approxDepositGas();
+        vaultContract.deposit{value: requiredGasPrepay * 2}(depositAmount);
         vm.stopPrank();
         routeLatestRequest();
 
@@ -246,7 +252,8 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         assertEq(preTotalShares / preBobShares, 2, "Pre Bob Shares Incorrrect");
 
         // Execute a withdrawal of all of our shares (should be 50% of total shares)
-        vaultContract.withdraw(preSelfShares);
+        requiredGasPrepay = vaultContract.approxWithdrawalGas();
+        vaultContract.withdraw{value: requiredGasPrepay * 2}(preSelfShares);
         routeLatestRequest();
 
         // Assert that the shares of us are now 0
@@ -306,7 +313,10 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
 
         // Prank Bob Contract, Withdraw his shares as him
         vm.startPrank(Bob);
-        vaultContract.withdraw(vaultContract.balances(Bob) / 2);
+        requiredGasPrepay = vaultContract.approxWithdrawalGas();
+        vaultContract.withdraw{value: requiredGasPrepay * 2}(
+            vaultContract.balances(Bob) / 2
+        );
         vm.stopPrank();
         routeLatestRequest();
 

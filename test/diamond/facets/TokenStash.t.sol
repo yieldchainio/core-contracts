@@ -69,7 +69,8 @@ contract TokenStashFacetTest is DiamondTest {
         );
 
         // Then, initiate a deposit to the vault
-        vaultContract.deposit(DEPOSIT_AMOUNT);
+        uint256 requiredGasPrepay = vaultContract.approxDepositGas();
+        vaultContract.deposit{value: requiredGasPrepay * 2}(DEPOSIT_AMOUNT);
 
         // Assert that our balance is 0
         assertEq(
