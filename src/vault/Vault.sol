@@ -169,11 +169,11 @@ contract Vault is
      *
      * We also keep track of the gas for the strategy run operation, mainly for analytical purposes, tho.
      */
-    uint256 approxWithdrawalGas;
+    uint256 public approxWithdrawalGas = 0.01 ether;
 
-    uint256 approxDepositGas;
+    uint256 public approxDepositGas = 0.01 ether;
 
-    uint256 approxStrategyGas;
+    uint256 public approxStrategyGas = 0.01 ether;
 
     /**
      * @dev This state variable indiciates whether we are locked or not,
