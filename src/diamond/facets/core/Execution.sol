@@ -31,7 +31,6 @@ contract ExecutionFacet is Modifiers {
      * @param operationIndex - The index of the operation within the strategy's Operations state
      * @param commandCalldatas - The offchain pre-computed YC Commands that should be used for the offchain-related steps, if any.
      */
-
     function hydrateAndExecuteRun(
         Vault strategy,
         uint256 operationIndex,

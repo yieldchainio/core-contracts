@@ -122,4 +122,5 @@ struct OperationItem {
     uint256 gas;
     bytes[] arguments;
     bytes[] commandCalldatas;
+    bool executed;
 }

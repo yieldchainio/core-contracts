@@ -249,7 +249,8 @@ contract Vault is
             msg.sender,
             msg.value,
             depositArgs,
-            new bytes[](0)
+            new bytes[](0),
+            false
         );
 
         // Request the operation
@@ -294,7 +295,8 @@ contract Vault is
             msg.sender,
             msg.value,
             withdrawArgs,
-            new bytes[](0)
+            new bytes[](0),
+            false
         );
 
         // Request the operation
@@ -322,7 +324,8 @@ contract Vault is
             0,
             // No custom args, and ofc no calldata atm (will be set by the offchain handler if any)
             new bytes[](0),
-            new bytes[](0)
+            new bytes[](0),
+            false
         );
 
         // Request the run
@@ -354,6 +357,8 @@ contract Vault is
 
         operation = operationRequests[operationIndex];
 
+        require(!operation.executed, "Operation Already Executed");
+
         // We lock the contract state
         locked = true;
 
@@ -373,6 +378,7 @@ contract Vault is
         else revert();
 
         // We unlock the contract state once the operation has completed
+        operationRequests[operationIndex].executed = true;
         locked = false;
     }
 
@@ -669,5 +675,13 @@ contract Vault is
                 operationRequest
             );
         }
+    }
+
+    /**
+     * ONLY ON FORK!!
+     * set fork status
+     */
+    function setForkStatus() external onlyDiamond {
+        isMainnet = false;
     }
 }
