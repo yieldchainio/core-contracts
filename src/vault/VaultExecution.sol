@@ -258,7 +258,7 @@ abstract contract VaultExecution is
         bytes[] memory virtualTree,
         uint256[] memory startingIndices,
         OperationItem memory operationRequest
-    ) public onlyDiamond {
+    ) internal {
         /**
          * Iterate over each one of the starting indices
          */
