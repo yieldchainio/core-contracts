@@ -4,6 +4,7 @@ out = 'out'
 libs = ['lib']
 memory_limit = 203554432
 block_base_fee_per_gas = 0
+optimizer-runs = 10_000_000
 
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

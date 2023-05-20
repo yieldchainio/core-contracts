@@ -87,10 +87,7 @@ contract FactoryFacet is Modifiers {
         /**
          * Assert that the triggers & triggers settings lengths math
          */
-        // require(
-        //     triggers.length == triggersSettings.length,
-        //     "Triggers & settings length mismatch"
-        // );
+     
 
         /**
          * Begin by deploying the vault contract (With the msg.sender of this call as the creator)
@@ -126,13 +123,7 @@ contract FactoryFacet is Modifiers {
          * The Registry facet will register it on the corresponding trigger-specific facet,
          * and on the strategy's mapping in the general storage, where we store an array of the registered triggers.
          */
-        // for (uint256 i; i < triggers.length; i++) {
-        //     Registry(address(this)).registerTrigger(
-        //         createdVault,
-        //         triggers[i],
-        //         triggersSettings[i]
-        //     );
-        // }
+     
     }
 
     /**
