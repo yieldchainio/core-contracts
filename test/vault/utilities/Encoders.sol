@@ -1,21 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../../../src/vm/Encoders.sol";
+import "../../../src/vault/Constants.sol";
 
 /**
  * UTility encoders for the vault tests
  */
 
-contract UtilityEncoder is YCVMEncoders {
-    /**
-     * Constant memory location for where user's withdraw shares are stored in memory
-     */
-    uint256 internal constant WITHDRAW_SHARES_MEM_LOCATION = 0x2c0;
-    /**
-     * Constant memory location for where user's deposit amount is stored in memory
-     */
-    uint256 internal constant DEPOSIT_AMT_MEM_LOCATION = 0x2c0;
-
+contract UtilityEncoder is YCVMEncoders, VaultConstants {
     function encodeGetInvestmentAmount(
         bytes memory amountRetreiver,
         uint256 bigDivisor

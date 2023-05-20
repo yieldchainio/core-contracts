@@ -290,6 +290,9 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             "Withdrawan But GMX remains in pool"
         );
 
+        console.log("Self Pre GMX Pool Balance", preGMXPoolBalance);
+        console.log("Self Existing GMX Pool Balance", getGmxStakingBalance());
+
         // Assert that the GMX  & GNS pool balances of the vault are now half from prev
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
@@ -338,6 +341,9 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         );
 
         // Assert that the vault's GMX and GNS balances in pools are now 0
+        console.log("Bob Pre GMX Pool Balance", preGMXPoolBalance);
+        console.log("Bob Existing GMX Pool Balance", getGmxStakingBalance());
+
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
                 getGmxStakingBalance() == preGMXPoolBalance / 2 - 1 ||

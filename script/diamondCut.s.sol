@@ -54,17 +54,17 @@ contract DiamondCutScript is Script, HelperContract {
         // dLoupe = new DiamondLoupeFacet();
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
-        executionFacet = new ExecutionFacet();
-        // factoryFacet = new FactoryFacet();
+        // executionFacet = new ExecutionFacet();
+        factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
 
         FacetCut[] memory cut = new FacetCut[](1);
 
         cut[0] = (
             FacetCut({
-                facetAddress: address(executionFacet),
+                facetAddress: address(factoryFacet),
                 action: FacetCutAction.Replace,
-                functionSelectors: generateSelectors("ExecutionFacet")
+                functionSelectors: generateSelectors("FactoryFacet")
             })
         );
 

@@ -19,7 +19,7 @@ import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
 import "forge-std/console.sol";
 
-contract ExecutionScript is Script, HelperContract {
+contract TriggerRunScript is Script, HelperContract {
     function run() external {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -29,36 +29,16 @@ contract ExecutionScript is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
         );
-        Vault vaultAddress = Vault(0x4E03524c3316246c775886500384601399B79Add);
-        uint256 operationIdx = 0;
-        bytes[] memory calldatas = new bytes[](0);
+        Vault vaultAddress = Vault(0x2A85A8CC042CCaB938C724439314d15427A36Bd2);
 
-        console.logBytes(
-            abi.encodeWithSignature(
-                "hydrateAndExecuteRun(address,uint256,bytes[])",
-                vaultAddress,
-                operationIdx,
-                calldatas
-            )
+        FactoryFacet(address(diamond)).fundGasBalance{value: 0.01 ether}(
+            address(vaultAddress)
         );
 
-        ExecutionFacet(address(diamond)).hydrateAndExecuteRun(
-            vaultAddress,
-            operationIdx,
-            calldatas
-        );
-
-        // address(diamond).call(
-        //     abi.encodeWithSignature(
-        //         "hydrateAndExecuteRun(address,uint256,bytes[])",
-        //         vaultAddress,
-        //         operationIdx,
-        //         calldatas
-        //     )
-        // );
+        ExecutionFacet(address(diamond)).triggerStrategyRun(vaultAddress);
 
         vm.stopBroadcast();
     }
 }
 
-// forge script ./script/execVaultOperation.s.sol:ExecutionScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi
+// forge script ./script/triggerStrategyRun.s.sol:TriggerRunScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi

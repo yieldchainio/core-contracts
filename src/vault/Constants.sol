@@ -9,11 +9,11 @@ contract VaultConstants {
     /**
      * Constant memory location for where user's withdraw shares are stored in memory
      */
-    uint256 internal constant WITHDRAW_SHARES_MEM_LOCATION = 0x2c0;
+    uint256 internal constant WITHDRAW_SHARES_MEM_LOCATION = 0x320;
     /**
      * Constant memory location for where user's deposit amount is stored in memory
      */
-    uint256 internal constant DEPOSIT_AMT_MEM_LOCATION = 0x2c0;
+    uint256 internal constant DEPOSIT_AMT_MEM_LOCATION = 0x3e4;
 
     /**
      * Constant "delta" variable that we require when sending gas in individual users' operations.
