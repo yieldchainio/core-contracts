@@ -28,10 +28,7 @@ abstract contract IVault {
      * @param stepIndex - the index of the step within the run requesting the offchain computation
      * @param ycCommand - The yc command to execute offchain
      */
-    event RequestFullfill(
-        uint256 indexed stepIndex,
-        bytes indexed ycCommand
-    );
+    event RequestFullfill(uint256 indexed stepIndex, bytes ycCommand);
 
     /**
      * Deposit
