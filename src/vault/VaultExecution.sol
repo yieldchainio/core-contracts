@@ -326,8 +326,10 @@ abstract contract VaultExecution is
                 else if (isMainnet) revert NoOffchainComputedCommand(stepIndex);
                 // Emit a fullfill event otherwise
                 else {
+                    (bytes memory nakedFunc, , ) = _separateCommand(step.func);
+
                     FunctionCall memory originalCall = abi.decode(
-                        step.func,
+                        nakedFunc,
                         (FunctionCall)
                     );
 
