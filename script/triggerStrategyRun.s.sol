@@ -29,7 +29,7 @@ contract TriggerRunScript is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
         );
-        Vault vaultAddress = Vault(0xbb2A6f910598866B37015c29e1C3150bDE282151);
+        Vault vaultAddress = Vault(0x61201563435B057471b197eAF0eBF3cD034FB0C2);
 
         FactoryFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)

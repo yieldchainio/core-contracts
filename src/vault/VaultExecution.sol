@@ -325,7 +325,35 @@ abstract contract VaultExecution is
                     // Revert if we are on mainnet
                 else if (isMainnet) revert NoOffchainComputedCommand(stepIndex);
                 // Emit a fullfill event otherwise
-                else emit RequestFullfill(stepIndex, step.func);
+                else {
+                    FunctionCall memory originalCall = abi.decode(
+                        step.func,
+                        (FunctionCall)
+                    );
+
+                    bytes[] memory builtArgs = new bytes[](
+                        originalCall.args.length
+                    );
+
+                    for (uint256 j; j < builtArgs.length; j++) {
+                        bytes[] memory ownArray = new bytes[](1);
+                        ownArray[0] = originalCall.args[j];
+                        builtArgs[j] = interpretCommandsAndEncodeChunck(
+                            ownArray
+                        );
+                    }
+
+                    emit RequestFullfill(
+                        stepIndex,
+                        abi.encode(
+                            FunctionCall(
+                                originalCall.target_address,
+                                builtArgs,
+                                originalCall.signature
+                            )
+                        )
+                    );
+                }
             }
             /**
              * If the step is not a callback (And also not empty), we execute the step's function
