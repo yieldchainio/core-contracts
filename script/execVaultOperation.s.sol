@@ -26,12 +26,24 @@ contract ExecutionScript is Script, HelperContract {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        Diamond diamond = Diamond(
-            payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
-        );
-        Vault vaultAddress = Vault(0x4E03524c3316246c775886500384601399B79Add);
-        uint256 operationIdx = 0;
-        bytes[] memory calldatas = new bytes[](0);
+        Vault vaultAddress = Vault(0x776DdFb090479fC77bF857595c11D2B4ee1Cb61B);
+        uint256 operationIdx = 2;
+        bytes[] memory calldatas = new bytes[](5);
+        calldatas[
+            0
+        ] = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        calldatas[
+            1
+        ] = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        calldatas[
+            2
+        ] = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        calldatas[
+            3
+        ] = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        calldatas[
+            4
+        ] = hex"050000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000673656c6628290000000000000000000000000000000000000000000000000000";
 
         console.logBytes(
             abi.encodeWithSignature(
@@ -42,11 +54,11 @@ contract ExecutionScript is Script, HelperContract {
             )
         );
 
-        ExecutionFacet(address(diamond)).hydrateAndExecuteRun(
-            vaultAddress,
-            operationIdx,
-            calldatas
+        ExecutionFacet facet = ExecutionFacet(
+            address(payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3))
         );
+
+        facet.hydrateAndExecuteRun(vaultAddress, operationIdx, calldatas);
 
         // address(diamond).call(
         //     abi.encodeWithSignature(
@@ -61,4 +73,4 @@ contract ExecutionScript is Script, HelperContract {
     }
 }
 
-// forge script ./script/execVaultOperation.s.sol:ExecutionScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi
+// forge script ./script/execVaultOperation.s.sol:ExecutionScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvv --ffi

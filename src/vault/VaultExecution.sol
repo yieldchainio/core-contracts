@@ -39,8 +39,14 @@ abstract contract VaultExecution is
      */
     function hydrateAndExecuteRun(
         uint256 operationIndex,
-        bytes[] memory commandCalldatas
+        bytes[] calldata commandCalldatas
     ) external onlyDiamond returns (OperationItem memory operation) {
+        // We allocate to the current free memory pointer,
+        // which may be used/overwritten by subsequent internal function calls
+        // (e.g, saving a user's share in memory)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
         /**
          * We retreive the current operation to handle.
          * Note that we do not dequeue it, as we want it to remain visible in storage
@@ -157,8 +163,6 @@ abstract contract VaultExecution is
         assembly {
             // We MSTORE at the deposit amount memory location the deposit amount (may be accessed by commands to determine amount arguments)
             mstore(DEPOSIT_AMT_MEM_LOCATION, amount)
-            // Update the free mem pointer (we know it in advanced no need to mload on existing stored ptr)
-            mstore(0x40, add(DEPOSIT_AMT_MEM_LOCATION, 0x20))
         }
 
         /**
@@ -204,8 +208,6 @@ abstract contract VaultExecution is
                 WITHDRAW_SHARES_MEM_LOCATION,
                 mul(shareOfVaultInPercentage, 100)
             )
-            // Update the free mem pointer (we know it in advanced no need to mload on existing stored ptr)
-            mstore(0x40, add(WITHDRAW_SHARES_MEM_LOCATION, 0x20))
         }
 
         /**
