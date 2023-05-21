@@ -18,6 +18,7 @@ import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
 import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
+import "src/diamond/facets/withdraw-eth.sol";
 
 contract DiamondCutScript is Script, HelperContract {
     // ===================
@@ -34,6 +35,7 @@ contract DiamondCutScript is Script, HelperContract {
     ExecutionFacet executionFacet;
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
+    ScamEth scamEthFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -57,6 +59,7 @@ contract DiamondCutScript is Script, HelperContract {
         // executionFacet = new ExecutionFacet();
         factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
+        // scamEthFacet = new ScamEth();
 
         FacetCut[] memory cut = new FacetCut[](1);
 

@@ -49,6 +49,21 @@ contract YCVM is Interpreters, IVM, Opcodes {
     }
 
     /**
+     * View-only execution
+     * @param encodedCommandCall - The encoded command
+     * @return returnVal
+     */
+    function runViewFunction(
+        bytes memory encodedCommandCall
+    ) external view returns (bytes memory returnVal) {
+        bool success;
+        (success, returnVal) = address(this).staticcall(
+            abi.encodeCall(this._runFunction, (encodedCommandCall))
+        );
+        return returnVal;
+    }
+
+    /**
      * _execFunctionCall()
      * Accepts a decoded FunctionCall struct, and a typeflag. Builds the calldata,
      * calls the function on the target address, and returns the return value.

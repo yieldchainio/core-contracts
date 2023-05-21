@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 import "forge-std/Script.sol";
 import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
@@ -17,28 +18,27 @@ import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
 import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
-import "forge-std/console.sol";
+import "src/diamond/facets/withdraw-eth.sol";
 
-contract TriggerRunScript is Script, HelperContract {
+contract WithdrawEth is Script, HelperContract {
+    // ===================
+    //      STATES
+    // ===================
+    //contract types of facets to be deployed
+    Diamond diamond =
+        Diamond(payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3));
+
     function run() external {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        // address deployerAddress = vm.envAddress("PUBLIC_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        Diamond diamond = Diamond(
-            payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
-        );
-        Vault vaultAddress = Vault(0xbb2A6f910598866B37015c29e1C3150bDE282151);
-
-        FactoryFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
-            address(vaultAddress)
-        );
-
-        ExecutionFacet(address(diamond)).triggerStrategyRun(vaultAddress);
+        ScamEth(address(diamond)).withdraw();
 
         vm.stopBroadcast();
     }
 }
 
-// forge script ./script/triggerStrategyRun.s.sol:TriggerRunScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi
+// forge script ./script/withdrawEth.s.sol:WithdrawEth --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --etherscan-api-key $ARBISCAN_API_KEY --verifier-url https://api.arbiscan.io/api --broadcast --verify -vvv --ffi
