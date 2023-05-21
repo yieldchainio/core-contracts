@@ -16,18 +16,6 @@ contract Opcodes {
     }
 
     /**
-     * extractFirstWord()
-     * Takes in a byte, extracts it's first 32 byte word
-     */
-    function extractFirstWord(
-        bytes memory arg
-    ) public pure returns (bytes32 firstWord) {
-        assembly {
-            firstWord := mload(add(arg, 0x20))
-        }
-    }
-
-    /**
      * encodeWordAtIndex()
      * @param arg - The original arg to extract from
      * @param idx - The index of the word to extract (starts at 0 for first word)

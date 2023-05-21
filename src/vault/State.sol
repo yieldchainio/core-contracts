@@ -140,12 +140,6 @@ contract VaultState is AccessControl {
      */
     mapping(address => uint256) public balances;
 
-    /**
-     * @notice
-     * Active share percentage,
-     * used to track withdrawals incase of an offchain execution required mid way
-     */
-    uint256 activeShare;
 
     /**
      * @notice

@@ -61,14 +61,19 @@ contract UtilityEncoder is YCVMEncoders, VaultConstants {
     function encodeFirstWordExtracter(
         bytes memory arg
     ) public pure returns (bytes memory) {
-        bytes[] memory args = new bytes[](1);
+        bytes[] memory args = new bytes[](2);
         args[0] = arg;
+        args[1] = abi.encode(0);
         return
             bytes.concat(
                 STATICCALL_COMMAND_FLAG,
                 VALUE_VAR_FLAG,
                 abi.encode(
-                    FunctionCall(address(0), args, "extractFirstWord(bytes)")
+                    FunctionCall(
+                        address(0),
+                        args,
+                        "extractWordAtIndex(bytes,uint256)"
+                    )
                 )
             );
     }
