@@ -7,17 +7,10 @@ pragma solidity ^0.8.18;
 // ===============
 //    IMPORTS
 // ===============
-import {SafeERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "../vm/VM.sol";
 import "./AccessControl.sol";
-import "./OperationsQueue.sol";
 
-import "./Constants.sol";
-import "../diamond/interfaces/ITokenStash.sol";
-import "./VaultUtilities.sol";
-
-contract VaultState is AccessControl {
+abstract contract VaultState is AccessControl {
     // =====================
     //      CONSTRUCTOR
     // =====================
@@ -140,7 +133,6 @@ contract VaultState is AccessControl {
      */
     mapping(address => uint256) public balances;
 
-
     /**
      * @notice
      * @dev
@@ -155,13 +147,6 @@ contract VaultState is AccessControl {
     uint256 public approxDepositGas = 0.001 ether;
 
     uint256 public approxStrategyGas = 0.001 ether;
-
-    /**
-     * @dev This state variable indiciates whether we are locked or not,
-     * this is used by the offchain in order to not process additional requests until
-     * we are unlocked
-     */
-    bool locked;
 
     // =====================
     //        GETTERS

@@ -251,7 +251,7 @@ contract YCVM is Utilities, IVM, Opcodes {
          * If the typeflag is REF_VAR_FLAG, it's a ref variable (string, array...), we parse and return it
          */
         if (typeflag == REF_VAR_FLAG) {
-            return (_parseDynamicVar(parsedPrimitiveValue), typeflag);
+            return (_removePrependedBytes(parsedPrimitiveValue, 32), typeflag);
         }
 
         /**
@@ -259,7 +259,7 @@ contract YCVM is Utilities, IVM, Opcodes {
          */
         if (typeflag == RAW_REF_VAR_FLAG)
             return (
-                _parseDynamicVar(abi.encode(parsedPrimitiveValue)),
+                _removePrependedBytes(abi.encode(parsedPrimitiveValue), 32),
                 REF_VAR_FLAG
             );
 

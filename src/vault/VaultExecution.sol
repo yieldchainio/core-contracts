@@ -14,7 +14,7 @@ import "./OperationsQueue.sol";
 import "./State.sol";
 import "./Constants.sol";
 import "./VaultUtilities.sol";
-import "forge-std/console.sol";
+import "../diamond/interfaces/ITokenStash.sol";
 
 abstract contract VaultExecution is
     YCVM,
@@ -40,10 +40,6 @@ abstract contract VaultExecution is
         uint256 operationIndex,
         bytes[] calldata commandCalldatas
     ) external onlyDiamond returns (OperationItem memory operation) {
-        uint256 freeMem;
-        assembly {
-            freeMem := mload(0x40)
-        }
         // We allocate to the current free memory pointer,
         // which may be used/overwritten by subsequent internal function calls
         // (e.g, saving a user's share in memory)
@@ -51,7 +47,6 @@ abstract contract VaultExecution is
             mstore(0x40, add(mload(0x40), 0x20))
         }
 
-        console.log(freeMem);
         /**
          * We retreive the current operation to handle.
          * Note that we do not dequeue it, as we want it to remain visible in storage
@@ -63,9 +58,6 @@ abstract contract VaultExecution is
         operation = operationRequests[operationIndex];
 
         require(!operation.executed, "Operation Already Executed");
-
-        // We lock the contract state
-        locked = true;
 
         /**
          * We hydrate it with the command calldatas
@@ -88,7 +80,6 @@ abstract contract VaultExecution is
 
         // We unlock the contract state once the operation has completed
         operationRequests[operationIndex].executed = true;
-        locked = false;
     }
 
     /**
@@ -299,21 +290,21 @@ abstract contract VaultExecution is
              * Otherwise, if the index is 0, it means it did not find any, and we should not execute any of it's children.
              * (It is impossible for a condition index to be 0, since it will always be the root)
              */
-            uint256 chosenOffspringIdx;
+            // uint256 chosenOffspringIdx;
 
             /**
              * Check to see if current step is a condition - Execute the conditional function with it's children if it is.
              */
-            if (step.conditions.length > 0) {
-                // Sufficient check to make sure there are as many conditions as there are children
-                require(
-                    step.conditions.length == step.childrenIndices.length,
-                    "Conditions & Children Mismatch"
-                );
+            // if (step.conditions.length > 0) {
+            //     // Sufficient check to make sure there are as many conditions as there are children
+            //     require(
+            //         step.conditions.length == step.childrenIndices.length,
+            //         "Conditions & Children Mismatch"
+            //     );
 
-                // Assign to the chosenOffspringIdx variable the return value from the conditional checker
-                chosenOffspringIdx = _determineConditions(step.conditions);
-            }
+            //     // Assign to the chosenOffspringIdx variable the return value from the conditional checker
+            //     chosenOffspringIdx = _determineConditions(step.conditions);
+            // }
 
             /**
              * We first check to see if this step is a callback step.
@@ -387,15 +378,16 @@ abstract contract VaultExecution is
             // We initiatre this array to a length of 1. If we should execute all children, this is reassigned to.
             uint256[] memory childrenStartingIndices = new uint256[](1);
 
-            // If offspring idx is valid, we assign to index 0 it's index
-            if (chosenOffspringIdx > 0)
-                childrenStartingIndices[0] = step.childrenIndices[
-                    // Note we -1 here, since the chosenOffspringIdx would have upped it up by 1 (to retain 0 as the falsy indicator)
-                    chosenOffspringIdx - 1
-                ];
+            // // If offspring idx is valid, we assign to index 0 it's index
+            // if (chosenOffspringIdx > 0)
+            //     childrenStartingIndices[0] = step.childrenIndices[
+            //         // Note we -1 here, since the chosenOffspringIdx would have upped it up by 1 (to retain 0 as the falsy indicator)
+            //         chosenOffspringIdx - 1
+            //     ];
 
-                // Else it equals to all of the step's children
-            else childrenStartingIndices = step.childrenIndices;
+            //     // Else it equals to all of the step's children
+            // else 
+            childrenStartingIndices = step.childrenIndices;
 
             /**
              * We now iterate over each children and @recruse the function call

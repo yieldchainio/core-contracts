@@ -11,10 +11,6 @@ abstract contract IYCVM {
         bytes memory command
     ) internal virtual returns (bytes memory);
 
-    function _parseDynamicVar(
-        bytes memory _arg
-    ) internal pure virtual returns (bytes memory);
-
     function _separateCommand(
         bytes memory ycCommand
     )

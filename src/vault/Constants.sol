@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-contract VaultConstants {
+abstract contract VaultConstants {
     /**
      * Constant memory location for where user's withdraw shares are stored in memory
      */
