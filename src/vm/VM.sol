@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "./Interpreters.sol";
 import "./Interface.sol";
 import "./Opcodes.sol";
+import "./Utilities.sol";
 
-contract YCVM is Interpreters, IVM, Opcodes {
+contract YCVM is Utilities, IVM, Opcodes {
     // ================
     //    FUNCTIONS
     // ================
@@ -46,21 +46,6 @@ contract YCVM is Interpreters, IVM, Opcodes {
          * Execute it & assign to the return value
          */
         returnVal = _execFunctionCall(decodedFunctionCall, typeflag);
-    }
-
-    /**
-     * View-only execution
-     * @param encodedCommandCall - The encoded command
-     * @return returnVal
-     */
-    function runViewFunction(
-        bytes memory encodedCommandCall
-    ) external view returns (bytes memory returnVal) {
-        bool success;
-        (success, returnVal) = address(this).staticcall(
-            abi.encodeCall(this._runFunction, (encodedCommandCall))
-        );
-        return returnVal;
     }
 
     /**

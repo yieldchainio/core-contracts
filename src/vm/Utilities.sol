@@ -8,8 +8,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../Types.sol";
+import "./Constants.sol";
 
-contract Utilities {
+contract Utilities is Constants {
     /**
      * _seperateCommand()
      * Takes in a full encoded ycCommand, returns it seperated (naked) with the type & return type flags
@@ -204,5 +205,22 @@ contract Utilities {
                 mstore(add(baseDstPtr, mul(0x20, i)), currpart)
             }
         }
+    }
+
+    /**
+     * _parseDynamicVar
+     * @param _arg - The dynamic-length argument to parse
+     * @return the parsed arg. So the dynamic-length argument minus it's ABI-prepended 32 byte offset pointer
+     */
+    function _parseDynamicVar(
+        bytes memory _arg
+    ) internal pure returns (bytes memory) {
+        /**
+         * We call the _removePrependedBytes() function with our arg,
+         * and 32 as the amount of bytes to remove.
+         * this will remove the first 32 bytes of our argument, which is supposed to be the
+         * offset pointer to hence - and hence return a "parsed" version of it (just the length + data)
+         */
+        return _removePrependedBytes(_arg, 32);
     }
 }
