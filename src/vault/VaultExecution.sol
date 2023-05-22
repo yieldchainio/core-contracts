@@ -13,7 +13,6 @@ import "../vm/VM.sol";
 import "./OperationsQueue.sol";
 import "./State.sol";
 import "./Constants.sol";
-import "../diamond/interfaces/ITokenStash.sol";
 import "./VaultUtilities.sol";
 import "forge-std/console.sol";
 
@@ -41,12 +40,18 @@ abstract contract VaultExecution is
         uint256 operationIndex,
         bytes[] calldata commandCalldatas
     ) external onlyDiamond returns (OperationItem memory operation) {
+        uint256 freeMem;
+        assembly {
+            freeMem := mload(0x40)
+        }
         // We allocate to the current free memory pointer,
         // which may be used/overwritten by subsequent internal function calls
         // (e.g, saving a user's share in memory)
         assembly {
             mstore(0x40, add(mload(0x40), 0x20))
         }
+
+        console.log(freeMem);
         /**
          * We retreive the current operation to handle.
          * Note that we do not dequeue it, as we want it to remain visible in storage
@@ -209,6 +214,13 @@ abstract contract VaultExecution is
                 mul(shareOfVaultInPercentage, 100)
             )
         }
+
+        console.log(shareOfVaultInPercentage);
+        uint256 res;
+        assembly {
+            res := mload(WITHDRAW_SHARES_MEM_LOCATION)
+        }
+        console.log(res);
 
         /**
          * @notice We keep track of what the deposit token balance was prior to the execution

@@ -3,6 +3,7 @@ pragma solidity ^0.8.18;
 import "./Interface.sol";
 import "./Opcodes.sol";
 import "./Utilities.sol";
+import "forge-std/console.sol";
 
 contract YCVM is Utilities, IVM, Opcodes {
     // ================
@@ -82,6 +83,8 @@ contract YCVM is Utilities, IVM, Opcodes {
                 // We assign to the return value the mloaded variable
                 loadedWord := mload(argPtr)
             }
+            console.logBytes32(argPtr);
+            console.logBytes32(loadedWord);
             returnVal = abi.encode(loadedWord);
             return returnVal;
         }
