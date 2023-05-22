@@ -137,7 +137,11 @@ contract UtilityEncoder is YCVMEncoders, VaultConstants {
 
     function encodeWithdrawSharesGetter() public pure returns (bytes memory) {
         bytes[] memory mloadArgs = new bytes[](1);
-        mloadArgs[0] = abi.encode(WITHDRAW_SHARES_MEM_LOCATION);
+        mloadArgs[0] = bytes.concat(
+            VALUE_VAR_FLAG,
+            VALUE_VAR_FLAG,
+            abi.encode(WITHDRAW_SHARES_MEM_LOCATION)
+        );
 
         return
             bytes.concat(

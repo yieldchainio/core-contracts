@@ -206,13 +206,6 @@ abstract contract VaultExecution is
             )
         }
 
-        console.log(shareOfVaultInPercentage);
-        uint256 res;
-        assembly {
-            res := mload(WITHDRAW_SHARES_MEM_LOCATION)
-        }
-        console.log(res);
-
         /**
          * @notice We keep track of what the deposit token balance was prior to the execution
          */
@@ -386,7 +379,7 @@ abstract contract VaultExecution is
             //     ];
 
             //     // Else it equals to all of the step's children
-            // else 
+            // else
             childrenStartingIndices = step.childrenIndices;
 
             /**

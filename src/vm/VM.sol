@@ -73,18 +73,17 @@ contract YCVM is Utilities, IVM, Opcodes {
         if (typeflag == INTERNAL_LOAD_FLAG) {
             /**
              * The standard for an internal load is, there is a single
-             * arg which is the ABI encoded pointer. We get it's 32 byte value (the actual pointer)
+             * arg which is the ABI encoded pointer. We get it's raw value (2x 0x00 typeflags + 32 byte ptr)
              */
-            bytes32 argPtr = bytes32(func.args[0]);
+            bytes memory extendedPtr = func.args[0];
 
             // We load the word using assembly and return an ABI encoded version of this value
             bytes32 loadedWord;
             assembly {
-                // We assign to the return value the mloaded variable
-                loadedWord := mload(argPtr)
+                // We assign to the return value the mloaded variable (location of raw + 34 (32 to skip ref length, 2 to skip typeflags))
+                loadedWord := mload(mload(add(extendedPtr, 34)))
             }
-            console.logBytes32(argPtr);
-            console.logBytes32(loadedWord);
+
             returnVal = abi.encode(loadedWord);
             return returnVal;
         }
