@@ -6,8 +6,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "./Schema.sol";
+import "../diamond/interfaces/IGasManager.sol";
+import "./AccessControl.sol";
 
-abstract contract OperationsQueue is IVault {
+abstract contract OperationsQueue is IVault, AccessControl {
     // ==============================
     //      OPERATIONS MANAGER
     // ==============================
@@ -42,6 +44,11 @@ abstract contract OperationsQueue is IVault {
         // We push the operation item into our requests array
         operationRequests.push(operationItem);
 
+        uint256 idx = operationRequests.length - 1;
+
+        // Stash the gas on the Diamond
+        IGasManager(YC_DIAMOND).stashOperationGas{value: msg.value}(idx);
+
         /**
          * @notice
          * We emit a "HydrateRun" event to hydrate our operation item.
@@ -49,6 +56,6 @@ abstract contract OperationsQueue is IVault {
          * the required command calldatas (if any) using simulations and offchain computation,
          * and reenter this contract in order to execute it
          */
-        emit HydrateRun(operationRequests.length - 1);
+        emit HydrateRun(idx);
     }
 }
