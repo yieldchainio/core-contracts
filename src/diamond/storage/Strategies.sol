@@ -29,6 +29,10 @@ struct StrategiesStorage {
      * Mapping strategies => their corresponding settings
      */
     mapping(Vault => StrategyState) strategiesState;
+    /**
+     * Map strategies => operation idxs => deposited gas (WEI)
+     */
+    mapping(Vault => mapping(uint256 => uint256)) strategyOperationsGas;
 }
 
 /**
