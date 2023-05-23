@@ -108,12 +108,11 @@ struct YCStep {
  * by an offchain handler, then executed. This is in order to process any offchain computation that may be required beforehand,
  * to avoid any stops mid-run (which can overcomplicate the entire architecutre)
  *
- * @param action - An ActionType enum representing the action to complete, handled by a switch case in the router
+ * @param action - An ExecutionType enum representing the action to complete, handled by a switch case in the router
  * @param initiator - The user address that initiated this queue request
- * @param gas - The gas that was received with this operation request (in WEI)
  * @param commandCalldatas - An array specifying hydrated calldatas. If a step is an offchain step, the hydrated calldata would be stored
  * here in the index of it within it's own virtual tree (for instance, a step at index 9 of SEED_STEPS tree, would have it's
- * YC command stored at index 9 here in the callDatas)
+ * YC command stored at index 9 here in the commandCalldatas)
  * @param arguments - An arbitrary array of bytes being the arguments, usually would be something like an amount.
  */
 struct OperationItem {

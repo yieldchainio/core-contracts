@@ -10,12 +10,13 @@ import "../../vault/main/Base.sol";
 import "../../../src/diamond/facets/core/Factory.sol";
 import "../../../src/diamond/facets/core/TokenStash.sol";
 import "../../../src/vm/Constants.sol";
+import "../../../src/diamond/interfaces/IGasManager.sol";
 
 /**
  * Tests for the Diamond's Access Control facet
  */
 
-contract ExectionFacetTest is DiamondTest, Constants {
+contract ExecutionFacetTest is DiamondTest, Constants {
     // =================
     //      STATES
     // =================
@@ -101,7 +102,10 @@ contract ExectionFacetTest is DiamondTest, Constants {
         uint256 preOwnBalance = address(this).balance;
 
         assertEq(
-            vaultContract.getOperationItem(0).gas,
+            StrategiesViewerFacet(address(diamond)).getStrategyOperationGas(
+                vaultContract,
+                0
+            ),
             DOUBLE_ETHER,
             "Deposited, But Prepaid Gas Mismatch"
         );

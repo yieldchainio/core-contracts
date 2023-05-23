@@ -37,6 +37,8 @@ contract DiamondTest is Test, HelperContract {
     ExecutionFacet executionFacet;
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
+    StrategiesViewerFacet strategiesViewerFacet;
+    GasManagerFacet gasManagerFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -63,6 +65,8 @@ contract DiamondTest is Test, HelperContract {
         executionFacet = new ExecutionFacet();
         factoryFacet = new FactoryFacet();
         tokenStashFacet = new TokenStashFacet();
+        strategiesViewerFacet = new StrategiesViewerFacet();
+        gasManagerFacet = new GasManagerFacet();
 
         vm.makePersistent(address(dCutFacet));
         vm.makePersistent(address(dLoupe));
@@ -70,6 +74,8 @@ contract DiamondTest is Test, HelperContract {
         vm.makePersistent(address(accessControlFacet));
         vm.makePersistent(address(factoryFacet));
         vm.makePersistent(address(tokenStashFacet));
+        vm.makePersistent(address(strategiesViewerFacet));
+        vm.makePersistent(address(gasManagerFacet));
 
         facetNames = [
             "DiamondCutFacet",
@@ -78,7 +84,9 @@ contract DiamondTest is Test, HelperContract {
             "AccessControlFacet",
             "ExecutionFacet",
             "FactoryFacet",
-            "TokenStashFacet"
+            "TokenStashFacet",
+            "StrategiesViewerFacet",
+            "GasManagerFacet"
         ];
 
         // diamod arguments
@@ -104,7 +112,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](6);
+        FacetCut[] memory cut = new FacetCut[](8);
 
         cut[0] = (
             FacetCut({
@@ -149,6 +157,22 @@ contract DiamondTest is Test, HelperContract {
                 facetAddress: address(tokenStashFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("TokenStashFacet")
+            })
+        );
+
+        cut[6] = (
+            FacetCut({
+                facetAddress: address(strategiesViewerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("StrategiesViewerFacet")
+            })
+        );
+
+        cut[7] = (
+            FacetCut({
+                facetAddress: address(gasManagerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("GasManagerFacet")
             })
         );
 

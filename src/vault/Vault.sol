@@ -114,7 +114,7 @@ contract Vault is VaultExecution {
         OperationItem memory depositRequest = OperationItem(
             ExecutionTypes.SEED,
             msg.sender,
-            msg.value,
+            0,
             depositArgs,
             new bytes[](0),
             false
@@ -160,7 +160,7 @@ contract Vault is VaultExecution {
         OperationItem memory withdrawRequest = OperationItem(
             ExecutionTypes.UPROOT,
             msg.sender,
-            msg.value,
+            0,
             withdrawArgs,
             new bytes[](0),
             false
@@ -187,7 +187,6 @@ contract Vault is VaultExecution {
             ExecutionTypes.TREE,
             // Initiator is YC diamond
             YC_DIAMOND,
-            // Gas not required here (using gas balance of entire vault)
             0,
             // No custom args, and ofc no calldata atm (will be set by the offchain handler if any)
             new bytes[](0),

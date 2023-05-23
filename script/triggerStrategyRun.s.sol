@@ -6,6 +6,7 @@ import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
 import "src/diamond/facets/core/Execution.sol";
+import "src/diamond/facets/core/GasManager.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";
@@ -31,7 +32,7 @@ contract TriggerRunScript is Script, HelperContract {
         );
         Vault vaultAddress = Vault(0x3e054B0fBE566A497e388B8e57078564A9f8B4d7);
 
-        FactoryFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
+        GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)
         );
 
@@ -42,5 +43,3 @@ contract TriggerRunScript is Script, HelperContract {
 }
 
 // forge script ./script/triggerStrategyRun.s.sol:TriggerRunScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi
-
-

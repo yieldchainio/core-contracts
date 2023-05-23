@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import "../Deployment.t.sol";
 import "../../vault/main/Base.sol";
 import "../../../src/diamond/facets/core/Factory.sol";
+import "../../../src/diamond/facets/core/StrategiesViewer.sol";
 
 contract FactoryFacetTest is DiamondTest {
     // =================
@@ -63,15 +64,16 @@ contract FactoryFacetTest is DiamondTest {
         assertTrue(vaultContract.isPublic(), "Privacy Incorrect");
 
         // Now make sure the strategy is registered on the Diamond facet
-        StrategyState memory vaultState = FactoryFacet(address(diamond))
-            .getStrategyState(vaultContract);
+        StrategyState memory vaultState = StrategiesViewerFacet(
+            address(diamond)
+        ).getStrategyState(vaultContract);
 
         assertTrue(
             vaultState.registered,
             "Deployed Vault, But Is Not Registered On Facet"
         );
 
-        Vault[] memory vaults = FactoryFacet(address(diamond))
+        Vault[] memory vaults = StrategiesViewerFacet(address(diamond))
             .getStrategiesList();
         assertEq(
             address(vaults[vaults.length - 1]),
