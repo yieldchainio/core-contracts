@@ -18,7 +18,7 @@ enum ExecutionTypes {
  * An enum representing all different types of "triggers" that
  * a strategy can register
  */
-enum Triggers {
+enum TriggerTypes {
     AUTOMATION,
     EVENT
 }
@@ -30,9 +30,9 @@ enum Triggers {
  * Struct representing a registered trigger,
  * including the trigger type, and an arbitrary byte which is it's settings
  */
-struct RegisteredTrigger {
-    Triggers triggerType;
-    bytes triggerSettings;
+struct Trigger {
+    TriggerTypes triggerType;
+    bytes extraData;
 }
 /**
  * @notice
@@ -123,3 +123,5 @@ struct OperationItem {
     bytes[] commandCalldatas;
     bool executed;
 }
+
+
