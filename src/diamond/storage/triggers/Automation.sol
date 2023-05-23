@@ -1,15 +1,17 @@
 /**
- * Storage for the Automation trigger facet
+ * Storage For The Automation Facet
  */
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../vault/Vault.sol";
+import "../../../vault/Vault.sol";
+import "../../facets/triggers/automation/Types.sol";
 
 struct AutomationStorage {
     /**
-     * Mapping each registered strategy to it's upkeep ID, which manages it's automations
+     * Mapping each registered strategy to a trigger idx to an ScheduledAutomation struct
      */
-    mapping(Vault => uint256) upkeepIDs;
+    mapping(Vault => mapping(uint256 => ScheduledAutomation)) scheduledAutomations;
 }
 
 /**
