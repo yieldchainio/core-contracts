@@ -58,8 +58,8 @@ contract DiamondCutScript is Script, HelperContract {
         // dLoupe = new DiamondLoupeFacet();
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
-        // executionFacet = new ExecutionFacet();
-        factoryFacet = new FactoryFacet();
+        executionFacet = new ExecutionFacet();
+        // factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
         // scamEthFacet = new ScamEth();
         // strategiesViewerFacet = new StrategiesViewerFacet();
@@ -67,35 +67,13 @@ contract DiamondCutScript is Script, HelperContract {
 
         FacetCut[] memory cut = new FacetCut[](1);
 
-        // cut[0] = (
-        //     FacetCut({
-        //         facetAddress: address(factoryFacet),
-        //         action: FacetCutAction.Remove,
-        //         functionSelectors: generateSelectors("FactoryFacet")
-        //     })
-        // );
-
-        // cut[0] = (
-        //     FacetCut({
-        //         facetAddress: address(gasManagerFacet),
-        //         action: FacetCutAction.Add,
-        //         functionSelectors: generateSelectors("GasManagerFacet")
-        //     })
-        // );
-
-        // cut[1] = (
-        //     FacetCut({
-        //         facetAddress: address(strategiesViewerFacet),
-        //         action: FacetCutAction.Add,
-        //         functionSelectors: generateSelectors("StrategiesViewerFacet")
-        //     })
-        // );
+      
 
         cut[0] = (
             FacetCut({
-                facetAddress: address(factoryFacet),
+                facetAddress: address(executionFacet),
                 action: FacetCutAction.Replace,
-                functionSelectors: generateSelectors("FactoryFacet")
+                functionSelectors: generateSelectors("ExecutionFacet")
             })
         );
 
