@@ -83,36 +83,6 @@ abstract contract VaultExecution is
     }
 
     /**
-     * @dev
-     * Claim gas paid by an operation request
-     * @param operationIndex - The index of the operation in storage
-     * @param receiver - The address of the executor that should receive this transfer
-     * @param claimAmount - The amount of gas to claim
-     */
-    function claimOperationGas(
-        uint256 operationIndex,
-        address payable receiver,
-        uint256 claimAmount
-    ) external onlyDiamond {
-        // Get the amount of gas that was included in this request
-        OperationItem memory opRequest = operationRequests[operationIndex];
-        uint256 availableAmt = opRequest.gas;
-
-        // Make sure claim amount is sufficient to the available amount
-        require(
-            availableAmt >= claimAmount,
-            "Insufficient Request Gas To Claim"
-        );
-
-        // Set the gas in the storage item to 0, since we now claim the gas there shouldnt be a need for that
-        operationRequests[operationIndex].gas = 0;
-
-        // Transfer requested gas to diamond
-        // Note that the Diamond is responsible for refunding unused gas at the end.
-        payable(receiver).transfer(claimAmount);
-    }
-
-    /**
      * storeGasApproximation()
      * Stores a gas approximation for some action
      * @param operationType - ExecutionType enum so that we know where to store to
@@ -448,3 +418,5 @@ abstract contract VaultExecution is
         else revert();
     }
 }
+
+
