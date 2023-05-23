@@ -7,7 +7,8 @@
 pragma solidity ^0.8.18;
 import "../../Modifiers.sol";
 import "../../storage/Strategies.sol";
-import "./Factory.sol";
+import "./StrategiesViewer.sol";
+import "./GasManager.sol";
 
 contract ExecutionFacet is Modifiers {
     // ===================
@@ -60,6 +61,11 @@ contract ExecutionFacet is Modifiers {
             commandCalldatas
         );
 
+        // The gas sponsored by the op request
+        uint256 sponsoredGas = StrategiesStorageLib
+            .getStrategiesStorage()
+            .strategyOperationsGas[strategy][operationIndex];
+
         /**
          * @dev
          * We have a switch case regarding what type of operation this was - Each case should do the following:
@@ -74,12 +80,10 @@ contract ExecutionFacet is Modifiers {
             operation.action == ExecutionTypes.SEED ||
             operation.action == ExecutionTypes.UPROOT
         ) {
-            // We send all of the sponsored gas to us
-            strategy.claimOperationGas(
-                operationIndex,
-                payable(address(this)),
-                operation.gas
-            );
+            // We reset the gas paid by the operation
+            StrategiesStorageLib.getStrategiesStorage().strategyOperationsGas[
+                Vault(msg.sender)
+            ][operationIndex] = 0;
 
             // Store the gas used (+ the cost of storing it) in the vault contract for future approximations
             strategy.storeGasApproximation(
@@ -96,7 +100,7 @@ contract ExecutionFacet is Modifiers {
                 tx.gasprice;
 
             // Sufficient check to see executor is not overpaying
-            if (gasSpent > operation.gas)
+            if (gasSpent > sponsoredGas)
                 revert("Operation Gas Lower Than Required Gas");
 
             if (
@@ -116,7 +120,7 @@ contract ExecutionFacet is Modifiers {
                 tx.gasprice;
 
             // Deduct it from the vault's gas balance and send to the executor
-            FactoryFacet(address(this)).deductAndTransferVaultGas(
+            GasManagerFacet(address(this)).collectVaultGasDebt(
                 strategy,
                 payable(msg.sender),
                 gasSpent
@@ -126,10 +130,10 @@ contract ExecutionFacet is Modifiers {
         // We reimbruse remaining gas to initiator if there's any left for a transfer
         // Note 1000 is just some safety delta
         if (
-            gasSpent <= operation.gas &&
-            operation.gas - gasSpent > ETHER_TRANSFER_COST * tx.gasprice
+            gasSpent <= sponsoredGas &&
+            sponsoredGas - gasSpent > ETHER_TRANSFER_COST * tx.gasprice
         ) {
-            payable(operation.initiator).transfer(operation.gas - gasSpent);
+            payable(operation.initiator).transfer(sponsoredGas - gasSpent);
         }
     }
 
@@ -151,7 +155,7 @@ contract ExecutionFacet is Modifiers {
 
         // Make sure it has a sufficient gas balance
         require(
-            FactoryFacet(address(this))
+            StrategiesViewerFacet(address(this))
                 .getStrategyState(strategy)
                 .gasBalanceWei >= strategy.approxStrategyGas(),
             "Vault Has Insufficient Gas Balance (As Per Approximation)"
