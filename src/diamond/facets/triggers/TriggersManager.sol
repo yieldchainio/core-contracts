@@ -9,7 +9,7 @@ import "../../storage/TriggersManager.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
 
-contract TriggersManager is Modifiers {
+contract TriggersManagerFacet is Modifiers {
     // =================
     //     FUNCTIONS
     // =================

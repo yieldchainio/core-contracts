@@ -96,7 +96,7 @@ contract FactoryFacet is Modifiers {
             ] = StrategyState(true, 0);
 
         // Register all of the triggers for the strategy
-        TriggersManager(address(this)).registerTriggers(triggers, createdVault);
+        TriggersManagerFacet(address(this)).registerTriggers(triggers, createdVault);
 
         emit VaultCreated(
             address(createdVault),
