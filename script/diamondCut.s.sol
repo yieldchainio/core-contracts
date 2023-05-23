@@ -59,17 +59,13 @@ contract DiamondCutScript is Script, HelperContract {
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
         // executionFacet = new ExecutionFacet();
-        // factoryFacet = new FactoryFacet();
+        factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
         // scamEthFacet = new ScamEth();
-        strategiesViewerFacet = new StrategiesViewerFacet();
-        gasManagerFacet = new GasManagerFacet();
+        // strategiesViewerFacet = new StrategiesViewerFacet();
+        // gasManagerFacet = new GasManagerFacet();
 
-        FacetCut[] memory cut = new FacetCut[](2);
-
-        // bytes4[] memory funcsToRemove = new bytes4[](2);
-        // funcsToRemove[0] = 0x554a9c4b;
-        // funcsToRemove[1] = 0xb76347f6;
+        FacetCut[] memory cut = new FacetCut[](1);
 
         // cut[0] = (
         //     FacetCut({
@@ -79,29 +75,29 @@ contract DiamondCutScript is Script, HelperContract {
         //     })
         // );
 
-        cut[0] = (
-            FacetCut({
-                facetAddress: address(gasManagerFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("GasManagerFacet")
-            })
-        );
-
-        cut[1] = (
-            FacetCut({
-                facetAddress: address(strategiesViewerFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("StrategiesViewerFacet")
-            })
-        );
-
-        // cut[2] = (
+        // cut[0] = (
         //     FacetCut({
-        //         facetAddress: address(factoryFacet),
+        //         facetAddress: address(gasManagerFacet),
         //         action: FacetCutAction.Add,
-        //         functionSelectors: generateSelectors("FactoryFacet")
+        //         functionSelectors: generateSelectors("GasManagerFacet")
         //     })
         // );
+
+        // cut[1] = (
+        //     FacetCut({
+        //         facetAddress: address(strategiesViewerFacet),
+        //         action: FacetCutAction.Add,
+        //         functionSelectors: generateSelectors("StrategiesViewerFacet")
+        //     })
+        // );
+
+        cut[0] = (
+            FacetCut({
+                facetAddress: address(factoryFacet),
+                action: FacetCutAction.Replace,
+                functionSelectors: generateSelectors("FactoryFacet")
+            })
+        );
 
         // deploy diamond
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), hex"00");
