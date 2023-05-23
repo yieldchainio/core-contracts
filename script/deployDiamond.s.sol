@@ -25,6 +25,8 @@ import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
 import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
+import "src/diamond/facets/core/GasManager.sol";
+import "src/diamond/facets/core/StrategiesViewer.sol";
 
 contract DeployScript is Script, HelperContract {
     // ===================
@@ -40,6 +42,8 @@ contract DeployScript is Script, HelperContract {
     ExecutionFacet executionFacet;
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
+    StrategiesViewerFacet strategiesViewerFacet;
+    GasManagerFacet gasManagerFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -63,6 +67,8 @@ contract DeployScript is Script, HelperContract {
         executionFacet = new ExecutionFacet();
         factoryFacet = new FactoryFacet();
         tokenStashFacet = new TokenStashFacet();
+        strategiesViewerFacet = new StrategiesViewerFacet();
+        gasManagerFacet = new GasManagerFacet();
 
         DiamondInit diamondInit = new DiamondInit();
 
@@ -73,7 +79,7 @@ contract DeployScript is Script, HelperContract {
             initCalldata: abi.encodeWithSignature("init()")
         });
 
-        FacetCut[] memory cut = new FacetCut[](7);
+        FacetCut[] memory cut = new FacetCut[](9);
 
         cut[0] = FacetCut({
             facetAddress: address(dCutFacet),
@@ -124,6 +130,22 @@ contract DeployScript is Script, HelperContract {
                 facetAddress: address(tokenStashFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("TokenStashFacet")
+            })
+        );
+
+        cut[7] = (
+            FacetCut({
+                facetAddress: address(gasManagerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("GasManagerFacet")
+            })
+        );
+
+        cut[8] = (
+            FacetCut({
+                facetAddress: address(strategiesViewerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("StrategiesViewerFacet")
             })
         );
 
