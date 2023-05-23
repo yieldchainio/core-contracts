@@ -7,7 +7,7 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "../triggers/Registry.sol";
+// import "../triggers/Registry.sol";
 import "../../Modifiers.sol";
 
 contract FactoryFacet is Modifiers {
@@ -36,25 +36,6 @@ contract FactoryFacet is Modifiers {
             "No Privacy For The Wicked"
         );
         _;
-    }
-
-    // ==================
-    //     GETTERS
-    // ==================
-    function getStrategiesList()
-        external
-        view
-        returns (Vault[] memory strategies)
-    {
-        strategies = StrategiesStorageLib.getStrategiesStorage().strategies;
-    }
-
-    function getStrategyState(
-        Vault strategy
-    ) external view returns (StrategyState memory strategyState) {
-        strategyState = StrategiesStorageLib
-            .getStrategiesStorage()
-            .strategiesState[strategy];
     }
 
     // ==================
@@ -87,7 +68,6 @@ contract FactoryFacet is Modifiers {
         /**
          * Assert that the triggers & triggers settings lengths math
          */
-     
 
         /**
          * Begin by deploying the vault contract (With the msg.sender of this call as the creator)
@@ -123,72 +103,5 @@ contract FactoryFacet is Modifiers {
          * The Registry facet will register it on the corresponding trigger-specific facet,
          * and on the strategy's mapping in the general storage, where we store an array of the registered triggers.
          */
-     
-    }
-
-    /**
-     * @notice
-     * Fund a vault's native gas balance
-     * @param strategyAddress - Address of the strategy to fund
-     */
-    function fundGasBalance(address strategyAddress) public payable {
-        /**
-         * Shorthand for strategies storage
-         */
-        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
-        /**
-         * Storage ref to our strategy in the mapping
-         */
-        StrategyState storage strategy = strategiesStorage.strategiesState[
-            Vault(strategyAddress)
-        ];
-
-        /**
-         * Require the strategy to exist
-         */
-        require(strategy.registered, "Vault Does Not Exist");
-
-        /**
-         * Finally, increment the gas balance in the amount provided
-         */
-        strategy.gasBalanceWei += msg.value;
-    }
-
-    /**
-     * @notice
-     * deductAndTransferVaultGas()
-     * Deduct from a vault's gas balance, and transfer it to some address
-     * can only be called internally!!
-     * @param strategy - Address of the strategy to deduct
-     * @param receiver - The address of the Ether receiver
-     * @param debtInWei - The debt of the strategy in WEI (not GWEI!!) to deduct
-     */
-    function deductAndTransferVaultGas(
-        Vault strategy,
-        address payable receiver,
-        uint256 debtInWei
-    ) public onlySelf {
-        // Shorthand for strategies storage
-
-        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
-
-        // Storage ref to our strategy in the mapping
-        StrategyState storage strategyState = strategiesStorage.strategiesState[
-            strategy
-        ];
-
-        // Assert that the balance is sufficient and deduct the debt
-        require(
-            strategyState.gasBalanceWei >= debtInWei,
-            "Insufficient Gas Balance To Deduct."
-        );
-
-        // Deduct it
-        strategyState.gasBalanceWei -= debtInWei;
-
-        // Transfer to the receiver
-        receiver.transfer(debtInWei);
     }
 }
