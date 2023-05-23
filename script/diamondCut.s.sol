@@ -10,6 +10,8 @@ import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";
+import "src/diamond/facets/triggers/TriggersManager.sol";
+import "src/diamond/facets/triggers/automation/Automation.sol";
 import "src/diamond/Diamond.sol";
 import "src/diamond/interfaces/IDiamond.sol";
 import "src/diamond/interfaces/IDiamondCut.sol";
@@ -39,6 +41,9 @@ contract DiamondCutScript is Script, HelperContract {
     StrategiesViewerFacet strategiesViewerFacet;
     GasManagerFacet gasManagerFacet;
 
+    TriggersManagerFacet triggersManagerFacet;
+    AutomationFacet automationFacet;
+
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
@@ -58,22 +63,29 @@ contract DiamondCutScript is Script, HelperContract {
         // dLoupe = new DiamondLoupeFacet();
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
-        executionFacet = new ExecutionFacet();
+        // executionFacet = new ExecutionFacet();
         // factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
         // scamEthFacet = new ScamEth();
         // strategiesViewerFacet = new StrategiesViewerFacet();
         // gasManagerFacet = new GasManagerFacet();
+        triggersManagerFacet = new TriggersManagerFacet();
+        automationFacet = new AutomationFacet();
 
-        FacetCut[] memory cut = new FacetCut[](1);
-
-      
+        FacetCut[] memory cut = new FacetCut[](2);
 
         cut[0] = (
             FacetCut({
-                facetAddress: address(executionFacet),
-                action: FacetCutAction.Replace,
-                functionSelectors: generateSelectors("ExecutionFacet")
+                facetAddress: address(triggersManagerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("TriggersManagerFacet")
+            })
+        );
+        cut[1] = (
+            FacetCut({
+                facetAddress: address(automationFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("AutomationFacet")
             })
         );
 
