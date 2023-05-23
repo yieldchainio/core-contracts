@@ -65,7 +65,8 @@ contract TestVaultDeployment is DiamondTest, YCVMEncoders {
             SEED_STEPS,
             STEPS,
             UPROOT_STEPS,
-            approvalPairs,
+            approvalPairs,            new Trigger[](0),
+
             ERC20(address(depositToken)),
             isPublic
         );

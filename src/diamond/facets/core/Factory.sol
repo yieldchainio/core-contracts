@@ -8,6 +8,7 @@ import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 // import "../triggers/Registry.sol";
+import "../triggers/TriggersManager.sol";
 import "../../Modifiers.sol";
 
 contract FactoryFacet is Modifiers {
@@ -58,6 +59,7 @@ contract FactoryFacet is Modifiers {
         bytes[] memory treeSteps,
         bytes[] memory uprootSteps,
         address[2][] memory approvalPairs,
+        Trigger[] memory triggers,
         ERC20 depositToken,
         bool isPublic
     )
@@ -93,15 +95,13 @@ contract FactoryFacet is Modifiers {
                 createdVault
             ] = StrategyState(true, 0);
 
+        // Register all of the triggers for the strategy
+        TriggersManager(address(this)).registerTriggers(triggers, createdVault);
+
         emit VaultCreated(
             address(createdVault),
             msg.sender,
             address(depositToken)
         );
-        /**
-         * Finally, we move onto registering each one of the triggers on the Registry facet.
-         * The Registry facet will register it on the corresponding trigger-specific facet,
-         * and on the strategy's mapping in the general storage, where we store an array of the registered triggers.
-         */
     }
 }

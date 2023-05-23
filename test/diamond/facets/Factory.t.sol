@@ -39,6 +39,8 @@ contract FactoryFacetTest is DiamondTest {
             STEPS,
             UPROOT_STEPS,
             approvalPairs,
+                        new Trigger[](0),
+
             ERC20(address(depositToken)),
             isPublic
         );
