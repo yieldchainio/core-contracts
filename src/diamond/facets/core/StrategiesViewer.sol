@@ -6,6 +6,7 @@
 pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
+import "../../storage/TriggersManager.sol";
 import "../../storage/Users.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 // import "../triggers/Registry.sol";
@@ -47,5 +48,14 @@ contract StrategiesViewerFacet is Modifiers {
         strategyOperationGas = StrategiesStorageLib
             .getStrategiesStorage()
             .strategyOperationsGas[strategy][opIndex];
+    }
+
+    function getStrategyTriggers(
+        Vault strategy
+    ) external view returns (RegisteredTrigger[] memory triggers) {
+        return
+            TriggersManagerStorageLib.getTriggersStorage().registeredTriggers[
+                strategy
+            ];
     }
 }
