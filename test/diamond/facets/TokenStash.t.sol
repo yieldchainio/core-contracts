@@ -11,9 +11,6 @@ import "../../vault/main/Base.sol";
 import "../../../src/diamond/facets/core/Factory.sol";
 import "../../../src/diamond/facets/core/TokenStash.sol";
 
-/**
- * Tests for the Diamond's Access Control facet
- */
 
 contract TokenStashFacetTest is DiamondTest {
     // =================
