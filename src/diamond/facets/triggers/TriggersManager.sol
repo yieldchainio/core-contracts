@@ -27,10 +27,12 @@ contract TriggersManagerFacet is Modifiers {
                 .getTriggersStorage();
 
         for (uint256 i; i < triggers.length; i++) {
-            triggersStorage.registeredTriggers[vault][i] = RegisteredTrigger(
-                triggers[i].triggerType,
-                block.timestamp,
-                60 // TODO: Integrate delays from user end
+            triggersStorage.registeredTriggers[vault].push(
+                RegisteredTrigger(
+                    triggers[i].triggerType,
+                    block.timestamp,
+                    60 // TODO: Integrate delays from user end
+                )
             );
 
             if (triggers[i].triggerType == TriggerTypes.AUTOMATION)
