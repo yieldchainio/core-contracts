@@ -19,8 +19,7 @@ enum ExecutionTypes {
  * a strategy can register
  */
 enum TriggerTypes {
-    AUTOMATION,
-    EVENT
+    AUTOMATION
 }
 
 //===============================================//
