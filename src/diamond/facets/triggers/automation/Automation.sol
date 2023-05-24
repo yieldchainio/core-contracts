@@ -88,4 +88,21 @@ contract AutomationFacet {
             block.timestamp - scheduledAutomation.lastExecutedTimestamp >
             scheduledAutomation.interval;
     }
+
+    /**
+     * View function (external)
+     * get registered automation on vault & index
+     * @param vault - Vault to get on
+     * @param triggerIdx - Idx of the trigger
+     * @return registeredAutomation ScheduledAutomation
+     */
+    function getRegisteredAutomation(
+        Vault vault,
+        uint256 triggerIdx
+    ) external view returns (ScheduledAutomation memory registeredAutomation) {
+        return
+            AutomationStorageLib.getAutomationStorage().scheduledAutomations[
+                vault
+            ][triggerIdx];
+    }
 }
