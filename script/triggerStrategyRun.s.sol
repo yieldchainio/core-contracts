@@ -30,13 +30,14 @@ contract TriggerRunScript is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
         );
-        Vault vaultAddress = Vault(0x3e054B0fBE566A497e388B8e57078564A9f8B4d7);
+        Vault vaultAddress = Vault(0xD24Fdd11ECD6F57e86D019ACe68138bc16f03d4e);
 
         GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)
         );
 
-        ExecutionFacet(address(diamond)).triggerStrategyRun(vaultAddress);
+        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers()
+
 
         vm.stopBroadcast();
     }
