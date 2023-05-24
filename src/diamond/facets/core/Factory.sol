@@ -48,11 +48,9 @@ contract FactoryFacet is Modifiers {
      * @param seedSteps - The seed steps that run on a deposit trigger
      * @param treeSteps - The tree of steps that run on any of the strategy's triggers
      * @param uprootSteps - The uproot steps that run on a withdrawal trigger
-    // 
      * @param approvalPairs - A 2D array of [ERC20Token, addressToApprove]. Which will be approved on deployment of the vault
      * @param depositToken - An ERC20 token which is used for deposits into the vault
      * @param isPublic - The visibility/privacy of this vault. Private only allowed for premium users!!
-
      */
     function createVault(
         bytes[] memory seedSteps,
@@ -96,7 +94,10 @@ contract FactoryFacet is Modifiers {
             ] = StrategyState(true, 0);
 
         // Register all of the triggers for the strategy
-        TriggersManagerFacet(address(this)).registerTriggers(triggers, createdVault);
+        TriggersManagerFacet(address(this)).registerTriggers(
+            triggers,
+            createdVault
+        );
 
         emit VaultCreated(
             address(createdVault),
