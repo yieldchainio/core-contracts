@@ -58,4 +58,8 @@ contract StrategiesViewerFacet is Modifiers {
                 strategy
             ];
     }
+
+    function purgeStrategies() external onlyExecutors {
+        StrategiesStorageLib.getStrategiesStorage().strategies = new Vault[](0);
+    }
 }

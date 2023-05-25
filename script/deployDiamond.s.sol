@@ -27,6 +27,8 @@ import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
 import "src/diamond/facets/core/GasManager.sol";
 import "src/diamond/facets/core/StrategiesViewer.sol";
+import "src/diamond/facets/triggers/TriggersManager.sol";
+import "src/diamond/facets/triggers/automation/Automation.sol";
 
 contract DeployScript is Script, HelperContract {
     // ===================
@@ -44,6 +46,8 @@ contract DeployScript is Script, HelperContract {
     TokenStashFacet tokenStashFacet;
     StrategiesViewerFacet strategiesViewerFacet;
     GasManagerFacet gasManagerFacet;
+    TriggersManagerFacet triggersManagerFacet;
+    AutomationFacet automationFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -69,6 +73,8 @@ contract DeployScript is Script, HelperContract {
         tokenStashFacet = new TokenStashFacet();
         strategiesViewerFacet = new StrategiesViewerFacet();
         gasManagerFacet = new GasManagerFacet();
+        triggersManagerFacet = new TriggersManagerFacet();
+        automationFacet = new AutomationFacet();
 
         DiamondInit diamondInit = new DiamondInit();
 
@@ -79,7 +85,7 @@ contract DeployScript is Script, HelperContract {
             initCalldata: abi.encodeWithSignature("init()")
         });
 
-        FacetCut[] memory cut = new FacetCut[](9);
+        FacetCut[] memory cut = new FacetCut[](11);
 
         cut[0] = FacetCut({
             facetAddress: address(dCutFacet),
@@ -149,11 +155,27 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
+        cut[9] = (
+            FacetCut({
+                facetAddress: address(triggersManagerFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("TriggersManagerFacet")
+            })
+        );
+
+        cut[10] = (
+            FacetCut({
+                facetAddress: address(automationFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("AutomationFacet")
+            })
+        );
+
         // deploy diamond
         diamond = new Diamond(cut, _args);
 
         vm.stopBroadcast();
     }
 }
-// forge script ./script/deployDiamond.s.sol:DeployScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --etherscan-api-key $ARBISCAN_API_KEY --verifier-url https://api.arbiscan.io/api --broadcast --verify -vvvv --ffi
+// forge script ./script/deployDiamond.s.sol:DeployScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --etherscan-api-key $ARBISCAN_API_KEY --verifier-url https://api.arbiscan.io/api --broadcast --verify -vvv --ffi
 // forge script ./script/deployDiamond.s.sol:DeployScript --chain-id 42161 --fork-url $ARBITRUM_RPC_URL  --broadcast --verify -vvvv --ffi

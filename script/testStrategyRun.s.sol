@@ -28,9 +28,9 @@ contract TestStrategyFully is Script, HelperContract {
         vm.startBroadcast(deployerPrivateKey);
 
         Diamond diamond = Diamond(
-            payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
+            payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0xD24Fdd11ECD6F57e86D019ACe68138bc16f03d4e);
+        Vault vaultAddress = Vault(0xD403d9B940F6cb222C8BbB101699f710331Cb288);
 
         GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)
@@ -44,7 +44,41 @@ contract TestStrategyFully is Script, HelperContract {
         uint256 requiredGas = vaultAddress.approxDepositGas() * 2;
 
         vaultAddress.deposit{value: requiredGas}(1 * 10 ** 16);
-        ExecutionFacet(address(diamond)).triggerStrategyRun(vaultAddress);
+
+        Vault[] memory strategies = StrategiesViewerFacet(address(diamond))
+            .getStrategiesList();
+
+        uint256 idx = 50000;
+
+        for (uint256 i; i < strategies.length; i++)
+            if (address(strategies[i]) == address(vaultAddress)) {
+                idx = i;
+                break;
+            }
+
+        require(idx != 50000, "Didnt find strat");
+
+        console.log("after loop");
+
+        bool[][] memory check = TriggersManagerFacet(address(diamond))
+            .checkStrategiesTriggers();
+
+        console.log("Chec Length", check.length);
+
+        if (!check[idx][0]) revert("Trigger Not Ready So Cannot Execute");
+
+        for (uint256 i; i < check.length; i++)
+            for (uint256 j; j < check[i].length; j++) console.log(check[i][j]);
+
+        uint256[] memory indices = new uint256[](1);
+
+        indices[0] = idx;
+
+        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
+            indices,
+            check
+        );
+
         vaultAddress.withdraw{value: requiredGas}(1 * 10 ** 16);
 
         // address(diamond).call(

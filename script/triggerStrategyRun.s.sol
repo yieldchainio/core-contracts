@@ -25,19 +25,57 @@ contract TriggerRunScript is Script, HelperContract {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        vm.startBroadcast(deployerPrivateKey);
+        console.log("Hey");
 
         Diamond diamond = Diamond(
-            payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3)
+            payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
         Vault vaultAddress = Vault(0xD24Fdd11ECD6F57e86D019ACe68138bc16f03d4e);
+
+        Vault[] memory strategies = StrategiesViewerFacet(address(diamond))
+            .getStrategiesList();
+
+        uint256 idx;
+
+        for (uint256 i; i < strategies.length; i++)
+            if (address(strategies[i]) == address(vaultAddress)) {
+                idx = i;
+                break;
+            }
+
+        require(idx != 0, "Didnt find strat");
+
+        console.log("after loop");
+
+        uint256[] memory indices = new uint256[](1);
+        indices[0] = idx;
+
+        bool[][] memory triggs = new bool[][](1);
+        bool[] memory trigg = new bool[](1);
+        trigg[0] = true;
+        triggs[0] = trigg;
+
+        console.log("b4 check");
+
+     
+
+        bool[][] memory check = TriggersManagerFacet(address(diamond))
+            .checkStrategiesTriggers();
+
+        console.log("Chec Length", check.length);
+
+        if (!check[idx][0]) revert("Trigger Not Ready So Cannot Execute");
+
+        vm.startBroadcast(deployerPrivateKey);
 
         GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)
         );
 
-        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers()
-
+        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
+            indices,
+            check
+        );
 
         vm.stopBroadcast();
     }
