@@ -85,7 +85,8 @@ contract TriggersManagerFacet is Modifiers {
                     registeredTriggers[triggerIdx]
                 );
 
-            triggersStatus[i] = vaultTriggersStatus;
+            if (triggersStatus.length > 0)
+                triggersStatus[i] = vaultTriggersStatus;
         }
     }
 
