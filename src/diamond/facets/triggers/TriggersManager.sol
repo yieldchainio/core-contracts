@@ -78,14 +78,15 @@ contract TriggersManagerFacet is Modifiers {
                 uint256 triggerIdx;
                 triggerIdx < registeredTriggers.length;
                 triggerIdx++
-            )
-                vaultTriggersStatus[i] = _checkTrigger(
+            ) {
+                vaultTriggersStatus[triggerIdx] = _checkTrigger(
                     vault,
                     triggerIdx,
                     registeredTriggers[triggerIdx]
                 );
+            }
 
-            if (triggersStatus.length > 0)
+            if (vaultTriggersStatus.length > 0)
                 triggersStatus[i] = vaultTriggersStatus;
         }
     }
