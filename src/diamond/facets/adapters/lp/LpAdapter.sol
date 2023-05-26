@@ -22,18 +22,20 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].addSelector;
+        Client memory client = lpStorage.clientsSelectors[clientId];
+        bytes4 clientSel = lpStorage.clientsSelectors[clientId].removeSelector;
 
         require(clientSel != bytes4(0), "Lp Client Non Existant");
 
         (bool success, ) = address(this).delegatecall(
             abi.encodeWithSelector(
                 clientSel,
+                client,
                 tokenA,
                 tokenB,
                 amountA,
                 amountB,
-                clientId,
+                client.extraData,
                 extraArgs
             )
         );
@@ -55,23 +57,25 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].addSelector;
+        Client memory client = lpStorage.clientsSelectors[clientId];
+        bytes4 clientSel = lpStorage.clientsSelectors[clientId].removeSelector;
 
         require(clientSel != bytes4(0), "Lp Client Non Existant");
 
         (bool success, ) = address(this).delegatecall(
             abi.encodeWithSelector(
                 clientSel,
+                client,
                 tokenA,
                 tokenB,
                 amountA,
                 amountB,
-                clientId,
+                client.extraData,
                 extraArgs
             )
         );
 
-        require(success, "Adding Lp Failed");
+        require(success, "Removing Lp Failed");
     }
 
     /**
@@ -86,20 +90,25 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].addSelector;
+        Client memory client = lpStorage.clientsSelectors[clientId];
+        bytes4 clientSel = lpStorage.clientsSelectors[clientId].harvestSelector;
 
-        require(clientSel != bytes4(0), "Lp Client Non Existant");
+        require(
+            clientSel != bytes4(0),
+            "Lp Client Non Existant, Or Harvest Unavailable"
+        );
 
         (bool success, ) = address(this).delegatecall(
             abi.encodeWithSelector(
                 clientSel,
+                client,
                 tokenA,
                 tokenB,
-                clientId,
+                client.extraData,
                 extraArgs
             )
         );
 
-        require(success, "Adding Lp Failed");
+        require(success, "Harvesting Lp Failed");
     }
 }

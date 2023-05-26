@@ -39,7 +39,9 @@ contract LpClientsManagerFacet is Modifiers {
         lpStorage.clientsSelectors[clientID] = Client(
             bytes4(0),
             bytes4(0),
-            bytes4(0)
+            bytes4(0),
+            address(0),
+            new bytes(0)
         );
     }
 

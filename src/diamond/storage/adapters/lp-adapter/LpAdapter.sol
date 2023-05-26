@@ -12,6 +12,8 @@ struct Client {
     bytes4 addSelector;
     bytes4 removeSelector;
     bytes4 harvestSelector;
+    address clientAddress;
+    bytes extraData;
 }
 
 library LpAdapterStorageLib {
