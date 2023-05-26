@@ -4,7 +4,14 @@ pragma solidity ^0.8.18;
 // Struct representing the storage of the LP Proxy
 struct LpAdapterStorage {
     // Mapping client IDs (protocol IDs from the DB) => their implementation selectors on the diamond
-    mapping(string => bytes4) clientsSelectors;
+    mapping(bytes32 => Client) clientsSelectors;
+}
+
+// Represents a client classification
+struct Client {
+    bytes4 addSelector;
+    bytes4 removeSelector;
+    bytes4 harvestSelector;
 }
 
 library LpAdapterStorageLib {
