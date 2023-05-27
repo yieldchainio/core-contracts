@@ -8,7 +8,7 @@ import "../vm/VM.sol";
 import "./Schema.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-abstract contract VaultUtilities is IVault, YCVM {
+abstract contract VaultUtilities is VaultTypes, YCVM {
     // ===================
     //     FUNCTIONS
     // ===================

@@ -9,7 +9,7 @@ import "./Schema.sol";
 import "../diamond/interfaces/IGasManager.sol";
 import "./AccessControl.sol";
 
-abstract contract OperationsQueue is IVault, AccessControl {
+abstract contract OperationsQueue is VaultTypes, AccessControl {
     // ==============================
     //      OPERATIONS MANAGER
     // ==============================

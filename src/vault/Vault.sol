@@ -204,7 +204,9 @@ contract Vault is VaultExecution {
      * Only called by Diamond.
      * Internal approval - Used by utility/adapter facets to approve tokens
      * on our behalf, to the diamond (only!), that we could not pre-approve in advanced.
-     * Things like LP tokens that may not be known pre-deployment, may require runtime approvals
+     * Things like LP tokens that may not be known pre-deployment, may require runtime approvals.
+     * We of course only allow this to be on the Diamond itself - So anything that wants to implement this
+     * must be a facet on the Diamond itself, which is more secure.
      * @param token - Token to approve
      * @param amt - Amount to approve
      */

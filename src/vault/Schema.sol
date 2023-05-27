@@ -6,7 +6,7 @@
 pragma solidity ^0.8.18;
 import "../Types.sol";
 
-abstract contract IVault {
+abstract contract VaultTypes {
     // =====================
     //        EVENTS
     // =====================
