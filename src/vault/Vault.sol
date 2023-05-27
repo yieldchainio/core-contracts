@@ -197,4 +197,22 @@ contract Vault is VaultExecution {
         // Request the run
         requestOperation(runRequest);
     }
+
+    /**
+     * @notice
+     * @dev
+     * Only called by Diamond.
+     * Internal approval - Used by utility/adapter facets to approve tokens
+     * on our behalf, to the diamond (only!), that we could not pre-approve in advanced.
+     * Things like LP tokens that may not be known pre-deployment, may require runtime approvals
+     * @param token - Token to approve
+     * @param amt - Amount to approve
+     */
+    function approveDaddyDiamond(
+        address token,
+        uint256 amt
+    ) external onlyDiamond {
+        // Cheaper to read msg.sender than YC_DIAMOND, we know it's only the Diamond already here
+        IERC20(token).approve(msg.sender, amt);
+    }
 }
