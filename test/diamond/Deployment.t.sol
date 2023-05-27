@@ -14,6 +14,8 @@ import "../../src/diamond/facets/core/Execution.sol";
 import "../../src/diamond/facets/core/Factory.sol";
 import "../../src/diamond/facets/core/TokenStash.sol";
 import "../../src/diamond/facets/core/Users.sol";
+import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
+import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import "../../src/diamond/Diamond.sol";
 import "../../src/diamond/interfaces/IDiamond.sol";
 import "../../src/diamond/interfaces/IDiamondCut.sol";
@@ -43,6 +45,9 @@ contract DiamondTest is Test, HelperContract {
     TriggersManagerFacet triggersManagerFacet;
     AutomationFacet automationFacet;
 
+    LpAdapterFacet lpAdapterFacet;
+    UniV2LpAdapterFacet uniV2LpAdapterFacet;
+
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
@@ -60,7 +65,7 @@ contract DiamondTest is Test, HelperContract {
     }
 
     function deployAndGetDiamond() public returns (Diamond) {
-        //deploy facets
+        // Core Facets
         dCutFacet = new DiamondCutFacet();
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
@@ -70,19 +75,14 @@ contract DiamondTest is Test, HelperContract {
         tokenStashFacet = new TokenStashFacet();
         strategiesViewerFacet = new StrategiesViewerFacet();
         gasManagerFacet = new GasManagerFacet();
+
+        // Triggers Facets
         triggersManagerFacet = new TriggersManagerFacet();
         automationFacet = new AutomationFacet();
 
-        vm.makePersistent(address(dCutFacet));
-        vm.makePersistent(address(dLoupe));
-        vm.makePersistent(address(ownerF));
-        vm.makePersistent(address(accessControlFacet));
-        vm.makePersistent(address(factoryFacet));
-        vm.makePersistent(address(tokenStashFacet));
-        vm.makePersistent(address(strategiesViewerFacet));
-        vm.makePersistent(address(gasManagerFacet));
-        vm.makePersistent(address(triggersManagerFacet));
-        vm.makePersistent(address(automationFacet));
+        // Adapters Facets
+        lpAdapterFacet = new LpAdapterFacet();
+        uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
 
         facetNames = [
             "DiamondCutFacet",
@@ -95,7 +95,9 @@ contract DiamondTest is Test, HelperContract {
             "StrategiesViewerFacet",
             "GasManagerFacet",
             "TriggersManagerFacet",
-            "AutomationFacet"
+            "AutomationFacet",
+            "LpAdapterFacet",
+            "UniV2LpAdapterFacet"
         ];
 
         // diamod arguments
@@ -121,7 +123,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](10);
+        FacetCut[] memory cut = new FacetCut[](12);
 
         cut[0] = (
             FacetCut({
@@ -199,6 +201,25 @@ contract DiamondTest is Test, HelperContract {
                 functionSelectors: generateSelectors("AutomationFacet")
             })
         );
+
+        cut[10] = (
+            FacetCut({
+                facetAddress: address(lpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("LpAdapterFacet")
+            })
+        );
+
+        cut[11] = (
+            FacetCut({
+                facetAddress: address(uniV2LpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("UniV2LpAdapterFacet")
+            })
+        );
+
+        for (uint256 i; i < cut.length; i++)
+            vm.makePersistent(cut[i].facetAddress);
 
         // initialise interfaces
         ILoupe = IDiamondLoupe(address(diamond));

@@ -20,6 +20,8 @@ import "src/diamond/facets/core/Users.sol";
 import "src/diamond/Diamond.sol";
 import "src/diamond/interfaces/IDiamond.sol";
 import "src/diamond/interfaces/IDiamondCut.sol";
+import "src/diamond/facets/adapters/lp/LpAdapter.sol";
+import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import "src/diamond/interfaces/IDiamondLoupe.sol";
 import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
@@ -49,6 +51,9 @@ contract DeployScript is Script, HelperContract {
     TriggersManagerFacet triggersManagerFacet;
     AutomationFacet automationFacet;
 
+    LpAdapterFacet lpAdapterFacet;
+    UniV2LpAdapterFacet uniV2LpAdapterFacet;
+
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
@@ -76,6 +81,10 @@ contract DeployScript is Script, HelperContract {
         triggersManagerFacet = new TriggersManagerFacet();
         automationFacet = new AutomationFacet();
 
+        // Adapters Facets
+        lpAdapterFacet = new LpAdapterFacet();
+        uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
+
         DiamondInit diamondInit = new DiamondInit();
 
         // diamond arguments
@@ -85,7 +94,7 @@ contract DeployScript is Script, HelperContract {
             initCalldata: abi.encodeWithSignature("init()")
         });
 
-        FacetCut[] memory cut = new FacetCut[](11);
+        FacetCut[] memory cut = new FacetCut[](13);
 
         cut[0] = FacetCut({
             facetAddress: address(dCutFacet),
@@ -168,6 +177,22 @@ contract DeployScript is Script, HelperContract {
                 facetAddress: address(automationFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("AutomationFacet")
+            })
+        );
+
+        cut[11] = (
+            FacetCut({
+                facetAddress: address(lpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("LpAdapterFacet")
+            })
+        );
+
+        cut[12] = (
+            FacetCut({
+                facetAddress: address(uniV2LpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("UniV2LpAdapterFacet")
             })
         );
 
