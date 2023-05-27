@@ -15,7 +15,7 @@ import "../../../src/diamond/facets/triggers/TriggersManager.sol";
 import "../../../src/Types.sol";
 import "src/vault/Schema.sol";
 
-contract TriggersManagerTest is DiamondTest, IVault {
+contract TriggersManagerTest is DiamondTest, VaultTypes {
     // =================
     //      STATES
     // =================
