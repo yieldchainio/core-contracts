@@ -7,7 +7,10 @@ pragma solidity ^0.8.18;
 import "../../../Modifiers.sol";
 import "../../../storage/adapters/lp-adapter/LpAdapter.sol";
 
-contract LpClientsManagerFacet is Modifiers {
+abstract contract LpClientsManagerFacet is Modifiers {
+    // ================
+    //    SETTERS
+    // ================
     /**
      * Add a client
      * @param clientID - ID of the client
@@ -15,7 +18,7 @@ contract LpClientsManagerFacet is Modifiers {
      */
     function addClient(
         bytes32 clientID,
-        Client memory client
+        LPClient memory client
     ) external onlyOwner {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
@@ -26,6 +29,7 @@ contract LpClientsManagerFacet is Modifiers {
         );
 
         lpStorage.clientsSelectors[clientID] = client;
+        lpStorage.clients.push(clientID);
     }
 
     /**
@@ -36,13 +40,28 @@ contract LpClientsManagerFacet is Modifiers {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
-        lpStorage.clientsSelectors[clientID] = Client(
-            bytes4(0),
-            bytes4(0),
-            bytes4(0),
+        uint256 idx = 500000;
+
+        bytes32[] memory clients = lpStorage.clients;
+
+        for (uint256 i; i < clients.length; i++)
+            if (clients[i] == clientID) {
+                idx = i;
+                break;
+            }
+
+        require(idx != 500000, "Didnt Find Existing Client");
+
+        lpStorage.clientsSelectors[clientID] = LPClient(
+            0x00000000,
+            0x00000000,
+            0x00000000,
             address(0),
             new bytes(0)
         );
+
+        lpStorage.clients[idx] = clients[clients.length - 1];
+        lpStorage.clients.pop();
     }
 
     /**
@@ -52,11 +71,35 @@ contract LpClientsManagerFacet is Modifiers {
      */
     function updateClient(
         bytes32 clientID,
-        Client memory newClient
+        LPClient memory newClient
     ) external onlyOwner {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
         lpStorage.clientsSelectors[clientID] = newClient;
+    }
+
+    // ================
+    //    GETTERS
+    // ================
+    function getClients() external view returns (LPClient[] memory clients) {
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
+            .getLpAdapterStorage();
+
+        bytes32[] memory clientsIds = lpStorage.clients;
+
+        clients = new LPClient[](clientsIds.length);
+
+        for (uint256 i; i < clients.length; i++)
+            clients[i] = lpStorage.clientsSelectors[clientsIds[i]];
+    }
+
+    function getClient(
+        bytes32 id
+    ) external view returns (LPClient memory client) {
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
+            .getLpAdapterStorage();
+
+        client = lpStorage.clientsSelectors[id];
     }
 }
