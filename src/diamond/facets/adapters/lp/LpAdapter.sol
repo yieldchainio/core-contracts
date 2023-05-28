@@ -23,7 +23,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
             .getLpAdapterStorage();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].addSelector;
+        bytes4 clientSel = client.addSelector;
 
         require(clientSel != bytes4(0), "Lp LPClient Non Existant");
 
@@ -57,7 +57,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
             .getLpAdapterStorage();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].removeSelector;
+        bytes4 clientSel = client.removeSelector;
 
         require(clientSel != bytes4(0), "Lp LPClient Non Existant");
 
@@ -89,7 +89,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
             .getLpAdapterStorage();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
-        bytes4 clientSel = lpStorage.clientsSelectors[clientId].harvestSelector;
+        bytes4 clientSel = client.harvestSelector;
 
         require(
             clientSel != bytes4(0),
