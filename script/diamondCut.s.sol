@@ -21,6 +21,8 @@ import "src/diamond/interfaces/IERC173.sol";
 import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
 import "src/diamond/facets/withdraw-eth.sol";
+import "src/diamond/facets/adapters/lp/LpAdapter.sol";
+import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
 
 contract DiamondCutScript is Script, HelperContract {
     // ===================
@@ -43,6 +45,9 @@ contract DiamondCutScript is Script, HelperContract {
 
     TriggersManagerFacet triggersManagerFacet;
     AutomationFacet automationFacet;
+
+    LpAdapterFacet lpAdapterFacet;
+    UniV2LpAdapterFacet uniV2LpAdapterFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -67,20 +72,29 @@ contract DiamondCutScript is Script, HelperContract {
         // factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
         // scamEthFacet = new ScamEth();
-        strategiesViewerFacet = new StrategiesViewerFacet();
+        // strategiesViewerFacet = new StrategiesViewerFacet();
         // gasManagerFacet = new GasManagerFacet();
         // triggersManagerFacet = new TriggersManagerFacet();
         // automationFacet = new AutomationFacet();
 
-        FacetCut[] memory cut = new FacetCut[](1);
+        lpAdapterFacet = new LpAdapterFacet();
+        uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
 
-        bytes4[] memory arr = new bytes4[](1);
-        arr[0] = 0x56bd21c5;
+        FacetCut[] memory cut = new FacetCut[](2);
+
         cut[0] = (
             FacetCut({
-                facetAddress: address(strategiesViewerFacet),
+                facetAddress: address(lpAdapterFacet),
                 action: FacetCutAction.Add,
-                functionSelectors: arr
+                functionSelectors: generateSelectors("LpAdapterFacet")
+            })
+        );
+
+        cut[1] = (
+            FacetCut({
+                facetAddress: address(uniV2LpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("UniV2LpAdapterFacet")
             })
         );
 
