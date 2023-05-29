@@ -14,6 +14,7 @@ struct LPClient {
     bytes4 addSelector;
     bytes4 removeSelector;
     bytes4 harvestSelector;
+    bytes4 balanceOfLpSelector;
     address clientAddress;
     bytes extraData;
 }

@@ -109,4 +109,38 @@ contract LpAdapterFacet is LpClientsManagerFacet {
 
         require(success, "Harvesting Lp Failed");
     }
+
+    /**
+     * Get the balance of an LP token
+     */
+    function balanceOfLP(
+        bytes32 clientId,
+        address tokenA,
+        address tokenB
+    ) external view returns (uint256 ownerLpBalance) {
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
+            .getLpAdapterStorage();
+
+        LPClient memory client = lpStorage.clientsSelectors[clientId];
+        bytes4 clientSel = client.balanceOfLpSelector;
+
+        require(
+            clientSel != bytes4(0),
+            "Lp LPClient Non Existant, Or BalanceOf Unavailable"
+        );
+
+        (bool success, bytes memory result) = address(this).staticcall(
+            abi.encodeWithSelector(
+                clientSel,
+                client,
+                tokenA,
+                tokenB,
+                msg.sender
+            )
+        );
+
+        require(success && result.length > 0, "Getting Lp Balance Failed");
+
+        ownerLpBalance = abi.decode(result, (uint256));
+    }
 }

@@ -17,6 +17,7 @@ contract LpAdapterTest is DiamondTest {
         bytes4 addSel = 0x44444444;
         bytes4 removeSel = 0x55555555;
         bytes4 harvestSel = 0x66666666;
+        bytes4 balanceOfSel = 0x77777777;
         address clientAddress = address(25);
         bytes memory extraData = new bytes(50);
 
@@ -24,6 +25,7 @@ contract LpAdapterTest is DiamondTest {
             addSel,
             removeSel,
             harvestSel,
+            balanceOfSel,
             clientAddress,
             extraData
         );
@@ -86,6 +88,7 @@ contract LpAdapterTest is DiamondTest {
         // Add Another Client, to test remvoing thereafter
         bytes32 newClientID = keccak256("Some Other Client");
         LPClient memory randomClient = LPClient(
+            0x12121212,
             0x12121212,
             0x12121212,
             0x12121212,

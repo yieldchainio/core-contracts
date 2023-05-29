@@ -43,6 +43,7 @@ contract LpClientUniV2Test is DiamondTest {
                     UniV2LpAdapterFacet.addLiquidityUniV2.selector,
                     UniV2LpAdapterFacet.removeLiquidityUniV2.selector,
                     0x00000000,
+                    UniV2LpAdapterFacet.balanceOfUniV2LP.selector,
                     uniV2Clients[i],
                     new bytes(0)
                 )

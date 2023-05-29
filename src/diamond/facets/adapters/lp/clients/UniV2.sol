@@ -185,7 +185,7 @@ contract UniV2LpAdapterFacet {
         if (
             IERC20(pair).allowance(address(this), client.clientAddress) <
             lpAmount
-        )IERC20(pair).approve(client.clientAddress, type(uint256).max);
+        ) IERC20(pair).approve(client.clientAddress, type(uint256).max);
 
         bool includesNativeToken = tokenA == address(0) || tokenB == address(0);
 
@@ -213,5 +213,27 @@ contract UniV2LpAdapterFacet {
             msg.sender,
             type(uint256).max
         );
+    }
+
+    // ==================
+    //     GETTERS
+    // ==================
+    /**
+     * Get an address' balance of an LP pair token
+     * @param client The LP client to check on
+     * @param tokenA First token of the pair (unsorted)
+     * @param tokenB Second token of the pair(unsorted)
+     * @param owner owner to check the balance of
+     * @return ownerLpBalance
+     */
+    function balanceOfUniV2LP(
+        LPClient calldata client,
+        address tokenA,
+        address tokenB,
+        address owner
+    ) external view returns (uint256 ownerLpBalance) {
+        address factory = client.clientAddress;
+        address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
+        ownerLpBalance = IERC20(pair).balanceOf(owner);
     }
 }
