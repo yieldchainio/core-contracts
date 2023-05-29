@@ -111,7 +111,7 @@ contract TriggersManagerFacet is Modifiers {
             .strategies;
 
         for (uint256 i; i < vaultsIndices.length; i++)
-            _executeStrategyTriggers(vaults[i], triggersSignals[i]);
+            _executeStrategyTriggers(vaults[vaultsIndices[i]], triggersSignals[i]);
     }
 
     /**
