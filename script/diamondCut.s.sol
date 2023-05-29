@@ -78,23 +78,21 @@ contract DiamondCutScript is Script, HelperContract {
         // automationFacet = new AutomationFacet();
 
         lpAdapterFacet = new LpAdapterFacet();
-        uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
+        // uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
 
-        FacetCut[] memory cut = new FacetCut[](2);
+        bytes4[] memory sels = new bytes4[](3);
+
+        sels[0] = 0xc10621ab;
+        sels[1] = 0xe8d79a03;
+        sels[2] = 0x96d9674f;
+
+        FacetCut[] memory cut = new FacetCut[](1);
 
         cut[0] = (
             FacetCut({
                 facetAddress: address(lpAdapterFacet),
                 action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("LpAdapterFacet")
-            })
-        );
-
-        cut[1] = (
-            FacetCut({
-                facetAddress: address(uniV2LpAdapterFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("UniV2LpAdapterFacet")
+                functionSelectors: sels
             })
         );
 

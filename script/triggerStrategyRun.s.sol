@@ -30,7 +30,7 @@ contract TriggerRunScript is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0xD24Fdd11ECD6F57e86D019ACe68138bc16f03d4e);
+        Vault vaultAddress = Vault(0xFba4846d1bd5211060c99c37996afaA8f1859a70);
 
         Vault[] memory strategies = StrategiesViewerFacet(address(diamond))
             .getStrategiesList();
@@ -74,7 +74,7 @@ contract TriggerRunScript is Script, HelperContract {
 
         TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
             indices,
-            check
+            triggs
         );
 
         vm.stopBroadcast();

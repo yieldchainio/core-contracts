@@ -19,6 +19,7 @@ struct LPClient {
     bytes extraData;
 }
 
+
 library LpAdapterStorageLib {
     // Storage slot hash
     bytes32 internal constant STORAGE_NAMESPACE =

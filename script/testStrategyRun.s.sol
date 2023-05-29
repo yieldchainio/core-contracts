@@ -30,7 +30,7 @@ contract TestStrategyFully is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0xD403d9B940F6cb222C8BbB101699f710331Cb288);
+        Vault vaultAddress = Vault(0xFba4846d1bd5211060c99c37996afaA8f1859a70);
 
         GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
             address(vaultAddress)
@@ -73,6 +73,10 @@ contract TestStrategyFully is Script, HelperContract {
         uint256[] memory indices = new uint256[](1);
 
         indices[0] = idx;
+
+        check = new bool[][](1);
+        check[0] = new bool[](1);
+        check[0][0] = true;
 
         TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
             indices,
