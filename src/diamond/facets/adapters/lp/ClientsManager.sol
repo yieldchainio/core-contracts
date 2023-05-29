@@ -18,8 +18,8 @@ abstract contract LpClientsManagerFacet is Modifiers {
      */
     function addClient(
         bytes32 clientID,
-        LPClient memory client
-    ) external onlyOwner {
+        LPClient calldata client
+    ) public onlyOwner {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 
@@ -30,6 +30,31 @@ abstract contract LpClientsManagerFacet is Modifiers {
 
         lpStorage.clientsSelectors[clientID] = client;
         lpStorage.clients.push(clientID);
+    }
+
+    /**
+     * Batch add clients
+     * @param clientsIds - IDs of the clients
+     * @param clients - Array of the clients
+     */
+    function batchAddClients(
+        bytes32[] calldata clientsIds,
+        LPClient[] calldata clients
+    ) external onlyOwner {
+        require(clientsIds.length == clients.length, "Clients Length Mismatch");
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
+            .getLpAdapterStorage();
+
+        for (uint48 i; i < clientsIds.length; i++) {
+            bytes32 clientID = clientsIds[i];
+            require(
+                lpStorage.clientsSelectors[clientID].addSelector == bytes4(0),
+                "Client Already Set. Use updateClient"
+            );
+
+            lpStorage.clientsSelectors[clientID] = clients[i];
+            lpStorage.clients.push(clientID);
+        }
     }
 
     /**
@@ -72,7 +97,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
      */
     function updateClient(
         bytes32 clientID,
-        LPClient memory newClient
+        LPClient calldata newClient
     ) external onlyOwner {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
