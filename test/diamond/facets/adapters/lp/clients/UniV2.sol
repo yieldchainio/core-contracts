@@ -18,8 +18,22 @@ contract LpClientUniV2Test is DiamondTest {
     //     GLOBALS
     // =================
     address zyberSwapRouter = 0x16e71B13fE6079B4312063F7E81F76d165Ad32Ad;
+    address sushiswap = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
+    address camelot = 0xc873fEcbd354f5A56E00E710B90EF4201db2448d;
+    address fraxswap = 0xCAAaB0A72f781B92bA63Af27477aA46aB8F653E7;
+    address apeswap = 0x7d13268144adcdbEBDf94F654085CC15502849Ff;
+    address arbidex = 0x7238FB45146BD8FcB2c463Dc119A53494be57Aac;
+    address arbswap = 0xD01319f4b65b79124549dE409D36F25e04B3e551;
 
-    address[] uniV2Clients = [zyberSwapRouter];
+    address[] uniV2Clients = [
+        zyberSwapRouter,
+        sushiswap,
+        camelot,
+        fraxswap,
+        apeswap,
+        arbidex,
+        arbswap
+    ];
 
     address WETH_TOKEN = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address USDC_TOKEN = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
@@ -300,21 +314,48 @@ contract LpClientUniV2Test is DiamondTest {
         uint256 desiredAmountA,
         uint256 desiredAmountB
     ) internal view returns (uint256 desiredLp) {
-        (uint reserveA, uint reserveB, ) = IUniswapV2Pair(
+        IUniswapV2Pair pair = IUniswapV2Pair(
             IUniswapV2Factory(factory).getPair(_tokenA, _tokenB)
-        ).getReserves();
+        );
+
+        if (address(pair) == address(0))
+            return _getNewLpPairLpAmount(desiredAmountA, desiredAmountB);
+
+        (uint reserveA, uint reserveB, ) = address(pair) == address(0)
+            ? (0, 0, 0)
+            : pair.getReserves();
 
         console.log("after determine amounts");
 
+        uint256 totalSupply = address(pair) == address(0)
+            ? 0
+            : ERC20(address(pair)).totalSupply();
+
         (uint256 firstNum, uint256 secondNum) = (
-            (desiredAmountA *
-                ERC20(IUniswapV2Factory(factory).getPair(tokenA, tokenB))
-                    .totalSupply()) / reserveA,
-            (desiredAmountB *
-                ERC20(IUniswapV2Factory(factory).getPair(tokenA, tokenB))
-                    .totalSupply()) / reserveB
+            (desiredAmountA * totalSupply) / reserveA,
+            (desiredAmountB * totalSupply) / reserveB
         );
 
         desiredLp = firstNum < secondNum ? firstNum : secondNum;
+    }
+
+    function _getNewLpPairLpAmount(
+        uint256 amountA,
+        uint256 amountB
+    ) internal pure returns (uint256 lpamt) {
+        return sqrt(amountA * amountB) - 10 ** 3;
+    }
+
+    function sqrt(uint y) internal pure returns (uint z) {
+        if (y > 3) {
+            z = y;
+            uint x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
     }
 }
