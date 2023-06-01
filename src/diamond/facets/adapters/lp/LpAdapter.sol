@@ -35,7 +35,6 @@ contract LpAdapterFacet is LpClientsManagerFacet {
                 tokenB,
                 amountA,
                 amountB,
-                client.extraData,
                 extraArgs
             )
         );
@@ -68,7 +67,6 @@ contract LpAdapterFacet is LpClientsManagerFacet {
                 tokenA,
                 tokenB,
                 lpAmount,
-                client.extraData,
                 extraArgs
             )
         );
@@ -102,7 +100,6 @@ contract LpAdapterFacet is LpClientsManagerFacet {
                 client,
                 tokenA,
                 tokenB,
-                client.extraData,
                 extraArgs
             )
         );
