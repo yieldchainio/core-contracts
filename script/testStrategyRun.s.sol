@@ -36,7 +36,7 @@ contract TestStrategyFully is Script, HelperContract {
             address(vaultAddress)
         );
 
-        ERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a).approve(
+        IERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a).approve(
             address(vaultAddress),
             type(uint256).max
         );

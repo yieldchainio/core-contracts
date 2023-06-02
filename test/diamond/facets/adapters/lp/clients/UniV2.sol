@@ -82,7 +82,7 @@ contract LpClientUniV2Test is DiamondTest {
             UPROOT_STEPS,
             approvalPairs,
             new Trigger[](0),
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
     }
@@ -97,11 +97,11 @@ contract LpClientUniV2Test is DiamondTest {
         // vm.assume(amountA > 0 && amountB > 0);
         // vm.assume(amountA > 1 * 10 ** 14);
         // vm.assume(amountB > 1 * 10 ** 14);
-        // vm.assume(amountA < ERC20(tokenA).totalSupply());
-        // vm.assume(amountB < ERC20(tokenA).totalSupply());
-        // Amounts should be realistically big (0.00001 w/ normal ERC20 decimals). Otherwise it would fail due to insufficient burn (which is OK if it were mid strategy run)
-        amountA = bound(amountA, 1 * 10 ** 14, ERC20(tokenA).totalSupply());
-        amountB = bound(amountB, 1 * 10 ** 14, ERC20(tokenB).totalSupply());
+        // vm.assume(amountA < IERC20(tokenA).totalSupply());
+        // vm.assume(amountB < IERC20(tokenA).totalSupply());
+        // Amounts should be realistically big (0.00001 w/ normal IERC20 decimals). Otherwise it would fail due to insufficient burn (which is OK if it were mid strategy run)
+        amountA = bound(amountA, 1 * 10 ** 14, IERC20(tokenA).totalSupply());
+        amountB = bound(amountB, 1 * 10 ** 14, IERC20(tokenB).totalSupply());
 
         amountsAddedToClients = new uint256[2][](uniV2Clients.length);
 
@@ -120,12 +120,12 @@ contract LpClientUniV2Test is DiamondTest {
 
             // Sufficient check
             assertEq(
-                ERC20(tokenA).balanceOf(address(vaultContract)),
+                IERC20(tokenA).balanceOf(address(vaultContract)),
                 amountA,
                 "Dealt TokenA, but None Was Given"
             );
             assertEq(
-                ERC20(tokenB).balanceOf(address(vaultContract)),
+                IERC20(tokenB).balanceOf(address(vaultContract)),
                 amountB,
                 "Dealt TokenA, but None Was Given"
             );
@@ -171,20 +171,20 @@ contract LpClientUniV2Test is DiamondTest {
 
             // (We take a tiny amount (10%) of potential delta in mind)
             assertApproxEqAbs(
-                ERC20(tokenA).balanceOf(address(vaultContract)),
+                IERC20(tokenA).balanceOf(address(vaultContract)),
                 amountA - desiredAmountAOut,
                 desiredAmountAOut / 10,
                 "Added Liquidity For UniV2 Client, but new tokenA balance out of delta"
             );
             assertApproxEqAbs(
-                ERC20(tokenB).balanceOf(address(vaultContract)),
+                IERC20(tokenB).balanceOf(address(vaultContract)),
                 amountB - desiredAmountBOut,
                 desiredAmountBOut / 10,
                 "Added Liquidity For UniV2 Client, but new tokenB balance out of delta"
             );
 
             assertApproxEqAbs(
-                ERC20(IUniswapV2Factory(factory).getPair(tokenA, tokenB))
+                IERC20(IUniswapV2Factory(factory).getPair(tokenA, tokenB))
                     .balanceOf(address(vaultContract)),
                 desiredLpAmount,
                 desiredLpAmount / 10,
@@ -219,7 +219,7 @@ contract LpClientUniV2Test is DiamondTest {
             address factory = IUniswapV2Router(uniV2Clients[i]).factory();
             address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
 
-            uint256 lpTokensToWithdraw = ERC20(pair).balanceOf(
+            uint256 lpTokensToWithdraw = IERC20(pair).balanceOf(
                 address(vaultContract)
             );
 
@@ -233,19 +233,19 @@ contract LpClientUniV2Test is DiamondTest {
             uint256 amountBDelta = depositedAmountB / 100;
 
             assertEq(
-                ERC20(tokenA).balanceOf(address(vaultContract)),
+                IERC20(tokenA).balanceOf(address(vaultContract)),
                 0,
                 "Before remvoing liquidity, tokenA balance is bigger than 0"
             );
 
             assertEq(
-                ERC20(tokenB).balanceOf(address(vaultContract)),
+                IERC20(tokenB).balanceOf(address(vaultContract)),
                 0,
                 "Before remvoing liquidity, tokenB balance is bigger than 0"
             );
 
             assertTrue(
-                ERC20(pair).balanceOf(address(vaultContract)) > 0,
+                IERC20(pair).balanceOf(address(vaultContract)) > 0,
                 "Before remvoing liquidity, LP pair balance is 0"
             );
 
@@ -260,20 +260,20 @@ contract LpClientUniV2Test is DiamondTest {
 
             // (We take a tiny amount (10%) of potential delta in mind)
             assertApproxEqAbs(
-                ERC20(tokenA).balanceOf(address(vaultContract)),
+                IERC20(tokenA).balanceOf(address(vaultContract)),
                 depositedAmountA,
                 amountADelta,
                 "Removed Liquidity For UniV2 Client, but new tokenA balance out of delta"
             );
             assertApproxEqAbs(
-                ERC20(tokenB).balanceOf(address(vaultContract)),
+                IERC20(tokenB).balanceOf(address(vaultContract)),
                 depositedAmountB,
                 amountBDelta,
                 "Removed Liquidity For UniV2 Client, but new tokenB balance out of delta"
             );
 
             assertEq(
-                ERC20(pair).balanceOf(address(vaultContract)),
+                IERC20(pair).balanceOf(address(vaultContract)),
                 0,
                 "Removed Liquidity For UniV2 Client, but new LP Pair balance is not 0 (All tokens should have been removed from liquidity)"
             );
@@ -329,7 +329,7 @@ contract LpClientUniV2Test is DiamondTest {
 
         uint256 totalSupply = address(pair) == address(0)
             ? 0
-            : ERC20(address(pair)).totalSupply();
+            : IERC20(address(pair)).totalSupply();
 
         (uint256 firstNum, uint256 secondNum) = (
             (desiredAmountA * totalSupply) / reserveA,

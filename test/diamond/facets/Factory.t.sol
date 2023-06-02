@@ -41,7 +41,7 @@ contract FactoryFacetTest is DiamondTest {
             approvalPairs,
                         new Trigger[](0),
 
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
     }

@@ -6,7 +6,7 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "../../../interfaces/IERC20.sol";
 // import "../triggers/Registry.sol";
 import "../triggers/TriggersManager.sol";
 import "../../Modifiers.sol";
@@ -49,7 +49,7 @@ contract FactoryFacet is Modifiers {
      * @param treeSteps - The tree of steps that run on any of the strategy's triggers
      * @param uprootSteps - The uproot steps that run on a withdrawal trigger
      * @param approvalPairs - A 2D array of [ERC20Token, addressToApprove]. Which will be approved on deployment of the vault
-     * @param depositToken - An ERC20 token which is used for deposits into the vault
+     * @param depositToken - An IERC20 token which is used for deposits into the vault
      * @param isPublic - The visibility/privacy of this vault. Private only allowed for premium users!!
      */
     function createVault(
@@ -58,7 +58,7 @@ contract FactoryFacet is Modifiers {
         bytes[] memory uprootSteps,
         address[2][] memory approvalPairs,
         Trigger[] memory triggers,
-        ERC20 depositToken,
+        IERC20 depositToken,
         bool isPublic
     )
         external

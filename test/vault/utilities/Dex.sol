@@ -7,12 +7,12 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "../../../src/interfaces/IERC20.sol";
 
 contract Dex is Test {
-    mapping(ERC20 => mapping(ERC20 => uint256)) public swapRates;
+    mapping(IERC20 => mapping(IERC20 => uint256)) public swapRates;
 
-    function swap(ERC20 from, ERC20 to, uint256 amount) public {
+    function swap(IERC20 from, IERC20 to, uint256 amount) public {
         uint256 rate = swapRates[from][to];
         if (rate == 0) rate = 1;
 

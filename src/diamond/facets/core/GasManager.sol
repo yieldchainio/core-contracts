@@ -6,8 +6,6 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-// import "../triggers/Registry.sol";
 import "../../Modifiers.sol";
 
 contract GasManagerFacet is Modifiers {

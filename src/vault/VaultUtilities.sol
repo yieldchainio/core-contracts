@@ -6,7 +6,7 @@ pragma solidity ^0.8.18;
 import "../vm/VM.sol";
 
 import "./Schema.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "../interfaces/IERC20.sol";
 
 abstract contract VaultUtilities is VaultTypes, YCVM {
     // ===================
@@ -37,7 +37,7 @@ abstract contract VaultUtilities is VaultTypes, YCVM {
     function balanceOf(
         address token
     ) public view returns (uint256 erc20Balance) {
-        return ERC20(token).balanceOf(address(this));
+        return IERC20(token).balanceOf(address(this));
     }
 
     /**

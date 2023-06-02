@@ -5,7 +5,6 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "forge-std/console.sol";
 import "../utilities/Dex.sol";
 import "../../../src/vault/Vault.sol";
 import "../utilities/Encoders.sol";
@@ -68,7 +67,7 @@ contract BaseStrategy is UtilityEncoder, Test {
          * It will consist of the GMX and GNS protocols, and a dummy "DEX" contract that will be responsible
          * for returning a 1:1 rate of our tokens, and manually manipulating the balances
          */
-        ERC20 depositToken = ERC20(GMX_TOKEN_ADDRESS);
+        IERC20 depositToken = IERC20(GMX_TOKEN_ADDRESS);
 
         isPublic = true;
 

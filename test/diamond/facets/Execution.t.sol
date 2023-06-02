@@ -55,7 +55,7 @@ contract ExecutionFacetTest is DiamondTest, Constants {
             UPROOT_STEPS,
             approvalPairs,
             new Trigger[](0),
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
     }
@@ -76,7 +76,7 @@ contract ExecutionFacetTest is DiamondTest, Constants {
 
         // Deposit some money into the vault
         deal(GMX_TOKEN_ADDRESS, address(this), DEPOSIT_AMOUNT);
-        ERC20(GMX_TOKEN_ADDRESS).approve(
+        IERC20(GMX_TOKEN_ADDRESS).approve(
             address(vaultContract),
             type(uint256).max
         );

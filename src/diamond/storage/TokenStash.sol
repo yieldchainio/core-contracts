@@ -4,14 +4,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../../vault/Vault.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "../../interfaces/IERC20.sol";
 
 struct TokenStashStorage {
     /**
      * Nested mapping of
      * Vault address => token address => balance
      */
-    mapping(Vault => mapping(ERC20 => uint256)) strategyStashes;
+    mapping(Vault => mapping(IERC20 => uint256)) strategyStashes;
 }
 
 /**
@@ -36,7 +36,7 @@ library TokenStashStorageLib {
 
     function addToStrategyStash(
         Vault strategy,
-        ERC20 token,
+        IERC20 token,
         uint256 amount
     ) internal {
         getTokenStasherStorage().strategyStashes[strategy][token] += amount;
@@ -44,7 +44,7 @@ library TokenStashStorageLib {
 
     function removeFromStrategyStash(
         Vault strategy,
-        ERC20 token,
+        IERC20 token,
         uint256 amount
     ) internal {
         require(

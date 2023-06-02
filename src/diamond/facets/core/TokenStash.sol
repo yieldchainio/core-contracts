@@ -27,7 +27,7 @@ contract TokenStashFacet is Modifiers {
      */
     function getStrategyStash(
         Vault vault,
-        ERC20 token
+        IERC20 token
     ) external view returns (uint256 stashedAmount) {
         stashedAmount = TokenStashStorageLib
             .getTokenStasherStorage()
@@ -50,7 +50,7 @@ contract TokenStashFacet is Modifiers {
     ) external onlyVaults {
         TokenStashStorageLib.addToStrategyStash(
             Vault(msg.sender),
-            ERC20(tokenAddress),
+            IERC20(tokenAddress),
             amount
         );
     }
@@ -67,7 +67,7 @@ contract TokenStashFacet is Modifiers {
     ) external onlyVaults {
         TokenStashStorageLib.removeFromStrategyStash(
             Vault(msg.sender),
-            ERC20(tokenAddress),
+            IERC20(tokenAddress),
             amount
         );
     }

@@ -16,6 +16,7 @@ import "../../src/diamond/facets/core/TokenStash.sol";
 import "../../src/diamond/facets/core/Users.sol";
 import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
+import {GlpAdapterFacet} from "../../src/diamond/facets/adapters/lp/clients/Glp.sol";
 import "../../src/diamond/Diamond.sol";
 import "../../src/diamond/interfaces/IDiamond.sol";
 import "../../src/diamond/interfaces/IDiamondCut.sol";
@@ -47,6 +48,7 @@ contract DiamondTest is Test, HelperContract {
 
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
+    GlpAdapterFacet glpLpAdapterFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -83,6 +85,7 @@ contract DiamondTest is Test, HelperContract {
         // Adapters Facets
         lpAdapterFacet = new LpAdapterFacet();
         uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
+        glpLpAdapterFacet = new GlpAdapterFacet();
 
         facetNames = [
             "DiamondCutFacet",
@@ -97,7 +100,8 @@ contract DiamondTest is Test, HelperContract {
             "TriggersManagerFacet",
             "AutomationFacet",
             "LpAdapterFacet",
-            "UniV2LpAdapterFacet"
+            "UniV2LpAdapterFacet",
+            "GlpAdapterFacet"
         ];
 
         // diamod arguments
@@ -123,7 +127,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](12);
+        FacetCut[] memory cut = new FacetCut[](13);
 
         cut[0] = (
             FacetCut({
@@ -215,6 +219,14 @@ contract DiamondTest is Test, HelperContract {
                 facetAddress: address(uniV2LpAdapterFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("UniV2LpAdapterFacet")
+            })
+        );
+
+        cut[12] = (
+            FacetCut({
+                facetAddress: address(glpLpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("GlpAdapterFacet")
             })
         );
 

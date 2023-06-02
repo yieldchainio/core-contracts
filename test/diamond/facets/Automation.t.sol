@@ -53,7 +53,7 @@ contract AutomationFacetTest is DiamondTest {
             UPROOT_STEPS,
             approvalPairs,
             triggers,
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
 

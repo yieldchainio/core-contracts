@@ -18,7 +18,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         uint256 amountB,
         bytes32 clientId,
         bytes[] memory extraArgs
-    ) external {
+    ) external payable {
         LpAdapterStorage storage lpStorage = LpAdapterStorageLib
             .getLpAdapterStorage();
 

@@ -54,7 +54,7 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
             UPROOT_STEPS,
             approvalPairs,
             triggers,
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
 

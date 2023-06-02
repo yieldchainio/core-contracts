@@ -63,7 +63,7 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             UPROOT_STEPS,
             approvalPairs,
             new Trigger[](0),
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
     }

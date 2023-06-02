@@ -8,8 +8,6 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/TriggersManager.sol";
 import "../../storage/Users.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-// import "../triggers/Registry.sol";
 import "../../Modifiers.sol";
 
 contract StrategiesViewerFacet is Modifiers {

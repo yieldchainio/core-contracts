@@ -46,7 +46,7 @@ contract TokenStashFacetTest is DiamondTest {
             approvalPairs,
                         new Trigger[](0),
 
-            ERC20(address(depositToken)),
+            IERC20(address(depositToken)),
             isPublic
         );
     }
@@ -62,7 +62,7 @@ contract TokenStashFacetTest is DiamondTest {
         deal(GMX_TOKEN_ADDRESS, address(this), DEPOSIT_AMOUNT);
 
         // Approve b4 depositing
-        ERC20(GMX_TOKEN_ADDRESS).approve(
+        IERC20(GMX_TOKEN_ADDRESS).approve(
             address(vaultContract),
             type(uint256).max
         );
@@ -73,7 +73,7 @@ contract TokenStashFacetTest is DiamondTest {
 
         // Assert that our balance is 0
         assertEq(
-            ERC20(GMX_TOKEN_ADDRESS).balanceOf(address(this)),
+            IERC20(GMX_TOKEN_ADDRESS).balanceOf(address(this)),
             0,
             "Deposited Into Vault But Balance Remains"
         );
@@ -82,7 +82,7 @@ contract TokenStashFacetTest is DiamondTest {
         assertEq(
             TokenStashFacet(address(diamond)).getStrategyStash(
                 vaultContract,
-                ERC20(GMX_TOKEN_ADDRESS)
+                IERC20(GMX_TOKEN_ADDRESS)
             ),
             DEPOSIT_AMOUNT,
             "Deposited, But Tokens Not Stashed"
@@ -97,7 +97,7 @@ contract TokenStashFacetTest is DiamondTest {
         assertEq(
             TokenStashFacet(address(diamond)).getStrategyStash(
                 vaultContract,
-                ERC20(GMX_TOKEN_ADDRESS)
+                IERC20(GMX_TOKEN_ADDRESS)
             ),
             0,
             "Executed Deposit, But Tokens Still Stashed"
