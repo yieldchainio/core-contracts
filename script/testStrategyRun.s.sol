@@ -30,20 +30,20 @@ contract TestStrategyFully is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0xFba4846d1bd5211060c99c37996afaA8f1859a70);
+        Vault vaultAddress = Vault(0x9a4088f4280Aed77cBA3c09D57feD3E04B8c55fD);
 
-        GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
-            address(vaultAddress)
-        );
+        // GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
+        //     address(vaultAddress)
+        // );
 
-        IERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a).approve(
-            address(vaultAddress),
-            type(uint256).max
-        );
+        // IERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a).approve(
+        //     address(vaultAddress),
+        //     type(uint256).max
+        // );
 
         uint256 requiredGas = vaultAddress.approxDepositGas() * 2;
 
-        vaultAddress.deposit{value: requiredGas}(1 * 10 ** 16);
+        // vaultAddress.deposit{value: requiredGas}(1 * 10 ** 16);
 
         Vault[] memory strategies = StrategiesViewerFacet(address(diamond))
             .getStrategiesList();
@@ -78,10 +78,12 @@ contract TestStrategyFully is Script, HelperContract {
         check[0] = new bool[](1);
         check[0][0] = true;
 
-        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
-            indices,
-            check
-        );
+        // TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
+        //     indices,
+        //     check
+        // );
+
+        requiredGas = vaultAddress.approxWithdrawalGas() * 2;
 
         vaultAddress.withdraw{value: requiredGas}(1 * 10 ** 16);
 
@@ -93,4 +95,4 @@ contract TestStrategyFully is Script, HelperContract {
     }
 }
 
-// forge script ./script/testStrategyRun.s.sol:TestStrategyFully --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvvv --ffi
+// forge script ./script/testStrategyRun.s.sol:TestStrategyFully --chain-id 42161 --fork-url $ARBITRUM_RPC_URL --broadcast -vvv --ffi
