@@ -99,4 +99,16 @@ contract AccessControlFacet is Modifiers {
         accessControlStorage.executors = newArr;
         accessControlStorage.isWhitelisted[executor] = false;
     }
+
+    function getOffchainActionsUrl()
+        external
+        view
+        returns (string memory offchainActionsUrl)
+    {
+        offchainActionsUrl = AccessControlStorageLib._getOffchainLookupUrl();
+    }
+
+    function setOffchainActionsUrl(string calldata newUrl) external {
+        AccessControlStorageLib._setOffchainLookupUrl(newUrl);
+    }
 }

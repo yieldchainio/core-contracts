@@ -26,7 +26,7 @@ contract WithdrawEth is Script, HelperContract {
     // ===================
     //contract types of facets to be deployed
     Diamond diamond =
-        Diamond(payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3));
+        Diamond(payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831));
 
     function run() external {
         //read env variables and choose EOA for transaction signing

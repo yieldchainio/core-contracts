@@ -22,6 +22,7 @@ import "src/diamond/interfaces/IDiamond.sol";
 import "src/diamond/interfaces/IDiamondCut.sol";
 import "src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
+import "src/diamond/facets/adapters/lp/clients/Glp.sol";
 import "src/diamond/interfaces/IDiamondLoupe.sol";
 import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
@@ -53,6 +54,7 @@ contract DeployScript is Script, HelperContract {
 
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
+    GlpAdapterFacet glpAdapterFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -84,6 +86,7 @@ contract DeployScript is Script, HelperContract {
         // Adapters Facets
         lpAdapterFacet = new LpAdapterFacet();
         uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
+        glpAdapterFacet = new GlpAdapterFacet();
 
         DiamondInit diamondInit = new DiamondInit();
 
@@ -94,7 +97,7 @@ contract DeployScript is Script, HelperContract {
             initCalldata: abi.encodeWithSignature("init()")
         });
 
-        FacetCut[] memory cut = new FacetCut[](13);
+        FacetCut[] memory cut = new FacetCut[](14);
 
         cut[0] = FacetCut({
             facetAddress: address(dCutFacet),
@@ -193,6 +196,14 @@ contract DeployScript is Script, HelperContract {
                 facetAddress: address(uniV2LpAdapterFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("UniV2LpAdapterFacet")
+            })
+        );
+
+        cut[13] = (
+            FacetCut({
+                facetAddress: address(glpAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("GlpAdapterFacet")
             })
         );
 

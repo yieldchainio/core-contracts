@@ -21,7 +21,8 @@ contract FactoryFacet is Modifiers {
     event VaultCreated(
         address indexed strategyAddress,
         address indexed creator,
-        address indexed depositToken
+        address indexed depositToken,
+        bytes constructorArgs
     );
 
     // ==================
@@ -82,6 +83,21 @@ contract FactoryFacet is Modifiers {
             msg.sender
         );
 
+        emit VaultCreated(
+            address(createdVault),
+            msg.sender,
+            address(depositToken),
+            abi.encode(
+                seedSteps,
+                treeSteps,
+                uprootSteps,
+                approvalPairs,
+                depositToken,
+                isPublic,
+                msg.sender
+            )
+        );
+
         /**
          * Push the strategy to the storage array
          */
@@ -97,12 +113,6 @@ contract FactoryFacet is Modifiers {
         TriggersManagerFacet(address(this)).registerTriggers(
             triggers,
             createdVault
-        );
-
-        emit VaultCreated(
-            address(createdVault),
-            msg.sender,
-            address(depositToken)
         );
     }
 }

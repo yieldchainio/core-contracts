@@ -69,4 +69,15 @@ abstract contract VaultTypes {
      * When we execute a callback step, there's no calldata hydrated for it and we are on mainnet
      */
     error NoOffchainComputedCommand(uint256 stepIndex);
+
+    /**
+     * CCIP Offchain Loockup
+     */
+    error OffchainLookup(
+        address sender,
+        string[] urls,
+        bytes callData,
+        bytes4 callbackFunction,
+        bytes extraData
+    );
 }

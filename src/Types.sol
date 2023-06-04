@@ -123,4 +123,11 @@ struct OperationItem {
     bool executed;
 }
 
-
+struct OffchainActionRequest{
+    uint256 stepIndex;
+    address initiatingAddress;
+    bytes[] priorOffchainCommands;
+    address callTargetAddress;
+    string signature;
+    bytes args;
+}

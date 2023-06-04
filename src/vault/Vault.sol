@@ -71,57 +71,20 @@ contract Vault is VaultExecution {
      * @param amount - The amount of the deposit token to deposit
      */
     function deposit(
-        uint256 amount
+        uint256 amount,
+        bytes[] calldata offchainComputedCommands
     ) external payable onlyWhitelistedOrPublicVault {
-        /**
-         * We assert that the user must have given us appropriate allowance of the deposit token,
-         * so that we can transfer the amount to us
-         */
         if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) < amount)
             revert InsufficientAllowance();
 
-        /**
-         * @dev We assert that the msg.value of this call is atleast of the deposit approximation * the delta
-         */
-        if (msg.value < approxDepositGas * GAS_FEE_APPROXIMATION_DELTA)
-            revert InsufficientGasPrepay();
-
-        /**
-         * @notice
-         * We get the user's tokens into our balance, and then @dev stash it on the Yieldchain Diamond's TokenStasher facet.
-         * This is in order for us to get the tokens right away, without messing with the balances of other operations
-         */
-
         // Transfer to us
         DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
-
-        // Stash in TokenStasher
-        ITokenStash(YC_DIAMOND).stashTokens(address(DEPOSIT_TOKEN), amount);
 
         // Increment total shares supply & user's balance
         totalShares += amount;
         balances[msg.sender] += amount;
 
-        /**
-         * Create an operation item, and request it (adding to the state array & emitting an event w a request to handle)
-         */
-
-        // Create the args array which just includes the encoded amount
-        bytes[] memory depositArgs = new bytes[](1);
-        depositArgs[0] = abi.encode(amount);
-
-        // Create the queue item
-        OperationItem memory depositRequest = OperationItem(
-            ExecutionTypes.SEED,
-            msg.sender,
-            0,
-            depositArgs,
-            new bytes[](0),
-            false
-        );
-
-        // Request the operation
-        requestOperation(depositRequest);
+        executeStepTree(SEED_STEPS, offchainComputedCommands, new uint256[](1));
     }
 
     /**

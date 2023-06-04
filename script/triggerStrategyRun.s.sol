@@ -30,7 +30,7 @@ contract TriggerRunScript is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0xFba4846d1bd5211060c99c37996afaA8f1859a70);
+        Vault vaultAddress = Vault(0xE00D595c948B71394D1ac43f67BAe957341A84e9);
 
         Vault[] memory strategies = StrategiesViewerFacet(address(diamond))
             .getStrategiesList();

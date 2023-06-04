@@ -14,7 +14,7 @@ import "./OperationsQueue.sol";
 import "./State.sol";
 import "./Constants.sol";
 import "./VaultUtilities.sol";
-import "../diamond/interfaces/ITokenStash.sol";
+import "../diamond/interfaces/IAccessControl.sol";
 
 abstract contract VaultExecution is
     YCVM,
@@ -23,87 +23,49 @@ abstract contract VaultExecution is
     VaultConstants,
     VaultState
 {
+    // ============================
+    //          ERRORS
+    // ============================
+    error OffchainLookup(
+        address sender,
+        string[] urls,
+        bytes callData,
+        bytes4 callbackFunction,
+        bytes extraData
+    );
+
     // Libs
     using SafeERC20 for IERC20;
 
-    // =========================================
-    //       DIAMOND-PERMISSIONED METHODS
-    // =========================================
-    /**
-     * hydrateAndExecuteRun
-     * Hydrates an OperationItem from storage with provided calldatas and executes it
-     * @param operationIndex - The index of the operation from within storage
-     * @param commandCalldatas - Array of arbitrary YC commands, should be the fullfilling calldatas for the
-     * run if required
-     */
-    function hydrateAndExecuteRun(
-        uint256 operationIndex,
-        bytes[] calldata commandCalldatas
-    ) external onlyDiamond returns (OperationItem memory operation) {
-        // We allocate to the current free memory pointer,
-        // which may be used/overwritten by subsequent internal function calls
-        // (e.g, saving a user's share in memory)
-        assembly {
-            mstore(0x40, add(mload(0x40), 0x20))
-        }
-
-        /**
-         * We retreive the current operation to handle.
-         * Note that we do not dequeue it, as we want it to remain visible in storage
-         * until the operation fully completes (incase there is an offchain break inbetween execution steps).
-         * Dequeuing it & resaving to storage would be highly unneccsery gas-wise, and hence we leave it in the queue,
-         * and leave it upto the handling function to dequeue it
-         */
-
-        operation = operationRequests[operationIndex];
-
-        require(!operation.executed, "Operation Already Executed");
-
-        /**
-         * We hydrate it with the command calldatas
-         */
-        operation.commandCalldatas = commandCalldatas;
-
-        uint256[] memory startingIndices = new uint256[](1);
-        startingIndices[0] = 0;
-
-        /**
-         * Switch statement for the operation to run
-         */
-        if (operation.action == ExecutionTypes.SEED)
-            executeDeposit(operation, startingIndices);
-        else if (operation.action == ExecutionTypes.UPROOT)
-            executeWithdraw(operation, startingIndices);
-        else if (operation.action == ExecutionTypes.TREE)
-            executeStrategy(operation, startingIndices);
-        else revert();
-
-        // We unlock the contract state once the operation has completed
-        operationRequests[operationIndex].executed = true;
-    }
+    // ============================
+    //       EXTERNAL METHODS
+    // ============================
 
     /**
-     * storeGasApproximation()
-     * Stores a gas approximation for some action
-     * @param operationType - ExecutionType enum so that we know where to store to
-     * @param approximation - The approximation of gas
+     * Called by the client after simulating some offchain action lookup mid run
+     * @param offchainResponse - The response received from the offchain actions gateway
+     * @param actionContext - The CCIP "extraData" encoded by the run. Specifies the action type,
+     * and an amount if needed.
+     *
+     * Responsible for re-executing whatever action was originally intended, whilst being CCIP compatible.
+     * Sort of a router.
      */
-    function storeGasApproximation(
-        ExecutionTypes operationType,
-        uint256 approximation
-    ) external onlyDiamond {
-        // Switch case based on the type
-        if (operationType == ExecutionTypes.SEED)
-            approxDepositGas = approximation;
-        else if (operationType == ExecutionTypes.UPROOT)
-            approxWithdrawalGas = approximation;
-        else if (operationType == ExecutionTypes.TREE)
-            approxStrategyGas = approximation;
+    function offchainActionCallback(
+        bytes memory offchainResponse,
+        bytes memory actionContext
+    ) external {
+        (ExecutionTypes executionType, uint256 amount) = abi.decode(
+            actionContext,
+            (ExecutionTypes, uint256)
+        );
+
+        if (executionType == ExecutionTypes.SEED) {}
     }
 
     // ============================
     //       INTERNAL METHODS
     // ============================
+
     /**
      * @notice
      * executeDeposit()
@@ -115,26 +77,13 @@ abstract contract VaultExecution is
         OperationItem memory depositItem,
         uint256[] memory startingIndices
     ) internal {
-        /**
-         * @dev
-         * At this point, we have transferred the user's funds to our stash in the Diamond,
-         * and had the offchain handler hydrate our item's calldatas (if any are required).
-         */
-
-        /**
-         * Decode the first byte argument as an amount
-         */
         uint256 amount = abi.decode(depositItem.arguments[0], (uint256));
 
         assembly {
-            // We MSTORE at the deposit amount memory location the deposit amount (may be accessed by commands to determine amount arguments)
+            // We MSTORE at the deposit amount memory location the deposit amount
+            // (may be accessed by commands to determine amount arguments)
             mstore(DEPOSIT_AMT_MEM_LOCATION, amount)
         }
-
-        /**
-         * We unstash the user's tokens from the Yieldchain Diamond, so that it is (obv) used within the operation
-         */
-        ITokenStash(YC_DIAMOND).unstashTokens(address(DEPOSIT_TOKEN), amount);
 
         /**
          * @notice  We execute the seed steps, starting from the root step
@@ -152,19 +101,8 @@ abstract contract VaultExecution is
         OperationItem memory withdrawItem,
         uint256[] memory startingIndices
     ) internal {
-        /**
-         * @dev At this point, we have deducted the shares from the user's balance and the total supply
-         * when the request was made.
-         */
-
-        /**
-         * Decode the first byte argument as an amount
-         */
         uint256 amount = abi.decode(withdrawItem.arguments[0], (uint256));
 
-        /**
-         * The share in % this amount represnets of the total shares (Plus the amount b4 dividing, since we already deducted from it in the initial function)
-         */
         uint256 shareOfVaultInPercentage = (totalShares + amount) / amount;
 
         assembly {
@@ -181,33 +119,11 @@ abstract contract VaultExecution is
          */
         uint256 preVaultBalance = DEPOSIT_TOKEN.balanceOf(address(this));
 
-        /**
-         * @notice  We begin executing the uproot (reverse) steps
-         */
         executeStepTree(UPROOTING_STEPS, startingIndices, withdrawItem);
 
-        /**
-         * After executing all of the steps, we get the balance difference,
-         * and transfer to the user.
-         * We use safeERC20, so if the debt is 0, the execution reverts.
-         */
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
-        DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
-    }
 
-    /**
-     * @notice
-     * handleRunStrategy()
-     * Handles a strategy run request
-     */
-    function executeStrategy(
-        OperationItem memory strategyRunRequest,
-        uint256[] memory startingIndices
-    ) internal {
-        /**
-         * Execute the strategy's tree of steps with the provided startingIndices and fullfill command
-         */
-        executeStepTree(STEPS, startingIndices, strategyRunRequest);
+        DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
     }
 
     // ==============================
@@ -224,75 +140,31 @@ abstract contract VaultExecution is
      */
     function executeStepTree(
         bytes[] memory virtualTree,
+        bytes[] memory offchainComputedCommands,
         uint256[] memory startingIndices,
-        OperationItem memory operationRequest
+        bytes4 callbackFunction,
+        bytes memory actionContext
     ) internal {
         /**
          * Iterate over each one of the starting indices
          */
         for (uint256 i = 0; i < startingIndices.length; i++) {
-            /**
-             * Load the current virtualTree step index
-             */
             uint256 stepIndex = startingIndices[i];
 
-            /**
-             * Begin by retreiving & decoding the current YC step from the virtual tree
-             */
             YCStep memory step = abi.decode(virtualTree[stepIndex], (YCStep));
-
-            /**
-             * @notice Initiating a variable for the "chosenOffspringIdx", which is ONLY RELEVENT
-             * for conditional steps.
-             *
-             * When a conditional step runs, it will reassign to this variable either:
-             * - An index of one of it's children
-             * - 0
-             * If it's an index of one of it's children, it means that it found a case where
-             * one of it's children conditions returned true, and we should only execute it (rather than all of it's children indexes).
-             * Otherwise, if the index is 0, it means it did not find any, and we should not execute any of it's children.
-             * (It is impossible for a condition index to be 0, since it will always be the root)
-             */
-            // uint256 chosenOffspringIdx;
-
-            /**
-             * Check to see if current step is a condition - Execute the conditional function with it's children if it is.
-             */
-            // if (step.conditions.length > 0) {
-            //     // Sufficient check to make sure there are as many conditions as there are children
-            //     require(
-            //         step.conditions.length == step.childrenIndices.length,
-            //         "Conditions & Children Mismatch"
-            //     );
-
-            //     // Assign to the chosenOffspringIdx variable the return value from the conditional checker
-            //     chosenOffspringIdx = _determineConditions(step.conditions);
-            // }
 
             /**
              * We first check to see if this step is a callback step.
              */
             if (step.isCallback) {
-                /**
-                 * @notice @dev
-                 * A callback step means it requires offchain-computed data to be used.
-                 * When the initial request for this operation run was made, it was re-entered with the offchain-computed data,
-                 * and set on our operation item in an array of YC commands.
-                 * We check to see if, at our (step) index, the command calldata exists. If it does, we run it.
-                 * Otherwise, we check to see if we are on mainnet currently. If we are, it means something is wrong, and we shall revert.
-                 * If we are on a fork, we emit a "RequestFullfill" event. Which will be used by the offchain simulator to create the command calldata,
-                 * which we should have on every mainnet execution for callback steps.
-                 */
+                // If already got the command, run it
                 if (
-                    operationRequest.commandCalldatas.length > stepIndex &&
-                    bytes32(operationRequest.commandCalldatas[stepIndex]) !=
-                    bytes32(0)
+                    offchainComputedCommands.length > stepIndex &&
+                    bytes32(offchainComputedCommands[stepIndex]) != bytes32(0)
                 )
-                    _runFunction(operationRequest.commandCalldatas[stepIndex]);
+                    _runFunction(offchainComputedCommands[stepIndex]);
 
-                    // Revert if we are on mainnet
-                else if (isMainnet) revert NoOffchainComputedCommand(stepIndex);
-                // Emit a fullfill event otherwise
+                    // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
                 else {
                     (bytes memory nakedFunc, , ) = _separateCommand(step.func);
 
@@ -301,27 +173,33 @@ abstract contract VaultExecution is
                         (FunctionCall)
                     );
 
-                    bytes[] memory builtArgs = new bytes[](
-                        originalCall.args.length
-                    );
-
-                    for (uint256 j; j < builtArgs.length; j++) {
-                        bytes[] memory ownArray = new bytes[](1);
-                        ownArray[0] = originalCall.args[j];
-                        builtArgs[j] = interpretCommandsAndEncodeChunck(
-                            ownArray
+                    bytes
+                        memory interpretedArgs = interpretCommandsAndEncodeChunck(
+                            originalCall.args
                         );
-                    }
 
-                    emit RequestFullfill(
-                        stepIndex,
-                        abi.encode(
-                            FunctionCall(
-                                originalCall.target_address,
-                                builtArgs,
-                                originalCall.signature
-                            )
-                        )
+                    string memory offchainActionsUrl = IAccessControlFacet(
+                        address(YC_DIAMOND)
+                    ).getOffchainActionsUrl();
+                    string[] memory urls = new string[](1);
+                    urls[0] = offchainActionsUrl;
+
+                    OffchainActionRequest
+                        memory offchainRequest = OffchainActionRequest(
+                            stepIndex,
+                            address(this),
+                            offchainComputedCommands,
+                            originalCall.target_address,
+                            originalCall.signature,
+                            interpretedArgs
+                        );
+
+                    revert OffchainLookup(
+                        address(this),
+                        urls,
+                        abi.encode(offchainRequest),
+                        callbackFunction,
+                        actionContext
                     );
                 }
             }
@@ -330,91 +208,15 @@ abstract contract VaultExecution is
              */
             else if (bytes32(step.func) != bytes32(0)) _runFunction(step.func);
 
-            /**
-             * @notice
-             * At this point, we move onto executing the step's children.
-             * If the chosenOffSpringIdx variable does not equal to 0, we execute the children idx at that index
-             * of the array of indexes of the step. So if the index 2 was returnd, we execute virtualTree[step.childrenIndices[2]].
-             * Otherwise, we do a full iteration over all children
-             */
+            uint256[] memory childrenStartingIndices = step.childrenIndices;
 
-            // We initiatre this array to a length of 1. If we should execute all children, this is reassigned to.
-            uint256[] memory childrenStartingIndices = new uint256[](1);
-
-            // // If offspring idx is valid, we assign to index 0 it's index
-            // if (chosenOffspringIdx > 0)
-            //     childrenStartingIndices[0] = step.childrenIndices[
-            //         // Note we -1 here, since the chosenOffspringIdx would have upped it up by 1 (to retain 0 as the falsy indicator)
-            //         chosenOffspringIdx - 1
-            //     ];
-
-            //     // Else it equals to all of the step's children
-            // else
-            childrenStartingIndices = step.childrenIndices;
-
-            /**
-             * We now iterate over each children and @recruse the function call
-             * Note that the executeStepTree() function accepts an array of steps to execute.
-             * You may would have expected us to do an iteration over each child, but in order to be complied with
-             * the fact that, an execution tree may emit multiple offchain requests in a single transaction - We accept an array
-             * of starting indices, rather than a single starting index. (Offchain actions will be batched per transaction and executed together here,
-             * rather than per-event).
-             */
             executeStepTree(
                 virtualTree,
+                offchainComputedCommands,
                 childrenStartingIndices,
-                operationRequest
+                callbackFunction,
+                actionContext
             );
         }
-    }
-
-    // =========================
-    //    SIMULATION METHODS
-    // =========================
-    //------------------
-    // @notice ONLY ON FORKS, IRRELEVENT ON MAINNETS
-    //------------------
-
-    /**
-     * @dev
-     * ONLY ON FORK!!
-     * set fork status
-     */
-    function setForkStatus() external {
-        require(msg.sender == address(0), "Only Fork Address Can Do This");
-        isMainnet = false;
-    }
-
-    /**
-     * @dev
-     * ONLY ON FORK!!
-     * Used for simulating the run
-     * @param operationIdx - The idx of the operation to simulate
-     * @param startingIndices - The starting indices
-     * @param commandsHydratedThusFar - Commands that were hydrated thus far
-     */
-    function simulateOperationHydrationAndExecution(
-        uint256 operationIdx,
-        uint256[] memory startingIndices,
-        bytes[] memory commandsHydratedThusFar
-    ) external {
-        require(msg.sender == address(0), "Only Fork Address Can Do This");
-        OperationItem memory operation = operationRequests[operationIdx];
-
-        /**
-         * We hydrate it with the command calldatas
-         */
-        operation.commandCalldatas = commandsHydratedThusFar;
-
-        /**
-         * Switch statement for the operation to run
-         */
-        if (operation.action == ExecutionTypes.SEED)
-            executeDeposit(operation, startingIndices);
-        else if (operation.action == ExecutionTypes.UPROOT)
-            executeWithdraw(operation, startingIndices);
-        else if (operation.action == ExecutionTypes.TREE)
-            executeStrategy(operation, startingIndices);
-        else revert();
     }
 }
