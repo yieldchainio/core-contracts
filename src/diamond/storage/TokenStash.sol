@@ -23,11 +23,7 @@ library TokenStashStorageLib {
         keccak256("diamond.yieldchain.storage.token_stasher");
 
     // Function to retreive our storage
-    function getTokenStasherStorage()
-        internal
-        pure
-        returns (TokenStashStorage storage s)
-    {
+    function retreive() internal pure returns (TokenStashStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position
@@ -39,7 +35,7 @@ library TokenStashStorageLib {
         IERC20 token,
         uint256 amount
     ) internal {
-        getTokenStasherStorage().strategyStashes[strategy][token] += amount;
+        retreive().strategyStashes[strategy][token] += amount;
     }
 
     function removeFromStrategyStash(
@@ -48,10 +44,10 @@ library TokenStashStorageLib {
         uint256 amount
     ) internal {
         require(
-            getTokenStasherStorage().strategyStashes[strategy][token] >= amount,
+            retreive().strategyStashes[strategy][token] >= amount,
             "Insufficient Balance To Deduct From Stash"
         );
 
-        getTokenStasherStorage().strategyStashes[strategy][token] -= amount;
+        retreive().strategyStashes[strategy][token] -= amount;
     }
 }

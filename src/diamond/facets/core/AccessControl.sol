@@ -20,7 +20,7 @@ contract AccessControlFacet is Modifiers {
      * @return executors - list of all executors
      */
     function getExecutors() external view returns (address[] memory executors) {
-        executors = AccessControlStorageLib.getAccessControlStorage().executors;
+        executors = AccessControlStorageLib.retreive().executors;
     }
 
     /**
@@ -31,9 +31,7 @@ contract AccessControlFacet is Modifiers {
     function isAnExecutor(
         address suspect
     ) external view returns (bool isExecutor) {
-        isExecutor = AccessControlStorageLib
-            .getAccessControlStorage()
-            .isWhitelisted[suspect];
+        isExecutor = AccessControlStorageLib.retreive().isWhitelisted[suspect];
     }
 
     /**
@@ -55,8 +53,7 @@ contract AccessControlFacet is Modifiers {
     function whitelistExecutor(address executor) public onlyOwner {
         // Storage ref
         AccessControlStorage
-            storage accessControlStorage = AccessControlStorageLib
-                .getAccessControlStorage();
+            storage accessControlStorage = AccessControlStorageLib.retreive();
 
         // Avoid dupes
         require(
@@ -76,8 +73,7 @@ contract AccessControlFacet is Modifiers {
     function blacklistExecutor(address executor) public onlyOwner {
         // Storage ref
         AccessControlStorage
-            storage accessControlStorage = AccessControlStorageLib
-                .getAccessControlStorage();
+            storage accessControlStorage = AccessControlStorageLib.retreive();
 
         // Avoid dupes
         require(

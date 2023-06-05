@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../../../Modifiers.sol";
-import "../../../storage/adapters/lp-adapter/LpAdapter.sol";
+import "../../../storage/adapters/lp/LpAdapter.sol";
 
 abstract contract LpClientsManagerFacet is Modifiers {
     // ================
@@ -20,8 +20,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
         bytes32 clientID,
         LPClient calldata client
     ) public onlyOwner {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         require(
             lpStorage.clientsSelectors[clientID].addSelector == bytes4(0),
@@ -42,8 +41,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
         LPClient[] calldata clients
     ) external onlyOwner {
         require(clientsIds.length == clients.length, "Clients Length Mismatch");
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         for (uint48 i; i < clientsIds.length; i++) {
             bytes32 clientID = clientsIds[i];
@@ -62,8 +60,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
      * @param clientID - ID of the client
      */
     function removeClient(bytes32 clientID) external onlyOwner {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         uint256 idx = 500000;
 
@@ -99,8 +96,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
         bytes32 clientID,
         LPClient calldata newClient
     ) external onlyOwner {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         lpStorage.clientsSelectors[clientID] = newClient;
     }
@@ -109,8 +105,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
     //    GETTERS
     // ================
     function getClients() external view returns (LPClient[] memory clients) {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         bytes32[] memory clientsIds = lpStorage.clients;
 
@@ -123,8 +118,7 @@ abstract contract LpClientsManagerFacet is Modifiers {
     function getClient(
         bytes32 id
     ) external view returns (LPClient memory client) {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         client = lpStorage.clientsSelectors[id];
     }

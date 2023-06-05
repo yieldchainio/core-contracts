@@ -24,9 +24,7 @@ contract Modifiers {
      */
     modifier onlyExecutors() {
         require(
-            AccessControlStorageLib.getAccessControlStorage().isWhitelisted[
-                msg.sender
-            ],
+            AccessControlStorageLib.retreive().isWhitelisted[msg.sender],
             "ERR: Not Whitelisted Executor"
         );
         _;
@@ -38,7 +36,7 @@ contract Modifiers {
     modifier onlyVaults() {
         require(
             StrategiesStorageLib
-                .getStrategiesStorage()
+                .retreive()
                 .strategiesState[Vault(msg.sender)]
                 .registered,
             "Not A Registered Vault"

@@ -23,8 +23,7 @@ contract TriggersManagerFacet is Modifiers {
         Vault vault
     ) public onlySelf {
         TriggersManagerStorage
-            storage triggersStorage = TriggersManagerStorageLib
-                .getTriggersStorage();
+            storage triggersStorage = TriggersManagerStorageLib.retreive();
 
         for (uint256 i; i < triggers.length; i++) {
             triggersStorage.registeredTriggers[vault].push(
@@ -59,8 +58,7 @@ contract TriggersManagerFacet is Modifiers {
             .getStrategiesList();
 
         TriggersManagerStorage
-            storage triggersStorage = TriggersManagerStorageLib
-                .getTriggersStorage();
+            storage triggersStorage = TriggersManagerStorageLib.retreive();
 
         triggersStatus = new bool[][](vaults.length);
 
@@ -106,12 +104,13 @@ contract TriggersManagerFacet is Modifiers {
             "Vaults Indices & Triggers Signals Mismatch"
         );
 
-        Vault[] memory vaults = StrategiesStorageLib
-            .getStrategiesStorage()
-            .strategies;
+        Vault[] memory vaults = StrategiesStorageLib.retreive().strategies;
 
         for (uint256 i; i < vaultsIndices.length; i++)
-            _executeStrategyTriggers(vaults[vaultsIndices[i]], triggersSignals[i]);
+            _executeStrategyTriggers(
+                vaults[vaultsIndices[i]],
+                triggersSignals[i]
+            );
     }
 
     /**
@@ -125,8 +124,7 @@ contract TriggersManagerFacet is Modifiers {
         bool[] calldata triggersSignals
     ) internal {
         TriggersManagerStorage
-            storage triggersStorage = TriggersManagerStorageLib
-                .getTriggersStorage();
+            storage triggersStorage = TriggersManagerStorageLib.retreive();
 
         RegisteredTrigger[] memory registeredTriggers = triggersStorage
             .registeredTriggers[vault];
@@ -199,9 +197,6 @@ contract TriggersManagerFacet is Modifiers {
     function getVaultTriggers(
         Vault vault
     ) external view returns (RegisteredTrigger[] memory triggers) {
-        return
-            TriggersManagerStorageLib.getTriggersStorage().registeredTriggers[
-                vault
-            ];
+        return TriggersManagerStorageLib.retreive().registeredTriggers[vault];
     }
 }

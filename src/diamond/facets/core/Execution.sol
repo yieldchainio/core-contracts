@@ -47,7 +47,7 @@ contract ExecutionFacet is Modifiers {
 
         // Storage ref shorthand
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
 
         // Make sure the strategy is registered
         require(
@@ -63,7 +63,7 @@ contract ExecutionFacet is Modifiers {
 
         // The gas sponsored by the op request
         uint256 sponsoredGas = StrategiesStorageLib
-            .getStrategiesStorage()
+            .retreive()
             .strategyOperationsGas[strategy][operationIndex];
 
         /**
@@ -81,7 +81,7 @@ contract ExecutionFacet is Modifiers {
             operation.action == ExecutionTypes.UPROOT
         ) {
             // We reset the gas paid by the operation
-            StrategiesStorageLib.getStrategiesStorage().strategyOperationsGas[
+            StrategiesStorageLib.retreive().strategyOperationsGas[
                 Vault(msg.sender)
             ][operationIndex] = 0;
 
@@ -145,7 +145,7 @@ contract ExecutionFacet is Modifiers {
     function triggerStrategyRun(Vault strategy) external onlyExecutors {
         // Storage ref shorthand
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
 
         // Make sure the strategy is registered
         require(

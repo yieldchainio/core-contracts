@@ -19,18 +19,13 @@ struct LPClient {
     bytes extraData;
 }
 
-
 library LpAdapterStorageLib {
     // Storage slot hash
     bytes32 internal constant STORAGE_NAMESPACE =
         keccak256("diamond.yieldchain.storage.adapters.lp");
 
     // Retreive the storage struct
-    function getLpAdapterStorage()
-        internal
-        pure
-        returns (LpAdapterStorage storage s)
-    {
+    function retreive() internal pure returns (LpAdapterStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position

@@ -29,9 +29,9 @@ contract TokenStashFacet is Modifiers {
         Vault vault,
         IERC20 token
     ) external view returns (uint256 stashedAmount) {
-        stashedAmount = TokenStashStorageLib
-            .getTokenStasherStorage()
-            .strategyStashes[vault][token];
+        stashedAmount = TokenStashStorageLib.retreive().strategyStashes[vault][
+            token
+        ];
     }
 
     // ==================

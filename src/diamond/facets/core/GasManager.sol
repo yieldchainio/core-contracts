@@ -19,7 +19,7 @@ contract GasManagerFacet is Modifiers {
          * Shorthand for strategies storage
          */
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
         /**
          * Storage ref to our strategy in the mapping
          */
@@ -47,7 +47,7 @@ contract GasManagerFacet is Modifiers {
     function stashOperationGas(
         uint256 operationIndex
     ) external payable onlyVaults {
-        StrategiesStorageLib.getStrategiesStorage().strategyOperationsGas[
+        StrategiesStorageLib.retreive().strategyOperationsGas[
             Vault(msg.sender)
         ][operationIndex] += msg.value;
     }
@@ -68,7 +68,7 @@ contract GasManagerFacet is Modifiers {
     ) public onlySelf {
         // Shorthand for strategies storage
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
 
         // Storage ref to our strategy in the mapping
         StrategyState storage strategyState = strategiesStorage.strategiesState[

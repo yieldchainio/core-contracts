@@ -4,7 +4,7 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../../../storage/adapters/lp-adapter/LpAdapter.sol";
+import "../../../../storage/adapters/lp/LpAdapter.sol";
 import "../../../../../interfaces/IGlp.sol";
 import "../../../../../utils/ERC20-Util.sol";
 

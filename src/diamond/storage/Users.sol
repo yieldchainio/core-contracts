@@ -30,7 +30,7 @@ library UsersStorageLib {
         keccak256("diamond.yieldchain.storage.users");
 
     // Function to retreive our storage
-    function getUsersStorage() internal pure returns (UsersStorage storage s) {
+    function retreive() internal pure returns (UsersStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position

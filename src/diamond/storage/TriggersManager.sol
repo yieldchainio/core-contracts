@@ -28,7 +28,7 @@ library TriggersManagerStorageLib {
         keccak256("diamond.yieldchain.storage.triggers_manager");
 
     // Function to retreive our storage
-    function getTriggersStorage()
+    function retreive()
         internal
         pure
         returns (TriggersManagerStorage storage s)

@@ -29,11 +29,7 @@ library AccessControlStorageLib {
         keccak256("diamond.yieldchain.storage.access_control");
 
     // Function to retreive our storage
-    function getAccessControlStorage()
-        internal
-        pure
-        returns (AccessControlStorage storage s)
-    {
+    function retreive() internal pure returns (AccessControlStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position
