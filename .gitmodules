@@ -24,3 +24,6 @@
 [submodule "lib/gmx-contracts"]
 	path = lib/gmx-contracts
 	url = https://github.com/gmx-io/gmx-contracts
+[submodule "lib/aave-v3-core"]
+	path = lib/aave-v3-core
+	url = https://github.com/aave/aave-v3-core
