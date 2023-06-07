@@ -20,6 +20,10 @@ struct LendingClient {
     bytes4 harvestInterestSelector;
     bytes4 harvestIncentivesSelector;
     bytes4 loopSelector;
+    bytes4 balanceOfReserveSelector;
+    bytes4 balanceOfDebtSelector;
+    bytes4 getRepresentationTokenSelector;
+    bytes4 getSupportedReservesSelector;
     address clientAddress;
     bytes extraData;
 }

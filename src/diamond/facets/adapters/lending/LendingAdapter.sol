@@ -7,7 +7,7 @@
 pragma solidity ^0.8.18;
 import "./ClientsManager.sol";
 
-contract LpAdapterFacet is LendingClientsManagerFacet {
+contract LendingAdapterFacet is LendingClientsManagerFacet {
     /**
      * Supply tokens to a market on a client
      */
@@ -170,6 +170,7 @@ contract LpAdapterFacet is LendingClientsManagerFacet {
      * Harvest accurated interest on deposits on a given client
      */
     function harvestLendingInterest(
+        address token,
         bytes32 clientId,
         bytes memory extraArgs
     ) external {
@@ -182,7 +183,7 @@ contract LpAdapterFacet is LendingClientsManagerFacet {
         require(clientSel != bytes4(0), "Lending Client Non Existant");
 
         (bool success, ) = address(this).delegatecall(
-            abi.encodeWithSelector(clientSel, client, extraArgs)
+            abi.encodeWithSelector(clientSel, client, token, extraArgs)
         );
 
         require(success, "Harvesting Interest Failed");
@@ -234,5 +235,70 @@ contract LpAdapterFacet is LendingClientsManagerFacet {
         );
 
         require(success, "Harvesting Interest Failed");
+    }
+
+    // ===============
+    //     READ
+    // ===============
+    function getAllReserveTokens(
+        bytes32 clientId
+    ) external returns (address[] memory reserveTokens) {
+        LendingAdapterStorage storage lendingStorage = LendingAdapterStorageLib
+            .retreive();
+
+        LendingClient memory client = lendingStorage.clientsSelectors[clientId];
+        bytes4 clientSel = client.getSupportedReservesSelector;
+
+        require(clientSel != bytes4(0), "Lending Client Not Supported");
+
+        (bool success, bytes memory res) = address(this).delegatecall(
+            abi.encodeWithSelector(clientSel, client)
+        );
+
+        require(success, "Getting Rserve Tokens Failed");
+
+        reserveTokens = abi.decode(res, (address[]));
+    }
+
+    function getReserveTokenRepresentation(
+        address token,
+        bytes32 clientId
+    ) external returns (address representationToken) {
+        LendingAdapterStorage storage lendingStorage = LendingAdapterStorageLib
+            .retreive();
+
+        LendingClient memory client = lendingStorage.clientsSelectors[clientId];
+        bytes4 clientSel = client.getRepresentationTokenSelector;
+
+        require(clientSel != bytes4(0), "Lending Client Not Supported");
+
+        (bool success, bytes memory res) = address(this).delegatecall(
+            abi.encodeWithSelector(clientSel, client, token)
+        );
+
+        require(success, "Getting Rserve Tokens Failed");
+
+        representationToken = abi.decode(res, (address));
+    }
+
+    function getRepresentationTokenBalance(
+        address token,
+        bytes32 clientId
+    ) external returns (uint256 representationTokenBalance) {
+        LendingAdapterStorage storage lendingStorage = LendingAdapterStorageLib
+            .retreive();
+
+        LendingClient memory client = lendingStorage.clientsSelectors[clientId];
+        bytes4 clientSel = client.balanceOfReserveSelector;
+
+        require(clientSel != bytes4(0), "Lending Client Not Supported");
+
+        (bool success, bytes memory res) = address(this).delegatecall(
+            abi.encodeWithSelector(clientSel, client, token)
+        );
+
+        require(success, "Getting Rserve Tokens Balance Of Failed");
+
+        representationTokenBalance = abi.decode(res, (uint256));
     }
 }

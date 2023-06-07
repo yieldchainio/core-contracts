@@ -17,6 +17,8 @@ import "../../src/diamond/facets/core/Users.sol";
 import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import {GlpAdapterFacet} from "../../src/diamond/facets/adapters/lp/clients/Glp.sol";
+import {LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/LendingAdapter.sol";
+import {AaveV3LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/clients/AaveV3.sol";
 import "../../src/diamond/Diamond.sol";
 import "../../src/diamond/interfaces/IDiamond.sol";
 import "../../src/diamond/interfaces/IDiamondCut.sol";
@@ -49,6 +51,9 @@ contract DiamondTest is Test, HelperContract {
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
     GlpAdapterFacet glpLpAdapterFacet;
+
+    LendingAdapterFacet lendingAdapterFacet;
+    AaveV3LendingAdapterFacet aaveV3AdapterFacet;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -87,6 +92,9 @@ contract DiamondTest is Test, HelperContract {
         uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
         glpLpAdapterFacet = new GlpAdapterFacet();
 
+        lendingAdapterFacet = new LendingAdapterFacet();
+        aaveV3AdapterFacet = new AaveV3LendingAdapterFacet();
+
         facetNames = [
             "DiamondCutFacet",
             "DiamondLoupeFacet",
@@ -101,7 +109,9 @@ contract DiamondTest is Test, HelperContract {
             "AutomationFacet",
             "LpAdapterFacet",
             "UniV2LpAdapterFacet",
-            "GlpAdapterFacet"
+            "GlpAdapterFacet",
+            "LendingAdapterFacet",
+            "AaveV3LendingAdapterFacet"
         ];
 
         // diamod arguments
@@ -127,7 +137,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](13);
+        FacetCut[] memory cut = new FacetCut[](15);
 
         cut[0] = (
             FacetCut({
@@ -227,6 +237,24 @@ contract DiamondTest is Test, HelperContract {
                 facetAddress: address(glpLpAdapterFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("GlpAdapterFacet")
+            })
+        );
+
+        cut[13] = (
+            FacetCut({
+                facetAddress: address(lendingAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("LendingAdapterFacet")
+            })
+        );
+
+        cut[14] = (
+            FacetCut({
+                facetAddress: address(aaveV3AdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors(
+                    "AaveV3LendingAdapterFacet"
+                )
             })
         );
 

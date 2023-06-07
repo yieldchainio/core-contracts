@@ -89,6 +89,10 @@ abstract contract LendingClientsManagerFacet is Modifiers {
             0x00000000,
             0x00000000,
             0x00000000,
+            0x00000000,
+            0x00000000,
+            0x00000000,
+            0x00000000,
             address(0),
             new bytes(0)
         );

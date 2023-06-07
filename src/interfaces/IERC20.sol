@@ -88,4 +88,6 @@ interface IERC20 {
     ) external returns (bool);
 
     function decimals() external view returns (uint256);
+
+    function symbol() external view returns (string memory);
 }
