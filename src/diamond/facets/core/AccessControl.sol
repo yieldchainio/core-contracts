@@ -7,10 +7,10 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/AccessControl.sol";
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import {LibDiamond} from "../../libraries/LibDiamond.sol";
 
-contract AccessControlFacet is Modifiers {
+contract AccessControlFacet is AccessControlled {
     // ======================
     //       GETTERS
     // ======================

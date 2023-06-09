@@ -10,7 +10,7 @@ import "./storage/AccessControl.sol";
 import "./storage/Strategies.sol";
 import {LibDiamond} from "./libraries/LibDiamond.sol";
 
-contract Modifiers {
+contract AccessControlled {
     /**
      * Only allow owner of the diamond to access
      */

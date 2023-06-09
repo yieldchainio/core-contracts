@@ -8,9 +8,9 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/TriggersManager.sol";
 import "../../storage/Users.sol";
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 
-contract StrategiesViewerFacet is Modifiers {
+contract StrategiesViewerFacet is AccessControlled {
     // ==================
     //     GETTERS
     // ==================

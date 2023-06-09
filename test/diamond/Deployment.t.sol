@@ -18,7 +18,7 @@ import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import {GlpAdapterFacet} from "../../src/diamond/facets/adapters/lp/clients/Glp.sol";
 import {LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/LendingAdapter.sol";
-import {AaveV3LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/clients/AaveV3.sol";
+import {AaveV3AdapterStorageManager} from "../../src/diamond/facets/adapters/lending/clients/AaveV3Storage.sol";
 import "../../src/diamond/Diamond.sol";
 import "../../src/diamond/interfaces/IDiamond.sol";
 import "../../src/diamond/interfaces/IDiamondCut.sol";
@@ -53,7 +53,7 @@ contract DiamondTest is Test, HelperContract {
     GlpAdapterFacet glpLpAdapterFacet;
 
     LendingAdapterFacet lendingAdapterFacet;
-    AaveV3LendingAdapterFacet aaveV3AdapterFacet;
+    AaveV3AdapterStorageManager aaveV3StorageManager;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -93,7 +93,7 @@ contract DiamondTest is Test, HelperContract {
         glpLpAdapterFacet = new GlpAdapterFacet();
 
         lendingAdapterFacet = new LendingAdapterFacet();
-        aaveV3AdapterFacet = new AaveV3LendingAdapterFacet();
+        aaveV3StorageManager = new AaveV3AdapterStorageManager();
 
         facetNames = [
             "DiamondCutFacet",
@@ -250,10 +250,10 @@ contract DiamondTest is Test, HelperContract {
 
         cut[14] = (
             FacetCut({
-                facetAddress: address(aaveV3AdapterFacet),
+                facetAddress: address(aaveV3StorageManager),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors(
-                    "AaveV3LendingAdapterFacet"
+                    "AaveV3AdapterStorageManager"
                 )
             })
         );

@@ -3,13 +3,13 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import "../../../Types.sol";
 import "../../storage/TriggersManager.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
 
-contract TriggersManagerFacet is Modifiers {
+contract TriggersManagerFacet is AccessControlled {
     // =================
     //     FUNCTIONS
     // =================

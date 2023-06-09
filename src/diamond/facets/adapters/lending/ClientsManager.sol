@@ -4,10 +4,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../../Modifiers.sol";
+import "../../../AccessControlled.sol";
 import "../../../storage/adapters/lending/Lending.sol";
 
-abstract contract LendingClientsManagerFacet is Modifiers {
+abstract contract LendingClientsManagerFacet is AccessControlled {
     // ================
     //    SETTERS
     // ================
@@ -78,7 +78,7 @@ abstract contract LendingClientsManagerFacet is Modifiers {
             }
 
         require(idx != 500000, "Didnt Find Existing Client");
-        
+
         LendingStorage.clientsSelectors[clientID] = LendingClient(
             0x00000000,
             0x00000000,

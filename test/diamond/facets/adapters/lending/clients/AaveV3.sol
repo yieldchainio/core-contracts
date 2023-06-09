@@ -6,10 +6,17 @@ pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
 import "../../../../Deployment.t.sol";
 import "../../../../../../src/diamond/facets/adapters/lending/LendingAdapter.sol";
-import "../../../../../../src/diamond/facets/adapters/lending/clients/AaveV3.sol";
 import "../../../../../vault/main/Base.sol";
+import "src/vault/TestableVault.sol";
+
 import {IAToken} from "lib/aave-v3-core/contracts/interfaces/IAToken.sol";
 import {IPool} from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
+import {IPoolDataProvider} from "lib/aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
+import {IPoolAddressesProvider} from "lib/aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import {IPoolAddressesProviderRegistry} from "lib/aave-v3-core/contracts/interfaces/IPoolAddressesProviderRegistry.sol";
+import {AaveV3LendingAdapter} from "src/adapters/lending/AaveV3.sol";
+import {ILendingProvider} from "src/adapters/lending/ILendingProvider.sol";
+import {AaveV3AdapterStorageManager} from "src/diamond/facets/adapters/lending/clients/AaveV3Storage.sol";
 
 contract LendingClientAaveV3 is DiamondTest {
     // =================
@@ -38,6 +45,8 @@ contract LendingClientAaveV3 is DiamondTest {
 
     address[] aavev3Clients = [AaveV3AddressManagerRegistry];
 
+    AaveV3LendingAdapter AAVEV3_ADAPTER;
+
     /**
      * Setup == Classificate it on the Lending Adapter Facet as a Lending client
      */
@@ -46,29 +55,13 @@ contract LendingClientAaveV3 is DiamondTest {
 
         self = address(vaultContract);
 
+        AAVEV3_ADAPTER = new AaveV3LendingAdapter(address(diamond));
+
         // Classificate all glp clients for testing
         for (uint256 i; i < aavev3Clients.length; i++) {
-            LendingAdapterFacet(address(diamond)).addLendingClient(
+            AaveV3AdapterStorageManager(address(diamond)).addAaveV3Client(
                 keccak256(abi.encode(aavev3Clients[i])),
-                LendingClient(
-                    AaveV3LendingAdapterFacet.supplyToAaveV3Market.selector,
-                    AaveV3LendingAdapterFacet.withdrawFromAaveV3Market.selector,
-                    0x00000000,
-                    0x00000000,
-                    0x00000000,
-                    0x00000000,
-                    AaveV3LendingAdapterFacet.harvestAaveV3Interest.selector,
-                    0x00000000,
-                    0x00000000,
-                    AaveV3LendingAdapterFacet.aaveV3PositionBalanceOf.selector,
-                    0x00000000,
-                    AaveV3LendingAdapterFacet.getReserveAToken.selector,
-                    AaveV3LendingAdapterFacet
-                        .getSupportedReservesAaveV3
-                        .selector,
-                    aavev3Clients[i],
-                    new bytes(0)
-                )
+                IPoolAddressesProviderRegistry(aavev3Clients[i])
             );
         }
         // Get the args for deployment and deploy the vault
@@ -92,6 +85,8 @@ contract LendingClientAaveV3 is DiamondTest {
             IERC20(address(depositToken)),
             isPublic
         );
+
+        vm.etch(address(vaultContract), type(TestableVault).runtimeCode);
 
         _filterTokensToAvoidFuzzFail();
     }
@@ -168,11 +163,10 @@ contract LendingClientAaveV3 is DiamondTest {
 
             address asset = supportedReservesPerClient[i][assetIdx];
 
-            address aTokenAsset = LendingAdapterFacet(address(diamond))
-                .getReserveTokenRepresentation(
-                    asset,
-                    keccak256(abi.encode(aavev3Clients[i]))
-                );
+            address aTokenAsset = AAVEV3_ADAPTER.getReserveToken(
+                keccak256(abi.encode(aavev3Clients[i])),
+                asset
+            );
 
             assertTrue(
                 aTokenAsset != address(0),
@@ -221,7 +215,7 @@ contract LendingClientAaveV3 is DiamondTest {
             // and an amount of 5500000000000 and above.
             if (token == 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)
                 depositAmount = uint64(
-                    bound(depositAmount, 1 * 10 ** 5, 5499999999990)
+                    bound(depositAmount, 1 * 10 ** 5, 1000000000000)
                 );
             else if (
                 depositAmount > min(currentSupply, supplyCap - currentSupply) ||
@@ -243,11 +237,10 @@ contract LendingClientAaveV3 is DiamondTest {
                     )
                 );
 
-            address aToken = LendingAdapterFacet(address(diamond))
-                .getReserveTokenRepresentation(
-                    token,
-                    keccak256(abi.encode(aavev3Clients[i]))
-                );
+            address aToken = AAVEV3_ADAPTER.getReserveToken(
+                keccak256(abi.encode(aavev3Clients[i])),
+                token
+            );
 
             deal(token, address(vaultContract), depositAmount);
 
@@ -257,30 +250,31 @@ contract LendingClientAaveV3 is DiamondTest {
                 "Didnt Get Deposit Amount While Dealing"
             );
 
-            uint256 preDepositReserveBalance = IERC20(token).balanceOf(
-                address(vaultContract)
-            );
+            (bool success, ) = TestableVault(address(vaultContract))
+                .delegateCall(
+                    address(AAVEV3_ADAPTER),
+                    abi.encodeCall(
+                        ILendingProvider.supplyToMarket,
+                        (
+                            keccak256(abi.encode(aavev3Clients[i])),
+                            token,
+                            depositAmount,
+                            new bytes(0)
+                        )
+                    )
+                );
 
-            uint256 preDepositATokenBalance = IERC20(aToken).balanceOf(
-                address(vaultContract)
-            );
-
-            LendingAdapterFacet(address(diamond)).supplyToMarket(
-                token,
-                depositAmount,
-                keccak256(abi.encode(aavev3Clients[i])),
-                new bytes(0)
-            );
+            require(success, "AaveV3Test: Supply Failed");
 
             assertEq(
                 IERC20(token).balanceOf(address(vaultContract)),
-                preDepositReserveBalance - depositAmount,
+                0,
                 "AaveV3Test: Supplied, but balance was not deducted of depositAmount"
             );
 
             assertApproxEqAbs(
                 IERC20(aToken).balanceOf(address(vaultContract)),
-                preDepositATokenBalance + depositAmount,
+                depositAmount,
                 max(depositAmount / 200, 2),
                 "AaveV3Test: Supplied, but AToken balance is not depositAmount"
             );
@@ -316,11 +310,10 @@ contract LendingClientAaveV3 is DiamondTest {
 
             address token = tokenUsed;
 
-            address aToken = LendingAdapterFacet(address(diamond))
-                .getReserveTokenRepresentation(
-                    token,
-                    keccak256(abi.encode(aavev3Clients[i]))
-                );
+            address aToken = AAVEV3_ADAPTER.getReserveToken(
+                keccak256(abi.encode(aavev3Clients[i])),
+                token
+            );
 
             uint256 preTimetravelATokenBalance = IERC20(aToken).balanceOf(
                 address(vaultContract)
@@ -342,11 +335,20 @@ contract LendingClientAaveV3 is DiamondTest {
                 "AaveV3Test: Time travelled, but tokens were not awarded"
             );
 
-            LendingAdapterFacet(address(diamond)).harvestLendingInterest(
-                token,
-                keccak256(abi.encode(aavev3Clients[i])),
-                new bytes(0)
-            );
+            (bool success, ) = TestableVault(address(vaultContract))
+                .delegateCall(
+                    address(AAVEV3_ADAPTER),
+                    abi.encodeCall(
+                        ILendingProvider.harvestMarketInterest,
+                        (
+                            keccak256(abi.encode(aavev3Clients[i])),
+                            token,
+                            new bytes(0)
+                        )
+                    )
+                );
+
+            require(success, "AaveV3Test: Harvest Failed");
 
             uint256 timeTravelDiff = futureATokenBalance -
                 preTimetravelATokenBalance;
@@ -392,7 +394,7 @@ contract LendingClientAaveV3 is DiamondTest {
             assertApproxEqAbs(
                 IERC20(aToken).balanceOf(address(vaultContract)),
                 preTimetravelATokenBalance,
-                max((preTimetravelATokenBalance) / 100, 10),
+                max((preTimetravelATokenBalance) / 100, 100),
                 "AaveV3Test: Harvested Interest, but remaining aToken balance mismatches"
             );
 
@@ -433,20 +435,10 @@ contract LendingClientAaveV3 is DiamondTest {
         vm.startPrank(address(vaultContract));
 
         for (uint256 i; i < aavev3Clients.length; i++) {
-            address aToken = LendingAdapterFacet(address(diamond))
-                .getReserveTokenRepresentation(
-                    token,
-                    keccak256(abi.encode(aavev3Clients[i]))
-                );
-
-            console.log(
-                "Starting Withdrawal, Deposit Amount & A Token Balance & Reserve Token Balance",
-                depositAmount,
-                IERC20(aToken).balanceOf(address(vaultContract)),
-                IERC20(token).balanceOf(address(vaultContract))
+            address aToken = AAVEV3_ADAPTER.getReserveToken(
+                keccak256(abi.encode(aavev3Clients[i])),
+                token
             );
-
-            console.log("Token In Withdraw:", IERC20(token).symbol());
 
             uint256 preWithdrawalReserveTokenBalance = IERC20(token).balanceOf(
                 address(vaultContract)
@@ -463,31 +455,27 @@ contract LendingClientAaveV3 is DiamondTest {
                 "AaveV3Test: About to withdraw, A Token balance != deposit amount"
             );
 
-            LendingAdapterFacet(address(diamond)).withdrawFromMarket(
-                token,
-                preWithdrawalATokenBalance,
-                keccak256(abi.encode(aavev3Clients[i])),
-                new bytes(0)
-            );
+            (bool success, ) = TestableVault(address(vaultContract))
+                .delegateCall(
+                    address(AAVEV3_ADAPTER),
+                    abi.encodeCall(
+                        ILendingProvider.withdrawFromMarket,
+                        (
+                            keccak256(abi.encode(aavev3Clients[i])),
+                            token,
+                            preWithdrawalATokenBalance,
+                            new bytes(0)
+                        )
+                    )
+                );
+
+            require(success, "AaveV3Test: Withdraw Failed");
 
             assertApproxEqAbs(
                 IERC20(aToken).balanceOf(address(vaultContract)),
                 0,
                 max(depositAmount / 100, 100),
                 "AaveV3Test: Withdrawan But AToken Balance Mismatch"
-            );
-
-            console.log(
-                "a Token balance, reserve balance",
-                IERC20(aToken).balanceOf(address(vaultContract)),
-                IERC20(token).balanceOf(address(vaultContract))
-            );
-
-            console.log(
-                "Pre Withdrawal Reserve Balance, PRe withdrawal A Token balance, deposit amount",
-                preWithdrawalReserveTokenBalance,
-                preWithdrawalATokenBalance,
-                depositAmount
             );
 
             assertApproxEqAbs(

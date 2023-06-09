@@ -4,10 +4,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../../Modifiers.sol";
+import "../../../AccessControlled.sol";
 import "../../../storage/adapters/lp/LpAdapter.sol";
 
-abstract contract LpClientsManagerFacet is Modifiers {
+abstract contract LpClientsManagerFacet is AccessControlled {
     // ================
     //    SETTERS
     // ================

@@ -12,10 +12,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import "../../storage/TokenStash.sol";
 
-contract TokenStashFacet is Modifiers {
+contract TokenStashFacet is AccessControlled {
     // ==================
     //      GETTERS
     // ==================

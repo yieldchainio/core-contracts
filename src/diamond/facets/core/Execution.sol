@@ -5,12 +5,12 @@
 
 // SPDX-License-Identifier: MITs
 pragma solidity ^0.8.18;
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import "../../storage/Strategies.sol";
 import "./StrategiesViewer.sol";
 import "./GasManager.sol";
 
-contract ExecutionFacet is Modifiers {
+contract ExecutionFacet is AccessControlled {
     // ===================
     //     CONSTANTS
     // ===================
