@@ -7,7 +7,6 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
 import {IERC20} from "../../../interfaces/IERC20.sol";
-// import "../triggers/Registry.sol";
 import "../triggers/TriggersManager.sol";
 import "../../AccessControlled.sol";
 
@@ -21,16 +20,14 @@ contract FactoryFacet is AccessControlled {
     event VaultCreated(
         address indexed strategyAddress,
         address indexed creator,
-        address indexed depositToken,
-        bytes constructorArgs
+        address indexed depositToken
     );
 
     // ==================
     //     MODIFIERS
     // ==================
     /**
-     * Asserts that an inputted address must be a premium user, if an inputted
-     * boolean is "false" (if a vault is private)
+     * Asserts that an inputted address must be a premium user, if a vault is private
      */
     modifier noPrivacyForTheWicked(bool isPublic, address requester) {
         require(
@@ -68,10 +65,6 @@ contract FactoryFacet is AccessControlled {
         returns (Vault createdVault)
     {
         /**
-         * Assert that the triggers & triggers settings lengths math
-         */
-
-        /**
          * Begin by deploying the vault contract (With the msg.sender of this call as the creator)
          */
         createdVault = new Vault(
@@ -87,16 +80,7 @@ contract FactoryFacet is AccessControlled {
         emit VaultCreated(
             address(createdVault),
             msg.sender,
-            address(depositToken),
-            abi.encode(
-                seedSteps,
-                treeSteps,
-                uprootSteps,
-                approvalPairs,
-                depositToken,
-                isPublic,
-                msg.sender
-            )
+            address(depositToken)
         );
 
         /**

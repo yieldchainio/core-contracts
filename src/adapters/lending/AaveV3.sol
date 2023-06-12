@@ -19,12 +19,7 @@ import {SafeERC20} from "src/libs/SafeERC20.sol";
 import {IERC20} from "src/interfaces/IERC20.sol";
 import {ILendingProvider} from "./ILendingProvider.sol";
 import {VaultAdapterCompatible} from "src/interfaces/IVaultAdapter.sol";
-import "forge-std/Test.sol";
-
 import "src/utils/ERC20-Util.sol";
-
-// import "forge-std/console.sol";
-// import "forge-std/Test.sol";
 
 contract AaveV3LendingAdapter is
     VaultAdapterCompatible,
@@ -41,7 +36,7 @@ contract AaveV3LendingAdapter is
     error UnsupportedClient();
 
     // ==============
-    //    TYPES
+    //     TYPES
     // ==============
     enum BorrowInterestRateTypes {
         STABLE,
@@ -52,7 +47,7 @@ contract AaveV3LendingAdapter is
         BorrowInterestRateTypes interestRateType;
     }
 
-    // ===================
+    // =================
     //    CONSTRUCTOR
     // =================
     constructor(address diamond) vaultCompatible(diamond) {}
@@ -69,7 +64,6 @@ contract AaveV3LendingAdapter is
     ) external {
         address YC_DIAMOND = diamond();
 
-        console.log("In supply Market");
         (IPoolDataProvider dataProvider, IPool pool) = _getDataProviderAndPool(
             clientId
         );
@@ -241,6 +235,7 @@ contract AaveV3LendingAdapter is
         if (aToken == address(0)) revert UnsupportedReserveAsset();
     }
 
+
     function getPositionBalance(
         bytes32 clientId,
         address underlyingToken
@@ -263,7 +258,6 @@ contract AaveV3LendingAdapter is
         bytes32 clientId
     ) internal view returns (IPoolDataProvider dataProvider, IPool pool) {
         address YC_DIAMOND = diamond();
-        console.log("YC Diamond", YC_DIAMOND);
 
         IPoolAddressesProviderRegistry poolRegistry = AaveV3AdapterStorageManager(
                 address(YC_DIAMOND)

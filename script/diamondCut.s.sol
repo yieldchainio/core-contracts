@@ -23,6 +23,7 @@ import "test/diamond/HelperContract.sol";
 import "src/diamond/facets/withdraw-eth.sol";
 import "src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
+import "src/diamond/facets/adapters/lending/clients/AaveV3Storage.sol";
 
 contract DiamondCutScript is Script, HelperContract {
     // ===================
@@ -49,6 +50,8 @@ contract DiamondCutScript is Script, HelperContract {
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
 
+    AaveV3AdapterStorageManager aaveV3StorageManager;
+
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
@@ -69,7 +72,7 @@ contract DiamondCutScript is Script, HelperContract {
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
         // executionFacet = new ExecutionFacet();
-        // factoryFacet = new FactoryFacet();
+        factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
         // scamEthFacet = new ScamEth();
         // strategiesViewerFacet = new StrategiesViewerFacet();
@@ -77,22 +80,17 @@ contract DiamondCutScript is Script, HelperContract {
         // triggersManagerFacet = new TriggersManagerFacet();
         // automationFacet = new AutomationFacet();
 
-        lpAdapterFacet = new LpAdapterFacet();
+        // lpAdapterFacet = new LpAdapterFacet();
         // uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
-
-        bytes4[] memory sels = new bytes4[](3);
-
-        sels[0] = 0xc10621ab;
-        sels[1] = 0xe8d79a03;
-        sels[2] = 0x96d9674f;
+        // aaveV3StorageManager = new AaveV3AdapterStorageManager();
 
         FacetCut[] memory cut = new FacetCut[](1);
 
         cut[0] = (
             FacetCut({
-                facetAddress: address(lpAdapterFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: sels
+                facetAddress: address(factoryFacet),
+                action: FacetCutAction.Replace,
+                functionSelectors: generateSelectors("FactoryFacet")
             })
         );
 
