@@ -13,8 +13,8 @@ import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/Factory.sol";
+import "src/diamond/facets/core/GasManager.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";
 import "src/diamond/Diamond.sol";
@@ -44,7 +44,7 @@ contract DeployScript is Script, HelperContract {
     OwnershipFacet ownerF;
 
     AccessControlFacet accessControlFacet;
-    ExecutionFacet executionFacet;
+
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
     StrategiesViewerFacet strategiesViewerFacet;
@@ -75,7 +75,6 @@ contract DeployScript is Script, HelperContract {
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
         accessControlFacet = new AccessControlFacet();
-        executionFacet = new ExecutionFacet();
         factoryFacet = new FactoryFacet();
         tokenStashFacet = new TokenStashFacet();
         strategiesViewerFacet = new StrategiesViewerFacet();
@@ -97,7 +96,7 @@ contract DeployScript is Script, HelperContract {
             initCalldata: abi.encodeWithSignature("init()")
         });
 
-        FacetCut[] memory cut = new FacetCut[](14);
+        FacetCut[] memory cut = new FacetCut[](13);
 
         cut[0] = FacetCut({
             facetAddress: address(dCutFacet),
@@ -131,19 +130,12 @@ contract DeployScript is Script, HelperContract {
 
         cut[4] = (
             FacetCut({
-                facetAddress: address(executionFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("ExecutionFacet")
-            })
-        );
-        cut[5] = (
-            FacetCut({
                 facetAddress: address(factoryFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("FactoryFacet")
             })
         );
-        cut[6] = (
+        cut[5] = (
             FacetCut({
                 facetAddress: address(tokenStashFacet),
                 action: FacetCutAction.Add,
@@ -151,7 +143,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[7] = (
+        cut[6] = (
             FacetCut({
                 facetAddress: address(gasManagerFacet),
                 action: FacetCutAction.Add,
@@ -159,7 +151,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[8] = (
+        cut[7] = (
             FacetCut({
                 facetAddress: address(strategiesViewerFacet),
                 action: FacetCutAction.Add,
@@ -167,7 +159,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[9] = (
+        cut[8] = (
             FacetCut({
                 facetAddress: address(triggersManagerFacet),
                 action: FacetCutAction.Add,
@@ -175,7 +167,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[10] = (
+        cut[9] = (
             FacetCut({
                 facetAddress: address(automationFacet),
                 action: FacetCutAction.Add,
@@ -183,7 +175,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[11] = (
+        cut[10] = (
             FacetCut({
                 facetAddress: address(lpAdapterFacet),
                 action: FacetCutAction.Add,
@@ -191,7 +183,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[12] = (
+        cut[11] = (
             FacetCut({
                 facetAddress: address(uniV2LpAdapterFacet),
                 action: FacetCutAction.Add,
@@ -199,7 +191,7 @@ contract DeployScript is Script, HelperContract {
             })
         );
 
-        cut[13] = (
+        cut[12] = (
             FacetCut({
                 facetAddress: address(glpAdapterFacet),
                 action: FacetCutAction.Add,

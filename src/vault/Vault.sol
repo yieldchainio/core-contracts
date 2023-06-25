@@ -71,20 +71,16 @@ contract Vault is VaultExecution {
      * @param amount - The amount of the deposit token to deposit
      */
     function deposit(
-        uint256 amount,
-        bytes[] calldata offchainComputedCommands
+        uint256 amount
     ) external payable onlyWhitelistedOrPublicVault {
-        if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) < amount)
-            revert InsufficientAllowance();
-
-        // Transfer to us
-        DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
-
-        // Increment total shares supply & user's balance
-        totalShares += amount;
-        balances[msg.sender] += amount;
-
-        executeStepTree(SEED_STEPS, offchainComputedCommands, new uint256[](1));
+        // Reserve first memory spot for some value (e.g deposit amount)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
+        _executeDeposit(
+            abi.encode(new bytes[](0)),
+            abi.encode(DepositData(amount))
+        );
     }
 
     /**
@@ -95,42 +91,14 @@ contract Vault is VaultExecution {
     function withdraw(
         uint256 amount
     ) external payable onlyWhitelistedOrPublicVault {
-        /**
-         * We assert the user's shares are sufficient
-         * Note this is re-checked when handling the actual withdrawal
-         */
-        if (amount > balances[msg.sender]) revert InsufficientShares();
-
-        /**
-         * @dev We assert that the msg.value of this call is atleast of the withdraw approximation * the delta
-         */
-        if (msg.value < approxWithdrawalGas * GAS_FEE_APPROXIMATION_DELTA)
-            revert InsufficientGasPrepay();
-
-        /**
-         * We deduct the total shares & balance from the user
-         */
-        balances[msg.sender] -= amount;
-        totalShares -= amount;
-
-        /**
-         * We create an Operation request item for our withdrawal and add it to the state, whilst requesting an offchain hydration & reentrance
-         */
-        bytes[] memory withdrawArgs = new bytes[](1);
-        withdrawArgs[0] = abi.encode(amount);
-
-        // Create the queue item
-        OperationItem memory withdrawRequest = OperationItem(
-            ExecutionTypes.UPROOT,
-            msg.sender,
-            0,
-            withdrawArgs,
-            new bytes[](0),
-            false
+        // Reserve first memory spot for some value (e.g withdrawal % share)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
+        _executeWithdrawal(
+            abi.encode(new bytes[](0)),
+            abi.encode(WithdrawalData(amount))
         );
-
-        // Request the operation
-        requestOperation(withdrawRequest);
     }
 
     /**
@@ -140,25 +108,11 @@ contract Vault is VaultExecution {
      * only called by the diamond (i.e from an executor on the diamond)
      */
     function runStrategy() external onlyDiamond {
-        /**
-         * We create a QueueItem for our run and enqueue it, which should either begin executing it,
-         * or begin waiting for it's turn
-         */
-        // Create the queue item
-        OperationItem memory runRequest = OperationItem(
-            // Request to execute the strategy tree
-            ExecutionTypes.TREE,
-            // Initiator is YC diamond
-            YC_DIAMOND,
-            0,
-            // No custom args, and ofc no calldata atm (will be set by the offchain handler if any)
-            new bytes[](0),
-            new bytes[](0),
-            false
-        );
-
-        // Request the run
-        requestOperation(runRequest);
+        // Reserve first memory spot for some value (e.g deposit amount)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
+        _executeStrategy(abi.encode(new bytes[](0)), new bytes(0));
     }
 
     /**

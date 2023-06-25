@@ -10,74 +10,61 @@ pragma solidity ^0.8.18;
 import {SafeERC20} from "../libs/SafeERC20.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import "../vm/VM.sol";
-import "./OperationsQueue.sol";
 import "./State.sol";
 import "./Constants.sol";
 import "./VaultUtilities.sol";
 import "../diamond/interfaces/IAccessControl.sol";
+import "src/Types.sol";
+import "forge-std/console.sol";
 
 abstract contract VaultExecution is
     YCVM,
-    OperationsQueue,
     VaultUtilities,
     VaultConstants,
     VaultState
 {
-    // ============================
-    //          ERRORS
-    // ============================
-    error OffchainLookup(
-        address sender,
-        string[] urls,
-        bytes callData,
-        bytes4 callbackFunction,
-        bytes extraData
-    );
-
-    // Libs
+    // ===========
+    //    LIBS
+    // ===========
     using SafeERC20 for IERC20;
 
-    // ============================
-    //       EXTERNAL METHODS
-    // ============================
-
-    /**
-     * Called by the client after simulating some offchain action lookup mid run
-     * @param offchainResponse - The response received from the offchain actions gateway
-     * @param actionContext - The CCIP "extraData" encoded by the run. Specifies the action type,
-     * and an amount if needed.
-     *
-     * Responsible for re-executing whatever action was originally intended, whilst being CCIP compatible.
-     * Sort of a router.
-     */
-    function offchainActionCallback(
-        bytes memory offchainResponse,
-        bytes memory actionContext
-    ) external {
-        (ExecutionTypes executionType, uint256 amount) = abi.decode(
-            actionContext,
-            (ExecutionTypes, uint256)
-        );
-
-        if (executionType == ExecutionTypes.SEED) {}
-    }
-
-    // ============================
-    //       INTERNAL METHODS
-    // ============================
-
+    // =================
+    //      METHODS
+    // =================
     /**
      * @notice
      * executeDeposit()
-     * The actual deposit execution handler,
-     * @dev Should be called once hydrated with the operation offchain computed data
-     * @param depositItem - OperationItem from the operations queue, representing the deposit request
+     * The actual deposit logic
+     * @param response - Optional response from OffchainLookup
+     * @param encodedDepositData - Encoded DepositData struct, set as extraData in offchain lookups
      */
     function executeDeposit(
-        OperationItem memory depositItem,
-        uint256[] memory startingIndices
+        bytes memory response,
+        bytes memory encodedDepositData
+    ) external onlyWhitelistedOrPublicVault {
+        _executeDeposit(response, encodedDepositData);
+    }
+
+    function _executeDeposit(
+        bytes memory response,
+        bytes memory encodedDepositData
     ) internal {
-        uint256 amount = abi.decode(depositItem.arguments[0], (uint256));
+        DepositData memory depositData = abi.decode(
+            encodedDepositData,
+            (DepositData)
+        );
+
+        uint256 amount = depositData.amount;
+
+        if (DEPOSIT_TOKEN.allowance(msg.sender, address(this)) < amount)
+            revert InsufficientAllowance();
+
+        // Transfer to us
+        DEPOSIT_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Increment total shares supply & user's balance
+        totalShares += amount;
+        balances[msg.sender] += amount;
 
         assembly {
             // We MSTORE at the deposit amount memory location the deposit amount
@@ -85,23 +72,46 @@ abstract contract VaultExecution is
             mstore(DEPOSIT_AMT_MEM_LOCATION, amount)
         }
 
-        /**
-         * @notice  We execute the seed steps, starting from the root step
-         */
-        executeStepTree(SEED_STEPS, startingIndices, depositItem);
+        bytes[] memory cachedOffchainCommands = abi.decode(response, (bytes[]));
+
+        executeStepTree(
+            SEED_STEPS,
+            cachedOffchainCommands,
+            new uint256[](1),
+            VaultExecution.executeDeposit.selector,
+            encodedDepositData
+        );
     }
 
     /**
      * @notice
-     * handleWithdraw()
-     * The actual withdraw execution handler
-     * @param withdrawItem - OperationItem from the operations queue, representing the withdrawal request
+     * executeWithdraw()
+     * The actual withdraw logic
+     * @param response - Optional response from OffchainLookup
+     * @param encodedWithdrawalData - Encoded WithdrawalData struct, set as extraData in offchain lookups
      */
-    function executeWithdraw(
-        OperationItem memory withdrawItem,
-        uint256[] memory startingIndices
+    function executeWithdrawal(
+        bytes calldata response,
+        bytes calldata encodedWithdrawalData
+    ) external onlyWhitelistedOrPublicVault {
+        _executeWithdrawal(response, encodedWithdrawalData);
+    }
+
+    function _executeWithdrawal(
+        bytes memory response,
+        bytes memory encodedWithdrawalData
     ) internal {
-        uint256 amount = abi.decode(withdrawItem.arguments[0], (uint256));
+        WithdrawalData memory withdrawalData = abi.decode(
+            encodedWithdrawalData,
+            (WithdrawalData)
+        );
+
+        uint256 amount = withdrawalData.amount;
+
+        if (amount > balances[msg.sender]) revert InsufficientShares();
+
+        balances[msg.sender] -= amount;
+        totalShares -= amount;
 
         uint256 shareOfVaultInPercentage = (totalShares + amount) / amount;
 
@@ -114,21 +124,51 @@ abstract contract VaultExecution is
             )
         }
 
-        /**
-         * @notice We keep track of what the deposit token balance was prior to the execution
-         */
         uint256 preVaultBalance = DEPOSIT_TOKEN.balanceOf(address(this));
 
-        executeStepTree(UPROOTING_STEPS, startingIndices, withdrawItem);
+        bytes[] memory cachedOffchainCommands = abi.decode(response, (bytes[]));
+
+        executeStepTree(
+            UPROOTING_STEPS,
+            cachedOffchainCommands,
+            new uint256[](1),
+            VaultExecution.executeWithdrawal.selector,
+            encodedWithdrawalData
+        );
 
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
 
-        DEPOSIT_TOKEN.safeTransfer(withdrawItem.initiator, debt);
+        DEPOSIT_TOKEN.safeTransfer(msg.sender, debt);
     }
 
-    // ==============================
-    //        STEPS EXECUTION
-    // ==============================
+    /**
+     * Execute strategy
+     */
+    function executeStrategy(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external onlyWhitelistedOrPublicVault {
+        _executeStrategy(response, extraData);
+    }
+
+    function _executeStrategy(
+        bytes memory response,
+        bytes memory extraData
+    ) internal {
+        bytes[] memory cachedOffchainCommands = abi.decode(response, (bytes[]));
+
+        executeStepTree(
+            STEPS,
+            cachedOffchainCommands,
+            new uint256[](1),
+            VaultExecution.executeStrategy.selector,
+            extraData
+        );
+    }
+
+    // ========================
+    //     INTERNAL METHODS
+    // ========================
     /**
      * @notice
      * executeStepTree()
@@ -140,7 +180,7 @@ abstract contract VaultExecution is
      */
     function executeStepTree(
         bytes[] memory virtualTree,
-        bytes[] memory offchainComputedCommands,
+        bytes[] memory cachedOffchainCommands,
         uint256[] memory startingIndices,
         bytes4 callbackFunction,
         bytes memory actionContext
@@ -159,64 +199,80 @@ abstract contract VaultExecution is
             if (step.isCallback) {
                 // If already got the command, run it
                 if (
-                    offchainComputedCommands.length > stepIndex &&
-                    bytes32(offchainComputedCommands[stepIndex]) != bytes32(0)
+                    cachedOffchainCommands.length > stepIndex &&
+                    bytes32(cachedOffchainCommands[stepIndex]) != bytes32(0)
                 )
-                    _runFunction(offchainComputedCommands[stepIndex]);
+                    _runFunction(cachedOffchainCommands[stepIndex]);
 
                     // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
-                else {
-                    (bytes memory nakedFunc, , ) = _separateCommand(step.func);
-
-                    FunctionCall memory originalCall = abi.decode(
-                        nakedFunc,
-                        (FunctionCall)
-                    );
-
-                    bytes
-                        memory interpretedArgs = interpretCommandsAndEncodeChunck(
-                            originalCall.args
-                        );
-
-                    string memory offchainActionsUrl = IAccessControlFacet(
-                        address(YC_DIAMOND)
-                    ).getOffchainActionsUrl();
-                    string[] memory urls = new string[](1);
-                    urls[0] = offchainActionsUrl;
-
-                    OffchainActionRequest
-                        memory offchainRequest = OffchainActionRequest(
-                            stepIndex,
-                            address(this),
-                            offchainComputedCommands,
-                            originalCall.target_address,
-                            originalCall.signature,
-                            interpretedArgs
-                        );
-
-                    revert OffchainLookup(
-                        address(this),
-                        urls,
-                        abi.encode(offchainRequest),
+                else
+                    _requestOffchainLookup(
+                        step,
+                        stepIndex,
+                        cachedOffchainCommands,
                         callbackFunction,
                         actionContext
                     );
-                }
-            }
-            /**
-             * If the step is not a callback (And also not empty), we execute the step's function
-             */
-            else if (bytes32(step.func) != bytes32(0)) _runFunction(step.func);
-
-            uint256[] memory childrenStartingIndices = step.childrenIndices;
+            } else if (bytes32(step.func) != bytes32(0))
+                _runFunction(step.func);
 
             executeStepTree(
                 virtualTree,
-                offchainComputedCommands,
-                childrenStartingIndices,
+                cachedOffchainCommands,
+                step.childrenIndices,
                 callbackFunction,
                 actionContext
             );
         }
+    }
+
+    /**
+     * Send a CCIP OffchainLookup request to get a step's data
+     * @param step - The original step
+     * @param idx - The index of that step
+     * @param cachedOffchainCommands - Commands that were already returned by offchain
+     * @param callbackSelector - The selector of the function to callback with the new data
+     * @param actionContext - ExtraData passed by the action
+     */
+    function _requestOffchainLookup(
+        YCStep memory step,
+        uint256 idx,
+        bytes[] memory cachedOffchainCommands,
+        bytes4 callbackSelector,
+        bytes memory actionContext
+    ) internal {
+        (bytes memory nakedFunc, , ) = _separateCommand(step.func);
+
+        FunctionCall memory originalCall = abi.decode(
+            nakedFunc,
+            (FunctionCall)
+        );
+
+        bytes memory interpretedArgs = interpretCommandsAndEncodeChunck(
+            originalCall.args
+        );
+
+        string memory offchainActionsUrl = IAccessControlFacet(
+            address(YC_DIAMOND)
+        ).getOffchainActionsUrl();
+
+        string[] memory urls = new string[](1);
+        urls[0] = offchainActionsUrl;
+
+        OffchainActionRequest memory offchainRequest = OffchainActionRequest(
+            idx,
+            cachedOffchainCommands,
+            originalCall.target_address,
+            originalCall.signature,
+            interpretedArgs
+        );
+
+        revert OffchainLookup(
+            address(this),
+            urls,
+            abi.encode(offchainRequest),
+            callbackSelector,
+            actionContext
+        );
     }
 }

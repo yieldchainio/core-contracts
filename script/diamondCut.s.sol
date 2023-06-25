@@ -6,10 +6,10 @@ import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";
+import "src/diamond/facets/core/GasManager.sol";
 import "src/diamond/facets/triggers/TriggersManager.sol";
 import "src/diamond/facets/triggers/automation/Automation.sol";
 import "src/diamond/Diamond.sol";
@@ -37,7 +37,6 @@ contract DiamondCutScript is Script, HelperContract {
     OwnershipFacet ownerF;
 
     AccessControlFacet accessControlFacet;
-    ExecutionFacet executionFacet;
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
     ScamEth scamEthFacet;

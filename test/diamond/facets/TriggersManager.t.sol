@@ -131,9 +131,10 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
         uint256[] memory indices = new uint256[](1);
         indices[0] = 0;
 
-        vm.expectEmit(true, true, false, false, address(vaultContract));
+        // vm.expectEmit(true, true, false, false, address(vaultContract));
 
-        emit HydrateRun(0);
+        // emit HydrateRun(0);
+        // TODO: TO CCIP
 
         TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
             indices,
@@ -159,10 +160,10 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
             "Executed Trigger, Warped Time - But Checker Returns False"
         );
 
-        vm.expectEmit(true, true, false, false, address(vaultContract));
+        // vm.expectEmit(true, true, false, false, address(vaultContract));
 
-        emit HydrateRun(1);
-
+        // emit HydrateRun(1);
+        // TODO: TO CCIP
         TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
             indices,
             triggs

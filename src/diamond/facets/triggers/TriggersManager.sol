@@ -6,10 +6,40 @@ pragma solidity ^0.8.18;
 import "../../Modifiers.sol";
 import "../../../Types.sol";
 import "../../storage/TriggersManager.sol";
+import "../../storage/Strategies.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
 
 contract TriggersManagerFacet is Modifiers {
+    // =================
+    //      ERRORS
+    // =================
+    error InsufficientGasBalance();
+
+    // =================
+    //     MODIFIERS
+    // =================
+    /**
+     * Sponsors a call's gas from a vault's gas balance
+     * @param vault - The vault to take gas from
+     * @param executor - The executor to send the ETH to
+     */
+    modifier gasFree(Vault vault, address payable executor) {
+        uint256 startingGas = gasleft();
+        _; // Marks body of the entire function we are applied to
+        uint256 leftGas = gasleft();
+        uint256 weiSpent = (startingGas - leftGas) * tx.gasprice;
+        StrategyState storage state = StrategiesStorageLib.getStrategyState(
+            vault
+        );
+
+        if (weiSpent > state.gasBalanceWei) revert InsufficientGasBalance();
+
+        state.gasBalanceWei -= weiSpent;
+
+        executor.transfer(weiSpent);
+    }
+
     // =================
     //     FUNCTIONS
     // =================
@@ -111,7 +141,10 @@ contract TriggersManagerFacet is Modifiers {
             .strategies;
 
         for (uint256 i; i < vaultsIndices.length; i++)
-            _executeStrategyTriggers(vaults[vaultsIndices[i]], triggersSignals[i]);
+            _executeStrategyTriggers(
+                vaults[vaultsIndices[i]],
+                triggersSignals[i]
+            );
     }
 
     /**
@@ -142,7 +175,17 @@ contract TriggersManagerFacet is Modifiers {
             // Additional, trust-minimized sufficient check
             if (!_checkTrigger(vault, i, registeredTriggers[i])) continue;
 
-            _executeTrigger(vault, i, registeredTriggers[i]);
+            // DK how to ignore return value
+            (bool success, ) = address(this).call(
+                abi.encodeCall(
+                    TriggersManagerFacet._executeTrigger,
+                    (vault, i, registeredTriggers[i], payable(msg.sender))
+                )
+            );
+
+            assembly {
+                pop(success)
+            }
 
             triggersStorage.registeredTriggers[vault][i].lastStrategyRun = block
                 .timestamp;
@@ -180,12 +223,17 @@ contract TriggersManagerFacet is Modifiers {
      * @param vault - The vault to execute on
      * @param triggerIdx - The trigger index to execute
      * @param trigger - The actual registered trigger (For types)
+     * Note that this is an external function, but only we can call it.
+     * The reason it is like that is because it's supposed to be called as apart
+     * of a batch execution of multiple strategies, but we do not want to retain the same execution context,
+     * to avoid reverting everything, and being able to still protect executor's gas fees
      */
     function _executeTrigger(
         Vault vault,
         uint256 triggerIdx,
-        RegisteredTrigger memory trigger
-    ) internal {
+        RegisteredTrigger memory trigger,
+        address payable executor
+    ) external gasFree(vault, executor) onlySelf {
         if (trigger.triggerType == TriggerTypes.AUTOMATION)
             AutomationFacet(address(this)).executeAutomationTrigger(
                 vault,

@@ -5,7 +5,6 @@ import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";
@@ -44,12 +43,6 @@ contract ExecutionScript is Script, HelperContract {
         calldatas[
             4
         ] = hex"050000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000673656c6628290000000000000000000000000000000000000000000000000000";
-
-        ExecutionFacet facet = ExecutionFacet(
-            address(payable(0xdDa4fcF0C099Aa9900c38F1e6A01b8B96B1480d3))
-        );
-
-        facet.hydrateAndExecuteRun(vaultAddress, operationIdx, calldatas);
 
         // address(diamond).call(
         //     abi.encodeWithSignature(

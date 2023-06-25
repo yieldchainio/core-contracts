@@ -39,15 +39,6 @@ contract StrategiesViewerFacet is Modifiers {
             .gasBalanceWei;
     }
 
-    function getStrategyOperationGas(
-        Vault strategy,
-        uint256 opIndex
-    ) external view returns (uint256 strategyOperationGas) {
-        strategyOperationGas = StrategiesStorageLib
-            .getStrategiesStorage()
-            .strategyOperationsGas[strategy][opIndex];
-    }
-
     function getStrategyTriggers(
         Vault strategy
     ) external view returns (RegisteredTrigger[] memory triggers) {

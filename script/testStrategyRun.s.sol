@@ -5,7 +5,6 @@ import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/GasManager.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
@@ -42,7 +41,6 @@ contract TestStrategyFully is Script, HelperContract {
         //     type(uint256).max
         // );
 
-        uint256 requiredGas = vaultAddress.approxDepositGas() * 2;
 
         // vaultAddress.deposit{value: requiredGas}(1 * 10 ** 16);
 

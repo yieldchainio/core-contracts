@@ -11,26 +11,6 @@ abstract contract VaultTypes {
     //        EVENTS
     // =====================
     /**
-     * @notice
-     * HydrateRun event
-     * Emitted when a new operation request is received (e.g deposit, withdraw, or strategy run), as a request
-     * to hydrate it's command calldatas in place.
-     * those calldatas are used in steps which are classified as "offchain" steps, whom require some computation
-     * to run offchain.
-     * @param operationKey - The key of the operation within the operation requests array in storage
-     */
-    event HydrateRun(uint256 indexed operationKey);
-
-    /**
-     * @notice
-     * RequestFullfill event,
-     * emitted in order to request an offchain fullfill of computations/actions, when simulating them in an hydration run request offchain.
-     * @param stepIndex - the index of the step within the run requesting the offchain computation
-     * @param ycCommand - The yc command to execute offchain
-     */
-    event RequestFullfill(uint256 indexed stepIndex, bytes ycCommand);
-
-    /**
      * Deposit
      * Emitted when a deposit happens into the vault
      * @param sender - The user that deposited
@@ -80,4 +60,15 @@ abstract contract VaultTypes {
         bytes4 callbackFunction,
         bytes extraData
     );
+
+    // =====================
+    //        TYPES
+    // =====================
+    struct WithdrawalData {
+        uint256 amount;
+    }
+
+    struct DepositData {
+        uint256 amount;
+    }
 }

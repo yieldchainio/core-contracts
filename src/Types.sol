@@ -125,8 +125,7 @@ struct OperationItem {
 
 struct OffchainActionRequest{
     uint256 stepIndex;
-    address initiatingAddress;
-    bytes[] priorOffchainCommands;
+    bytes[] cachedOffchainCommands;
     address callTargetAddress;
     string signature;
     bytes args;

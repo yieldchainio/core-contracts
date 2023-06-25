@@ -40,20 +40,6 @@ contract GasManagerFacet is Modifiers {
 
     /**
      * @notice
-     * stashOperationGas()
-     * Allows strategies to stash some native gas for an operation
-     * @param operationIndex - Index of the operation it's stashing for
-     */
-    function stashOperationGas(
-        uint256 operationIndex
-    ) external payable onlyVaults {
-        StrategiesStorageLib.getStrategiesStorage().strategyOperationsGas[
-            Vault(msg.sender)
-        ][operationIndex] += msg.value;
-    }
-
-    /**
-     * @notice
      * collectVaultGasDebt()
      * Deduct from a vault's gas balance, and transfer it to some address
      * can only be called internally!!

@@ -6,7 +6,6 @@ import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
 import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
 import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
 import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Execution.sol";
 import "src/diamond/facets/core/Factory.sol";
 import "src/diamond/facets/core/TokenStash.sol";
 import "src/diamond/facets/core/Users.sol";

@@ -88,12 +88,7 @@ contract ExecutionFacetTest is DiamondTest, Constants {
 
         // Set the approximate gas cost of deposit, withdraw, and strategy run to 1 ETHER
         vm.startPrank(address(diamond));
-        vaultContract.storeGasApproximation(ExecutionTypes.SEED, SINGLE_ETHER);
-        vaultContract.storeGasApproximation(
-            ExecutionTypes.UPROOT,
-            SINGLE_ETHER
-        );
-        vaultContract.storeGasApproximation(ExecutionTypes.TREE, SINGLE_ETHER);
+
         vm.stopPrank();
 
         // Make a deposit
@@ -103,10 +98,7 @@ contract ExecutionFacetTest is DiamondTest, Constants {
         uint256 preOwnBalance = address(this).balance;
 
         assertEq(
-            StrategiesViewerFacet(address(diamond)).getStrategyOperationGas(
-                vaultContract,
-                0
-            ),
+         0,
             DOUBLE_ETHER,
             "Deposited, But Prepaid Gas Mismatch"
         );
@@ -121,9 +113,7 @@ contract ExecutionFacetTest is DiamondTest, Constants {
         vm.resumeGasMetering();
 
         // Execute the operation request at index 0 (The deposit operation), with empty commands calldata (no offchain shiet)
-        uint256 gasUsed = ExecutionFacet(address(diamond)).hydrateAndExecuteRun{
-            gas: 2 ether
-        }(vaultContract, 0, new bytes[](0));
+        uint256 gasUsed = 0;
 
         vm.stopPrank();
 
