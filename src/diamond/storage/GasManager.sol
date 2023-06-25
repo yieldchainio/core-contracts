@@ -4,13 +4,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "../../vault/Vault.sol";
+import {IGasHook} from "src/gas-hooks/IGasHook.sol";
 
 struct GasManagerStorage {
     /**
-     * L2 hook selector to call as own facet, that returns the gas left in the transaction
-     * from an L1 standpoint
+     * Current L2 hook, that returns additional gas costs to charge the vault's gas blance,
+     * that the usual gasleft() does not include
      */
-    bytes4 l2GasLeftSelector;
+    IGasHook gasHook;
 }
 
 /**
@@ -29,15 +30,10 @@ library GasManagerStorageLib {
         }
     }
 
-    function getL2GasLeft() internal view returns (uint256 l2GasLeft) {
-    bytes4 l2GasLeftSel =     retreive().l2GasLeftSelector;
+    function getAdditionalGasCost() internal view returns (uint256 additionalWeiCost) {
+        IGasHook hook = retreive().gasHook;
+        if (address(hook) == address(0)) return 0;
 
-    if (l2GasLeftSel == )
-
-        (bool success, bytes memory res) = address(this).staticcall(
-            abi.encodeWithSelector(l2GasLeftSel)
-        );
-
-        require(success, "Failed to get L1 gas")
+        additionalWeiCost = hook.getAdditionalGasCost(msg.data);
     }
 }

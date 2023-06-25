@@ -9,6 +9,7 @@ import "../../storage/TriggersManager.sol";
 import "../../storage/Strategies.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
+import {GasManagerStorageLib} from "../../storage/GasManager.sol";
 
 contract TriggersManagerFacet is Modifiers {
     // =================
@@ -24,11 +25,14 @@ contract TriggersManagerFacet is Modifiers {
      * @param vault - The vault to take gas from
      * @param executor - The executor to send the ETH to
      */
-    modifier gasFree(Vault vault, address payable executor) {
+    modifier gasless(Vault vault, address payable executor) {
         uint256 startingGas = gasleft();
         _; // Marks body of the entire function we are applied to
         uint256 leftGas = gasleft();
-        uint256 weiSpent = (startingGas - leftGas) * tx.gasprice;
+
+        uint256 weiSpent = ((startingGas - leftGas) * tx.gasprice) +
+            GasManagerStorageLib.getAdditionalGasCost();
+
         StrategyState storage state = StrategiesStorageLib.getStrategyState(
             vault
         );
@@ -233,7 +237,7 @@ contract TriggersManagerFacet is Modifiers {
         uint256 triggerIdx,
         RegisteredTrigger memory trigger,
         address payable executor
-    ) external gasFree(vault, executor) onlySelf {
+    ) external gasless(vault, executor) onlySelf {
         if (trigger.triggerType == TriggerTypes.AUTOMATION)
             AutomationFacet(address(this)).executeAutomationTrigger(
                 vault,
