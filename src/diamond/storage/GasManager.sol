@@ -30,10 +30,14 @@ library GasManagerStorageLib {
         }
     }
 
-    function getAdditionalGasCost() internal view returns (uint256 additionalWeiCost) {
+    function getAdditionalGasCost()
+        internal
+        view
+        returns (uint256 additionalWeiCost)
+    {
         IGasHook hook = retreive().gasHook;
         if (address(hook) == address(0)) return 0;
 
-        additionalWeiCost = hook.getAdditionalGasCost(msg.data);
+        additionalWeiCost = hook.getAdditionalGasCost();
     }
 }

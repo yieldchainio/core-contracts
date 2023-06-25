@@ -108,7 +108,7 @@ contract AccessControlFacet is Modifiers {
         offchainActionsUrl = AccessControlStorageLib._getOffchainLookupUrl();
     }
 
-    function setOffchainActionsUrl(string calldata newUrl) external {
+    function setOffchainActionsUrl(string calldata newUrl) external onlyOwner {
         AccessControlStorageLib._setOffchainLookupUrl(newUrl);
     }
 }

@@ -10,17 +10,15 @@ contract ArbitrumL1GasHook is IGasHook {
     address internal constant ARB_GASINFO_PRECOMPILE =
         0x000000000000000000000000000000000000006C;
 
-    function getAdditionalGasCost(
-        bytes calldata msgData
-    ) external view returns (uint256 additionalCost) {
+    function getAdditionalGasCost()
+        external
+        view
+        returns (uint256 additionalCost)
+    {
         (, bytes memory res) = ARB_GASINFO_PRECOMPILE.staticcall(
-            "getPricesInWei()"
-        );
-        (uint256 perL2Tx, uint256 perCalldataUnit, , , , ) = abi.decode(
-            res,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
+            "getCurrentTxL1GasFees()"
         );
 
-        additionalCost = perL2Tx + (perCalldataUnit * msgData.length);
+        additionalCost = abi.decode(res, (uint256));
     }
 }

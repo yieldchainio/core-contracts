@@ -8,5 +8,5 @@ pragma solidity ^0.8.18;
  * by a vault (L2's specifically have different calcs for htat)
  */
 interface IGasHook {
-    function getAdditionalGasCost(bytes calldata msgData) external view returns (uint256 gasLeft);
+    function getAdditionalGasCost() external view returns (uint256 gasLeft);
 }
