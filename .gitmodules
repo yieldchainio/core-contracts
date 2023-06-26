@@ -24,3 +24,6 @@
 [submodule "lib/gmx-contracts"]
 	path = lib/gmx-contracts
 	url = https://github.com/gmx-io/gmx-contracts
+[submodule "lib/solidity-bytes-utils"]
+	path = lib/solidity-bytes-utils
+	url = https://github.com/GNSPS/solidity-bytes-utils
