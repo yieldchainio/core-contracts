@@ -17,6 +17,14 @@ contract TriggersManagerFacet is Modifiers {
     // =================
     error InsufficientGasBalance();
 
+    error OffchainLookup(
+        address sender,
+        string[] urls,
+        bytes callData,
+        bytes4 callbackFunction,
+        bytes extraData
+    );
+
     // =================
     //     MODIFIERS
     // =================
@@ -47,6 +55,10 @@ contract TriggersManagerFacet is Modifiers {
     // =================
     //     FUNCTIONS
     // =================
+
+    // ==========
+    //  REGISTER
+    // ==========
     /**
      * Register multiple triggers
      * @param triggers - Array of the trigger structs to register
@@ -79,6 +91,9 @@ contract TriggersManagerFacet is Modifiers {
         }
     }
 
+    // ==========
+    //  CHECK
+    // ==========
     /**
      * Check all triggers of all strategies
      * @return triggersStatus - 2D Array of booleans, each index is a strategy and has an array of booleans
@@ -125,6 +140,35 @@ contract TriggersManagerFacet is Modifiers {
         }
     }
 
+    /**
+     * Check a single trigger condition (internal)
+     * @param vault - The vault to check
+     * @param triggerIdx - The trigger index to check
+     * @param trigger - The actual registered trigger
+     * @return shouldTrigger
+     */
+    function _checkTrigger(
+        Vault vault,
+        uint256 triggerIdx,
+        RegisteredTrigger memory trigger
+    ) internal view returns (bool shouldTrigger) {
+        // The required delay registered for the trigger to run
+        if (block.timestamp - trigger.lastStrategyRun < trigger.requiredDelay)
+            return false;
+
+        if (trigger.triggerType == TriggerTypes.AUTOMATION)
+            return
+                AutomationFacet(address(this)).shouldExecuteAutomationTrigger(
+                    vault,
+                    triggerIdx
+                );
+
+        return false;
+    }
+
+    // ==========
+    //    EXEC
+    // ==========
     /**
      * Execute multiple strategies' checked triggers
      * @param vaultsIndices - Indices of the vaults from storage to execute
@@ -180,46 +224,27 @@ contract TriggersManagerFacet is Modifiers {
             if (!_checkTrigger(vault, i, registeredTriggers[i])) continue;
 
             // DK how to ignore return value
-            (bool success, ) = address(this).call(
-                abi.encodeCall(
-                    TriggersManagerFacet._executeTrigger,
-                    (vault, i, registeredTriggers[i], payable(msg.sender))
+            try
+                TriggersManagerFacet(address(this))._executeTrigger(
+                    vault,
+                    i,
+                    registeredTriggers[i],
+                    payable(msg.sender)
                 )
-            );
+            {} catch (bytes memory customRevert) {
+                // Catch OffchainLookups only
+                if (bytes4(customRevert) != 0x556f1830)
+                    assembly {
+                        customRevert := add(customRevert, 0x)
+                        revert(customRevert, mload(customRevert))
+                    }
 
-            assembly {
-                pop(success)
+                
             }
 
             triggersStorage.registeredTriggers[vault][i].lastStrategyRun = block
                 .timestamp;
         }
-    }
-
-    /**
-     * Check a single trigger condition (internal)
-     * @param vault - The vault to check
-     * @param triggerIdx - The trigger index to check
-     * @param trigger - The actual registered trigger
-     * @return shouldTrigger
-     */
-    function _checkTrigger(
-        Vault vault,
-        uint256 triggerIdx,
-        RegisteredTrigger memory trigger
-    ) internal view returns (bool shouldTrigger) {
-        // The required delay registered for the trigger to run
-        if (block.timestamp - trigger.lastStrategyRun < trigger.requiredDelay)
-            return false;
-
-        if (trigger.triggerType == TriggerTypes.AUTOMATION)
-            return
-                AutomationFacet(address(this)).shouldExecuteAutomationTrigger(
-                    vault,
-                    triggerIdx
-                );
-
-        return false;
     }
 
     /**
