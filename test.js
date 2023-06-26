@@ -36,14 +36,14 @@ const vaultAddress = "0x712F2F0436d22876aCD4c8940f0C23bCbEEFfc2a";
 
 const vaultContract = new Contract(vaultAddress, VaultAbi, provider);
 
-// const res = await diamond.fundGasBalance(vaultAddress, {
-//   value: 2 * 10 ** 15,
-// });
+const res = await diamond.fundGasBalance(vaultAddress, {
+  value: 2 * 10 ** 15,
+});
 
-// const receipt = await res.wait();
+const receipt = await res.wait();
 
-// if (receipt.status) console.log("Funded Vault's Gas Balance...");
-// else throw "Funding Vault Gas Balance Failed On Hash " + receipt.hash;
+if (receipt.status) console.log("Funded Vault's Gas Balance...");
+else throw "Funding Vault Gas Balance Failed On Hash " + receipt.hash;
 
 const runTxn = await diamond.executeStrategiesTriggers.populateTransaction(
   [10],
