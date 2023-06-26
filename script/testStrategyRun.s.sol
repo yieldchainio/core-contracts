@@ -29,18 +29,17 @@ contract TestStrategyFully is Script, HelperContract {
         Diamond diamond = Diamond(
             payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831)
         );
-        Vault vaultAddress = Vault(0x3F774aAD69f949b36F268DC49c55DC8C6A93D3Cc);
+        Vault vaultAddress = Vault(0x712F2F0436d22876aCD4c8940f0C23bCbEEFfc2a);
         address self = 0x634176EcC95D326CAe16829d923C1373Df6ECe95;
 
-        GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
-            address(vaultAddress)
-        );
+        // GasManagerFacet(address(diamond)).fundGasBalance{value: 0.001 ether}(
+        //     address(vaultAddress)
+        // );
 
         // IERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a).approve(
         //     address(vaultAddress),
         //     type(uint256).max
         // );
-
 
         // vaultAddress.deposit{value: requiredGas}(1 * 10 ** 16);
 
@@ -62,12 +61,7 @@ contract TestStrategyFully is Script, HelperContract {
         bool[][] memory check = TriggersManagerFacet(address(diamond))
             .checkStrategiesTriggers();
 
-        console.log("Chec Length", check.length);
-
         if (!check[idx][0]) revert("Trigger Not Ready So Cannot Execute");
-
-        for (uint256 i; i < check.length; i++)
-            for (uint256 j; j < check[i].length; j++) console.log(check[i][j]);
 
         uint256[] memory indices = new uint256[](1);
 
@@ -76,6 +70,11 @@ contract TestStrategyFully is Script, HelperContract {
         check = new bool[][](1);
         check[0] = new bool[](1);
         check[0][0] = true;
+
+        console.log("Indices");
+        for (uint256 i; i < indices.length; i++) console.log(indices[i]);
+        for (uint256 i; i < check.length; i++)
+            for (uint256 j; j < check[i].length; j++) console.log(check[i][j]);
 
         // TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
         //     indices,
@@ -86,9 +85,9 @@ contract TestStrategyFully is Script, HelperContract {
         // uint256 shares = vaultAddress.balances(self);
         // vaultAddress.withdraw{value: requiredGas}(shares);
 
-        address(vaultAddress).call(
-            hex"c24ba9b20000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        );
+        // address(vaultAddress).call(
+        //     hex"c24ba9b20000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        // );
 
         vm.stopBroadcast();
     }
