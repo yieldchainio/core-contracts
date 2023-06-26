@@ -80,6 +80,14 @@ abstract contract VaultState is AccessControl {
         admins[creator] = true;
         mods[creator] = true;
         whitelistedUsers[creator] = true;
+
+        // save diamond address in a hash, to be adapters-compatible
+        bytes32 diamondStorageNamespace = keccak256(
+            "adapters.yieldchain_diamond"
+        );
+        assembly {
+            sstore(diamondStorageNamespace, caller())
+        }
     }
 
     // =====================
