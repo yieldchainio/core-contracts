@@ -6,7 +6,6 @@ pragma solidity ^0.8.18;
 // ===============
 import {SafeERC20} from "../libs/SafeERC20.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
-import "../diamond/interfaces/ITokenStash.sol";
 import "./VaultExecution.sol";
 
 /**

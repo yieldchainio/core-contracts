@@ -7,7 +7,6 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
 import {IERC20} from "../../../interfaces/IERC20.sol";
-// import "../triggers/Registry.sol";
 import "../triggers/TriggersManager.sol";
 import "../../Modifiers.sol";
 

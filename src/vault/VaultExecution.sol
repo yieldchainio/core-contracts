@@ -147,7 +147,7 @@ abstract contract VaultExecution is
     function executeStrategy(
         bytes calldata response,
         bytes calldata extraData
-    ) external onlyWhitelistedOrPublicVault {
+    ) external onlyDiamond {
         _executeStrategy(response, extraData);
     }
 

@@ -69,10 +69,9 @@ contract DiamondCutScript is Script, HelperContract {
         // dLoupe = new DiamondLoupeFacet();
         // ownerF = new OwnershipFacet();
         // accessControlFacet = new AccessControlFacet();
-        // executionFacet = new ExecutionFacet();
         factoryFacet = new FactoryFacet();
         // tokenStashFacet = new TokenStashFacet();
-        // scamEthFacet = new ScamEth();
+        // // scamEthFacet = new ScamEth();
         // strategiesViewerFacet = new StrategiesViewerFacet();
         // gasManagerFacet = new GasManagerFacet();
         // triggersManagerFacet = new TriggersManagerFacet();
@@ -91,6 +90,37 @@ contract DiamondCutScript is Script, HelperContract {
                 functionSelectors: generateSelectors("FactoryFacet")
             })
         );
+
+        // cut[1] = (
+        //     FacetCut({
+        //         facetAddress: address(gasManagerFacet),
+        //         action: FacetCutAction.Replace,
+        //         functionSelectors: generateSelectors("GasManagerFacet")
+        //     })
+        // );
+
+        // cut[2] = (
+        //     FacetCut({
+        //         facetAddress: address(accessControlFacet),
+        //         action: FacetCutAction.Replace,
+        //         functionSelectors: generateSelectors("AccessControlFacet")
+        //     })
+        // );
+
+        // cut[3] = (
+        //     FacetCut({
+        //         facetAddress: address(triggersManagerFacet),
+        //         action: FacetCutAction.Replace,
+        //         functionSelectors: generateSelectors("TriggersManagerFacet")
+        //     })
+        // );
+        // cut[4] = (
+        //     FacetCut({
+        //         facetAddress: address(strategiesViewerFacet),
+        //         action: FacetCutAction.Replace,
+        //         functionSelectors: generateSelectors("StrategiesViewerFacet")
+        //     })
+        // );
 
         // deploy diamond
         DiamondCutFacet(address(diamond)).diamondCut(cut, address(0), hex"00");
