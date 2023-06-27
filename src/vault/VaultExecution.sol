@@ -260,6 +260,8 @@ abstract contract VaultExecution is
         urls[0] = offchainActionsUrl;
 
         OffchainActionRequest memory offchainRequest = OffchainActionRequest(
+            address(this),
+            block.chainid,
             idx,
             cachedOffchainCommands,
             originalCall.target_address,

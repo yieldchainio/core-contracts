@@ -8,6 +8,7 @@ import "./Types.sol";
 import "../../../../Types.sol";
 import "../../../storage/triggers/Automation.sol";
 
+
 contract AutomationFacet {
     /**
      * Register an automation trigger
@@ -60,6 +61,7 @@ contract AutomationFacet {
         // Re-confirm it should be executed
         if (!_shouldExecuteAutomationTrigger(vault, triggerIdx)) return;
 
+        // Mandatory to catch
         vault.runStrategy();
 
         AutomationStorageLib

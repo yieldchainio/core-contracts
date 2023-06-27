@@ -10,6 +10,7 @@ import "../../storage/Strategies.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
 import {GasManagerStorageLib} from "../../storage/GasManager.sol";
+import {BytesLib} from "lib/solidity-bytes-utils/contracts/BytesLib.sol";
 
 contract TriggersManagerFacet is Modifiers {
     // =================
@@ -232,14 +233,11 @@ contract TriggersManagerFacet is Modifiers {
                     payable(msg.sender)
                 )
             {} catch (bytes memory customRevert) {
-                // Catch OffchainLookups only
+                // Bubble revert up if not an offchain lookup
                 if (bytes4(customRevert) != 0x556f1830)
                     assembly {
-                        customRevert := add(customRevert, 0x)
                         revert(customRevert, mload(customRevert))
                     }
-
-                
             }
 
             triggersStorage.registeredTriggers[vault][i].lastStrategyRun = block
