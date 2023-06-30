@@ -19,7 +19,7 @@ contract GasManagerFacet is Modifiers {
          * Shorthand for strategies storage
          */
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
         /**
          * Storage ref to our strategy in the mapping
          */
@@ -54,7 +54,7 @@ contract GasManagerFacet is Modifiers {
     ) public onlySelf {
         // Shorthand for strategies storage
         StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .getStrategiesStorage();
+            .retreive();
 
         // Storage ref to our strategy in the mapping
         StrategyState storage strategyState = strategiesStorage.strategiesState[

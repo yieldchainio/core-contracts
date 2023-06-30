@@ -40,11 +40,7 @@ library StrategiesStorageLib {
         keccak256("diamond.yieldchain.storage.strategies");
 
     // Function to retreive our storage
-    function getStrategiesStorage()
-        internal
-        pure
-        returns (StrategiesStorage storage s)
-    {
+    function retreive() internal pure returns (StrategiesStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position
@@ -54,6 +50,6 @@ library StrategiesStorageLib {
     function getStrategyState(
         Vault strategy
     ) internal view returns (StrategyState storage stratState) {
-        stratState = getStrategiesStorage().strategiesState[strategy];
+        stratState = retreive().strategiesState[strategy];
     }
 }

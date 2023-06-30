@@ -19,22 +19,22 @@ contract StrategiesViewerFacet is Modifiers {
         view
         returns (Vault[] memory strategies)
     {
-        strategies = StrategiesStorageLib.getStrategiesStorage().strategies;
+        strategies = StrategiesStorageLib.retreive().strategies;
     }
 
     function getStrategyState(
         Vault strategy
     ) external view returns (StrategyState memory strategyState) {
-        strategyState = StrategiesStorageLib
-            .getStrategiesStorage()
-            .strategiesState[strategy];
+        strategyState = StrategiesStorageLib.retreive().strategiesState[
+            strategy
+        ];
     }
 
     function getStrategyGasBalance(
         Vault strategy
     ) external view returns (uint256 vaultGasBalance) {
         vaultGasBalance = StrategiesStorageLib
-            .getStrategiesStorage()
+            .retreive()
             .strategiesState[strategy]
             .gasBalanceWei;
     }
@@ -43,12 +43,10 @@ contract StrategiesViewerFacet is Modifiers {
         Vault strategy
     ) external view returns (RegisteredTrigger[] memory triggers) {
         return
-            TriggersManagerStorageLib.retreive().registeredTriggers[
-                strategy
-            ];
+            TriggersManagerStorageLib.retreive().registeredTriggers[strategy];
     }
 
     function purgeStrategies() external onlyExecutors {
-        StrategiesStorageLib.getStrategiesStorage().strategies = new Vault[](0);
+        StrategiesStorageLib.retreive().strategies = new Vault[](0);
     }
 }

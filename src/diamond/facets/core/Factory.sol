@@ -100,13 +100,11 @@ contract FactoryFacet is Modifiers {
         /**
          * Push the strategy to the storage array
          */
-        StrategiesStorageLib.getStrategiesStorage().strategies.push(
-            createdVault
-        );
+        StrategiesStorageLib.retreive().strategies.push(createdVault);
 
-        StrategiesStorageLib.getStrategiesStorage().strategiesState[
-                createdVault
-            ] = StrategyState(true, 0);
+        StrategiesStorageLib.retreive().strategiesState[
+            createdVault
+        ] = StrategyState(true, 0);
 
         // Register all of the triggers for the strategy
         TriggersManagerFacet(address(this)).registerTriggers(
