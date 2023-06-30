@@ -16,6 +16,7 @@ import "./VaultUtilities.sol";
 import "../diamond/interfaces/IAccessControl.sol";
 import "src/Types.sol";
 import "forge-std/console.sol";
+import "./Schema.sol";
 
 abstract contract VaultExecution is
     YCVM,

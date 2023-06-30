@@ -120,7 +120,8 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
         );
     }
 
-    function testExecutingTriggers() public {
+    function testPostExecutionState() public {
+        vm.txGasPrice(1);
         testCheckingTriggers();
 
         bool[][] memory triggs = new bool[][](1);
@@ -131,14 +132,15 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
         uint256[] memory indices = new uint256[](1);
         indices[0] = 0;
 
-        // vm.expectEmit(true, true, false, false, address(vaultContract));
+        deal(address(this), 1 ether);
 
-        // emit HydrateRun(0);
-        // TODO: TO CCIP
+        GasManagerFacet(address(diamond)).fundGasBalance{value: 1 ether}(
+            address(vaultContract)
+        );
 
-        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
-            indices,
-            triggs
+        TriggersManagerFacet(address(diamond)).executeStrategyTriggerWithData(
+            abi.encode(new bytes[](0)),
+            abi.encode(vaultContract, indices[0])
         );
 
         // Assert that checker now returns false
@@ -159,14 +161,64 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
             checkerRes[0][0],
             "Executed Trigger, Warped Time - But Checker Returns False"
         );
+    }
 
-        // vm.expectEmit(true, true, false, false, address(vaultContract));
+    function testRevertOnInsufficientVaultBalance() external {
+        vm.txGasPrice(1);
+        testCheckingTriggers();
 
-        // emit HydrateRun(1);
-        // TODO: TO CCIP
-        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
-            indices,
-            triggs
+        bool[][] memory triggs = new bool[][](1);
+        bool[] memory trigg = new bool[](1);
+        trigg[0] = true;
+        triggs[0] = trigg;
+
+        uint256[] memory indices = new uint256[](1);
+        indices[0] = 0;
+
+        vm.warp(block.timestamp + 61);
+        vm.expectRevert();
+        TriggersManagerFacet(address(diamond)).executeStrategyTriggerWithData(
+            abi.encode(new bytes[](0)),
+            abi.encode(vaultContract, indices[0])
         );
     }
+
+    function testExecutingTriggers() public {
+        vm.txGasPrice(1);
+        testCheckingTriggers();
+
+        bool[][] memory triggs = new bool[][](1);
+        bool[] memory trigg = new bool[](1);
+        trigg[0] = true;
+        triggs[0] = trigg;
+
+        uint256[] memory indices = new uint256[](1);
+        indices[0] = 0;
+
+        deal(address(this), 1 ether);
+
+        GasManagerFacet(address(diamond)).fundGasBalance{value: 1 ether}(
+            address(vaultContract)
+        );
+
+        vm.warp(block.timestamp + 61);
+
+        uint256 preBalance = address(diamond).balance;
+        TriggersManagerFacet(address(diamond)).executeStrategyTriggerWithData(
+            abi.encode(new bytes[](0)),
+            abi.encode(vaultContract, indices[0])
+        );
+        uint256 postBalance = address(diamond).balance;
+        uint256 ownBalance = address(this).balance;
+
+        assertEq(
+            preBalance - postBalance,
+            ownBalance,
+            "[TriggersManagerTest]: Executed, But did not receive appropriate gas refund"
+        );
+    }
+
+    fallback() external payable {}
+
+    receive() external payable {}
 }

@@ -43,7 +43,7 @@ contract StrategiesViewerFacet is Modifiers {
         Vault strategy
     ) external view returns (RegisteredTrigger[] memory triggers) {
         return
-            TriggersManagerStorageLib.getTriggersStorage().registeredTriggers[
+            TriggersManagerStorageLib.retreive().registeredTriggers[
                 strategy
             ];
     }

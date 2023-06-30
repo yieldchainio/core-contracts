@@ -71,10 +71,10 @@ contract TriggerRunScript is Script, HelperContract {
             address(vaultAddress)
         );
 
-        TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
-            indices,
-            triggs
-        );
+        // TriggersManagerFacet(address(diamond)).executeStrategiesTriggers(
+        //     indices,
+        //     triggs
+        // );
 
         vm.stopBroadcast();
     }

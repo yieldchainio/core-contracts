@@ -8,7 +8,6 @@ import "./Types.sol";
 import "../../../../Types.sol";
 import "../../../storage/triggers/Automation.sol";
 
-
 contract AutomationFacet {
     /**
      * Register an automation trigger
@@ -57,12 +56,16 @@ contract AutomationFacet {
      * @param vault - The vault to execute an automation trigger on
      * @param triggerIdx - The index of the trigger
      */
-    function executeAutomationTrigger(Vault vault, uint256 triggerIdx) public {
-        // Re-confirm it should be executed
+    function executeAutomationTrigger(
+        Vault vault,
+        uint256 triggerIdx,
+        bytes calldata strategyData
+    ) public {
+        // Sufficient check
         if (!_shouldExecuteAutomationTrigger(vault, triggerIdx)) return;
 
-        // Mandatory to catch
-        vault.runStrategy();
+        // We call executeStrategy with optional pass response data, and extraData is empty (no context needed for run)
+        vault.executeStrategy(strategyData, new bytes(0));
 
         AutomationStorageLib
         .getAutomationStorage()
