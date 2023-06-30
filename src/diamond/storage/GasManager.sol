@@ -20,7 +20,7 @@ struct GasManagerStorage {
 library GasManagerStorageLib {
     // The namespace for the lib (the hash where its stored)
     bytes32 internal constant STORAGE_NAMESPACE =
-        keccak256("diamond.yieldchain.storage.strategies");
+        keccak256("diamond.yieldchain.storage.gas_manager");
 
     // Function to retreive our storage
     function retreive() internal pure returns (GasManagerStorage storage s) {
