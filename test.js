@@ -7,6 +7,7 @@ import {
   ethers,
 } from "ethers";
 import dotenv from "dotenv";
+import axios from "axios";
 dotenv.config();
 
 import VaultAbi from "./ABIs/vault.json" assert { type: "json" };
@@ -36,13 +37,43 @@ const vaultAddress = "0xA34dD6731B097280E1263CecCCD095f5c07a7BD8";
 
 const vaultContract = new Contract(vaultAddress, VaultAbi, signer);
 
-const deposit = await vaultContract.deposit(200000n, {
+const headers = {
+  Accept: "application/json, text/plain, */*",
+  "User-Agent": "PostmanRuntime/7.32.3",
+  "Accept-Encoding": "gzip, compress, deflate, br",
+  Cookie: "__cflb=02DiuHhRYPmpvfjqWrAvFLFPvGwjuFe53insbvYndJdxx",
+  Connection: "keep-alive",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET",
+};
+console.log(
+  "APO SHIT:",
+  (
+    await axios.get(
+      "https://li.quest/v1/quote?fromChain=42161&toChain=42161&fromToken=0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8&toToken=0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1&fromAmount=200000&fromAddress=0xA34dD6731B097280E1263CecCCD095f5c07a7BD8&integrator=yieldchain.io",
+      {
+        headers: headers,
+      }
+    )
+  ).data
+);
+
+const depositData = await vaultContract.deposit.resolveOffchainData(200000n, {
   enableCcipRead: true,
+  blockTag: "latest",
+  from: await signer.getAddress(),
 });
 
-const depositReceipt = await deposit.wait();
+console.log("Deposit Data", depositData);
 
-console.log(`Done:`, `https://arbiscan.io/tx/${depositReceipt.hash}`);
+// const deposit = await signer.sendTransaction({
+//   to: await vaultContract.getAddress(),
+//   data: depositData,
+// });
+
+// const depositReceipt = await deposit.wait();
+
+// console.log(`Done:`, `https://arbiscan.io/tx/${depositReceipt.hash}`);
 
 // const res = await diamond.fundGasBalance(vaultAddress, {
 //   value: 2 * 10 ** 15,
