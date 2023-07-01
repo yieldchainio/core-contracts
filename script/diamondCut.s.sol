@@ -74,15 +74,14 @@ contract DiamondCutScript is Script, HelperContract {
         // // scamEthFacet = new ScamEth();
         // strategiesViewerFacet = new StrategiesViewerFacet();
         // gasManagerFacet = new GasManagerFacet();
-        triggersManagerFacet = new TriggersManagerFacet();
-        automationFacet = new AutomationFacet();
+        // triggersManagerFacet = new TriggersManagerFacet();
+        // automationFacet = new AutomationFacet();
 
         // lpAdapterFacet = new LpAdapterFacet();
         // uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
         // glpAdapterFacet = new GlpAdapterFacet();
 
-        FacetCut[] memory cut = new FacetCut[](3);
-
+        FacetCut[] memory cut = new FacetCut[](1);
         cut[0] = (
             FacetCut({
                 facetAddress: address(factoryFacet),
@@ -91,23 +90,21 @@ contract DiamondCutScript is Script, HelperContract {
             })
         );
 
-        cut[1] = (
-            FacetCut({
-                facetAddress: address(triggersManagerFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("TriggersManagerFacet")
-            })
-        );
+        // cut[1] = (
+        //     FacetCut({
+        //         facetAddress: address(triggersManagerFacet),
+        //         action: FacetCutAction.Add,
+        //         functionSelectors: generateSelectors("TriggersManagerFacet")
+        //     })
+        // );
 
-        cut[2] = (
-            FacetCut({
-                facetAddress: address(automationFacet),
-                action: FacetCutAction.Add,
-                functionSelectors: generateSelectors("AutomationFacet")
-            })
-        );
-
-        
+        // cut[2] = (
+        //     FacetCut({
+        //         facetAddress: address(automationFacet),
+        //         action: FacetCutAction.Add,
+        //         functionSelectors: generateSelectors("AutomationFacet")
+        //     })
+        // );
 
         // cut[3] = (
         //     FacetCut({

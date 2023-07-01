@@ -9,6 +9,10 @@ import "./Base.sol";
 import "../../utils/Forks.t.sol";
 import "../../diamond/Deployment.t.sol";
 
+struct DepositData {
+    uint256 amount;
+}
+
 contract ExecutionTest is DiamondTest, YCVMEncoders {
     // ==================
     //     CONSTANTS
@@ -124,7 +128,11 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         uint256 preTotalShares = vaultContract.totalShares();
 
         // Deposit all 100 tokens we have
-        vaultContract.deposit(depositAmount);
+        console.log("Gonna deposit...");
+        vaultContract.executeDeposit(
+            abi.encode(new bytes[](0)),
+            abi.encode(DepositData(depositAmount))
+        );
 
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(

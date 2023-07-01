@@ -40,9 +40,13 @@ abstract contract VaultExecution is
      * @param encodedDepositData - Encoded DepositData struct, set as extraData in offchain lookups
      */
     function executeDeposit(
-        bytes memory response,
-        bytes memory encodedDepositData
+        bytes calldata response,
+        bytes calldata encodedDepositData
     ) external onlyWhitelistedOrPublicVault {
+        // Reserve first memory spot for some value (e.g deposit amount)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
         _executeDeposit(response, encodedDepositData);
     }
 
@@ -95,6 +99,10 @@ abstract contract VaultExecution is
         bytes calldata response,
         bytes calldata encodedWithdrawalData
     ) external onlyWhitelistedOrPublicVault {
+        // Reserve first memory spot for some value (e.g withdrawal % share)
+        assembly {
+            mstore(0x40, add(mload(0x40), 0x20))
+        }
         _executeWithdrawal(response, encodedWithdrawalData);
     }
 
