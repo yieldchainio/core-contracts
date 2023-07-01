@@ -6,6 +6,7 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
+import "../../storage/GasManager.sol";
 import "../../Modifiers.sol";
 
 contract GasManagerFacet is Modifiers {
@@ -39,38 +40,11 @@ contract GasManagerFacet is Modifiers {
     }
 
     /**
-     * @notice
-     * collectVaultGasDebt()
-     * Deduct from a vault's gas balance, and transfer it to some address
-     * can only be called internally!!
-     * @param strategy - Address of the strategy to deduct
-     * @param receiver - The address of the Ether receiver
-     * @param debtInWei - The debt of the strategy in WEI (not GWEI!!) to deduct
+     * Set the current hook used to return additional gas costs incurred in the txn
+     * (useful for L2s)
+     * @param newHook - The new hook to set
      */
-    function collectVaultGasDebt(
-        Vault strategy,
-        address payable receiver,
-        uint256 debtInWei
-    ) public onlySelf {
-        // Shorthand for strategies storage
-        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .retreive();
-
-        // Storage ref to our strategy in the mapping
-        StrategyState storage strategyState = strategiesStorage.strategiesState[
-            strategy
-        ];
-
-        // Assert that the balance is sufficient and deduct the debt
-        require(
-            strategyState.gasBalanceWei >= debtInWei,
-            "Insufficient Gas Balance To Deduct."
-        );
-
-        // Deduct it
-        strategyState.gasBalanceWei -= debtInWei;
-
-        // Transfer to the receiver
-        receiver.transfer(debtInWei);
+    function setGasHook(IGasHook newHook) external onlyOwner {
+        GasManagerStorageLib.retreive().gasHook = newHook;
     }
 }
