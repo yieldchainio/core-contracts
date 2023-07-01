@@ -16,7 +16,7 @@ contract ArbitrumL1GasHook is IGasHook {
         returns (uint256 additionalCost)
     {
         (, bytes memory res) = ARB_GASINFO_PRECOMPILE.staticcall(
-            "getCurrentTxL1GasFees()"
+            abi.encodeWithSignature("getCurrentTxL1GasFees()")
         );
 
         additionalCost = abi.decode(res, (uint256));
