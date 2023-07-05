@@ -9,10 +9,10 @@ import "src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "src/diamond/Diamond.sol";
 import "forge-std/Script.sol";
 import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
-import "../src/diamond/facets/adapters/lp/ClientsManager.sol";
-import "../src/diamond/facets/adapters/lp/LpAdapter.sol";
-import "../src/diamond/facets/adapters/lp/clients/UniV2.sol";
-import "../src/interfaces/IUniV2Factory.sol";
+// import "../src/diamond/facets/adapters/lp/ClientsManager.sol";
+// import "../src/diamond/facets/adapters/lp/LpAdapter.sol";
+// import "../src/diamond/facets/adapters/lp/clients/UniV2.sol";
+// import "../src/interfaces/IUniV2Factory.sol";
 
 contract DepositLp is Script {
     Diamond diamond =
