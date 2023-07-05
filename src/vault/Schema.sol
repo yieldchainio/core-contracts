@@ -26,6 +26,12 @@ abstract contract VaultTypes {
      */
     event Withdraw(address indexed receiver, uint256 indexed amount);
 
+    /**
+     * StrategyRun
+     * Emitted when a strategy run happens
+     */
+    event StrategyRun();
+
     // =====================
     //        ERRORS
     // =====================

@@ -86,6 +86,8 @@ abstract contract VaultExecution is
             VaultExecution.executeDeposit.selector,
             encodedDepositData
         );
+
+        emit Deposit(msg.sender, amount);
     }
 
     /**
@@ -148,6 +150,8 @@ abstract contract VaultExecution is
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
 
         DEPOSIT_TOKEN.safeTransfer(msg.sender, debt);
+
+        emit Withdraw(msg.sender, debt);
     }
 
     /**
@@ -173,6 +177,8 @@ abstract contract VaultExecution is
             VaultExecution.executeStrategy.selector,
             extraData
         );
+
+        emit StrategyRun();
     }
 
     // ========================

@@ -44,7 +44,6 @@ contract TriggersManagerFacet is Modifiers {
         uint256 intrinsicGasCost = 21000 + (msg.data.length * 16);
         (Vault vault, ) = abi.decode(encodedVaultRunParams, (Vault, uint256));
         _; // Marks body of the entire function we are applied to
-        console.log("Function Ends, Gas Calc Begins...");
         uint256 leftGas = gasleft();
         // 2300 for ETH .trasnfer()
         uint256 weiSpent = ((startingGas - leftGas + intrinsicGasCost + 2300) *
@@ -54,7 +53,6 @@ contract TriggersManagerFacet is Modifiers {
             vault
         );
 
-        console.log("Wei Spent:", weiSpent);
 
         if (weiSpent > state.gasBalanceWei) revert InsufficientGasBalance();
 

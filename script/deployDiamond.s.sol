@@ -60,8 +60,6 @@ contract DeployScript is Script, HelperContract {
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
 
-    string[] facetNames;
-    address[] facetAddressList;
 
     function run() external {
         //read env variables and choose EOA for transaction signing

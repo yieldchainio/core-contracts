@@ -54,9 +54,6 @@ contract DiamondCutScript is Script, HelperContract {
     IDiamondLoupe ILoupe;
     IDiamondCut ICut;
 
-    string[] facetNames;
-    address[] facetAddressList;
-
     function run() external {
         //read env variables and choose EOA for transaction signing
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
