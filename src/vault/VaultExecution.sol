@@ -147,7 +147,8 @@ abstract contract VaultExecution is
             encodedWithdrawalData
         );
 
-        uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) - preVaultBalance;
+        uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) -
+            (preVaultBalance - (preVaultBalance / (100 / shareOfVaultInPercentage)));
 
         DEPOSIT_TOKEN.safeTransfer(msg.sender, debt);
 
