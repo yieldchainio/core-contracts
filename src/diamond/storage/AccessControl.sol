@@ -42,7 +42,7 @@ library AccessControlStorageLib {
 
     function _setOffchainLookupUrl(string calldata newUrl) internal {
         AccessControlStorage
-            storage accessControlStorage = getAccessControlStorage();
+            storage accessControlStorage = retreive();
         accessControlStorage.offchainActionsUrl = newUrl;
     }
 
@@ -51,6 +51,6 @@ library AccessControlStorageLib {
         view
         returns (string memory offchainurl)
     {
-        offchainurl = getAccessControlStorage().offchainActionsUrl;
+        offchainurl = retreive().offchainActionsUrl;
     }
 }

@@ -39,7 +39,6 @@ contract StrategiesViewerFacet is AccessControlled {
     ) external view returns (uint256 vaultGasBalance) {
         vaultGasBalance = StrategiesStorageLib
             .retreive()
-            .retreive()
             .strategiesState[strategy]
             .gasBalanceWei;
     }

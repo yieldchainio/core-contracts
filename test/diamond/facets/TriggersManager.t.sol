@@ -114,6 +114,20 @@ contract TriggersManagerTest is DiamondTest, VaultTypes {
             .checkStrategiesTriggers();
 
         // Should Work Now
+        assertFalse(
+            checkerRes[0][0],
+            "Vault has 0 shares but checker returned true"
+        );
+
+        deal(address(vaultContract.DEPOSIT_TOKEN()), address(this), 10 * 10 ** 18);
+
+        vaultContract.DEPOSIT_TOKEN().approve(address(vaultContract), type(uint256).max);
+        vaultContract.deposit(10 * 10 ** 18);
+
+        checkerRes = TriggersManagerFacet(address(diamond))
+            .checkStrategiesTriggers();
+
+        // Should Work Now
         assertTrue(
             checkerRes[0][0],
             "Enough Time Has Passed But Checker Returned False"

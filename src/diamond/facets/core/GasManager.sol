@@ -6,12 +6,8 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
-<<<<<<< HEAD
 import "../../storage/GasManager.sol";
-import "../../Modifiers.sol";
-=======
 import "../../AccessControlled.sol";
->>>>>>> main
 
 contract GasManagerFacet is AccessControlled {
     /**
