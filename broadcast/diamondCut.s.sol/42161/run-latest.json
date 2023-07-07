@@ -20,11 +20,7 @@
       "isFixedGasLimit": false
     },
     {
-<<<<<<< HEAD
       "hash": "0xcc67b31869e2965118b2a4c7c71805facad91e20863d1567d5f30268c69b0f1a",
-=======
-      "hash": null,
->>>>>>> main
       "transactionType": "CALL",
       "contractName": "Diamond",
       "contractAddress": "0xbAF45B60F69eCa4616CdE172D3961C156946e831",

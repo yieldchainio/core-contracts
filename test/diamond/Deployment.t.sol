@@ -136,7 +136,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](12);
+        FacetCut[] memory cut = new FacetCut[](14);
 
         cut[0] = (
             FacetCut({
@@ -232,7 +232,7 @@ contract DiamondTest is Test, HelperContract {
             })
         );
 
-        cut[13] = (
+        cut[12] = (
             FacetCut({
                 facetAddress: address(lendingAdapterFacet),
                 action: FacetCutAction.Add,
@@ -240,7 +240,7 @@ contract DiamondTest is Test, HelperContract {
             })
         );
 
-        cut[14] = (
+        cut[13] = (
             FacetCut({
                 facetAddress: address(aaveV3StorageManager),
                 action: FacetCutAction.Add,
