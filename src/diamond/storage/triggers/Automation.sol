@@ -23,11 +23,7 @@ library AutomationStorageLib {
         keccak256("diamond.yieldchain.storage.triggers.automation");
 
     // Function to retreive our storage
-    function getAutomationStorage()
-        internal
-        pure
-        returns (AutomationStorage storage s)
-    {
+    function retreive() internal pure returns (AutomationStorage storage s) {
         bytes32 position = STORAGE_NAMESPACE;
         assembly {
             s.slot := position

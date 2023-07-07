@@ -3,7 +3,7 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import "../../../Types.sol";
 import "../../storage/TriggersManager.sol";
 import "../../storage/Strategies.sol";
@@ -12,7 +12,7 @@ import "../core/StrategiesViewer.sol";
 import {GasManagerStorageLib} from "../../storage/GasManager.sol";
 import {BytesLib} from "lib/solidity-bytes-utils/contracts/BytesLib.sol";
 
-contract TriggersManagerFacet is Modifiers {
+contract TriggersManagerFacet is AccessControlled {
     // =================
     //      ERRORS
     // =================

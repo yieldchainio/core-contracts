@@ -19,8 +19,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         bytes32 clientId,
         bytes[] memory extraArgs
     ) external payable {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
         bytes4 clientSel = client.addSelector;
@@ -52,8 +51,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         bytes32 clientId,
         bytes[] memory extraArgs
     ) external {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
         bytes4 clientSel = client.removeSelector;
@@ -83,8 +81,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         bytes32 clientId,
         bytes[] memory extraArgs
     ) external {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
         bytes4 clientSel = client.harvestSelector;
@@ -95,13 +92,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         );
 
         (bool success, ) = address(this).delegatecall(
-            abi.encodeWithSelector(
-                clientSel,
-                client,
-                tokenA,
-                tokenB,
-                extraArgs
-            )
+            abi.encodeWithSelector(clientSel, client, tokenA, tokenB, extraArgs)
         );
 
         require(success, "Harvesting Lp Failed");
@@ -115,8 +106,7 @@ contract LpAdapterFacet is LpClientsManagerFacet {
         address tokenA,
         address tokenB
     ) external view returns (uint256 ownerLpBalance) {
-        LpAdapterStorage storage lpStorage = LpAdapterStorageLib
-            .getLpAdapterStorage();
+        LpAdapterStorage storage lpStorage = LpAdapterStorageLib.retreive();
 
         LPClient memory client = lpStorage.clientsSelectors[clientId];
         bytes4 clientSel = client.balanceOfLpSelector;

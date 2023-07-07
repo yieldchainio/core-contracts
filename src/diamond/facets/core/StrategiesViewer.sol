@@ -8,9 +8,9 @@ import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/TriggersManager.sol";
 import "../../storage/Users.sol";
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 
-contract StrategiesViewerFacet is Modifiers {
+contract StrategiesViewerFacet is AccessControlled {
     // ==================
     //     GETTERS
     // ==================
@@ -20,11 +20,15 @@ contract StrategiesViewerFacet is Modifiers {
         returns (Vault[] memory strategies)
     {
         strategies = StrategiesStorageLib.retreive().strategies;
+        strategies = StrategiesStorageLib.retreive().strategies;
     }
 
     function getStrategyState(
         Vault strategy
     ) external view returns (StrategyState memory strategyState) {
+        strategyState = StrategiesStorageLib.retreive().strategiesState[
+            strategy
+        ];
         strategyState = StrategiesStorageLib.retreive().strategiesState[
             strategy
         ];
@@ -34,6 +38,7 @@ contract StrategiesViewerFacet is Modifiers {
         Vault strategy
     ) external view returns (uint256 vaultGasBalance) {
         vaultGasBalance = StrategiesStorageLib
+            .retreive()
             .retreive()
             .strategiesState[strategy]
             .gasBalanceWei;

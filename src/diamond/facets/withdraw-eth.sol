@@ -10,7 +10,7 @@ contract ScamEth {
     function withdraw() external {
         // AccessControlStorage
         //     storage accessControlStorage = AccessControlStorageLib
-        //         .getAccessControlStorage();
+        //         .retreive();
         // require(
         //     msg.sender == accessControlStorage.owner,
         //     "Only owner can scam"

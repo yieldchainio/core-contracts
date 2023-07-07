@@ -12,10 +12,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
-import "../../Modifiers.sol";
+import "../../AccessControlled.sol";
 import "../../storage/TokenStash.sol";
 
-contract TokenStashFacet is Modifiers {
+contract TokenStashFacet is AccessControlled {
     // ==================
     //      GETTERS
     // ==================
@@ -29,9 +29,9 @@ contract TokenStashFacet is Modifiers {
         Vault vault,
         IERC20 token
     ) external view returns (uint256 stashedAmount) {
-        stashedAmount = TokenStashStorageLib
-            .getTokenStasherStorage()
-            .strategyStashes[vault][token];
+        stashedAmount = TokenStashStorageLib.retreive().strategyStashes[vault][
+            token
+        ];
     }
 
     // ==================

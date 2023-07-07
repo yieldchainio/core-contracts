@@ -26,7 +26,7 @@ contract AutomationFacet {
         );
 
         AutomationStorage storage automationStorage = AutomationStorageLib
-            .getAutomationStorage();
+            .retreive();
 
         uint256 automationInterval = abi.decode(
             automationTrigger.extraData,
@@ -68,7 +68,7 @@ contract AutomationFacet {
         vault.executeStrategy(strategyData, new bytes(0));
 
         AutomationStorageLib
-        .getAutomationStorage()
+        .retreive()
         .scheduledAutomations[vault][triggerIdx].lastExecutedTimestamp = block
             .timestamp;
     }
@@ -84,7 +84,7 @@ contract AutomationFacet {
         uint256 triggerIdx
     ) internal view returns (bool shouldExecute) {
         AutomationStorage storage automationStorage = AutomationStorageLib
-            .getAutomationStorage();
+            .retreive();
 
         ScheduledAutomation memory scheduledAutomation = automationStorage
             .scheduledAutomations[vault][triggerIdx];
@@ -106,8 +106,8 @@ contract AutomationFacet {
         uint256 triggerIdx
     ) external view returns (ScheduledAutomation memory registeredAutomation) {
         return
-            AutomationStorageLib.getAutomationStorage().scheduledAutomations[
-                vault
-            ][triggerIdx];
+            AutomationStorageLib.retreive().scheduledAutomations[vault][
+                triggerIdx
+            ];
     }
 }

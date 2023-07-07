@@ -18,6 +18,8 @@ import "../../src/diamond/facets/core/Users.sol";
 import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import {GlpAdapterFacet} from "../../src/diamond/facets/adapters/lp/clients/Glp.sol";
+import {LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/LendingAdapter.sol";
+import {AaveV3AdapterStorageManager} from "../../src/diamond/facets/adapters/lending/clients/AaveV3Storage.sol";
 import "../../src/diamond/Diamond.sol";
 import "../../src/diamond/interfaces/IDiamond.sol";
 import "../../src/diamond/interfaces/IDiamondCut.sol";
@@ -49,6 +51,9 @@ contract DiamondTest is Test, HelperContract {
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
     GlpAdapterFacet glpLpAdapterFacet;
+
+    LendingAdapterFacet lendingAdapterFacet;
+    AaveV3AdapterStorageManager aaveV3StorageManager;
 
     //interfaces with Facet ABI connected to diamond address
     IDiamondLoupe ILoupe;
@@ -86,6 +91,9 @@ contract DiamondTest is Test, HelperContract {
         uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
         glpLpAdapterFacet = new GlpAdapterFacet();
 
+        lendingAdapterFacet = new LendingAdapterFacet();
+        aaveV3StorageManager = new AaveV3AdapterStorageManager();
+
         facetNames = [
             "DiamondCutFacet",
             "DiamondLoupeFacet",
@@ -100,7 +108,9 @@ contract DiamondTest is Test, HelperContract {
             "AutomationFacet",
             "LpAdapterFacet",
             "UniV2LpAdapterFacet",
-            "GlpAdapterFacet"
+            "GlpAdapterFacet",
+            "LendingAdapterFacet",
+            "AaveV3LendingAdapterFacet"
         ];
 
         // diamod arguments
@@ -219,6 +229,24 @@ contract DiamondTest is Test, HelperContract {
                 facetAddress: address(glpLpAdapterFacet),
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors("GlpAdapterFacet")
+            })
+        );
+
+        cut[13] = (
+            FacetCut({
+                facetAddress: address(lendingAdapterFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("LendingAdapterFacet")
+            })
+        );
+
+        cut[14] = (
+            FacetCut({
+                facetAddress: address(aaveV3StorageManager),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors(
+                    "AaveV3AdapterStorageManager"
+                )
             })
         );
 

@@ -10,7 +10,7 @@ import "./storage/AccessControl.sol";
 import "./storage/Strategies.sol";
 import {LibDiamond} from "./libraries/LibDiamond.sol";
 
-contract Modifiers {
+contract AccessControlled {
     /**
      * Only allow owner of the diamond to access
      */
@@ -24,9 +24,7 @@ contract Modifiers {
      */
     modifier onlyExecutors() {
         require(
-            AccessControlStorageLib.getAccessControlStorage().isWhitelisted[
-                msg.sender
-            ],
+            AccessControlStorageLib.retreive().isWhitelisted[msg.sender],
             "ERR: Not Whitelisted Executor"
         );
         _;

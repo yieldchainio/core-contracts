@@ -6,10 +6,14 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
+<<<<<<< HEAD
 import "../../storage/GasManager.sol";
 import "../../Modifiers.sol";
+=======
+import "../../AccessControlled.sol";
+>>>>>>> main
 
-contract GasManagerFacet is Modifiers {
+contract GasManagerFacet is AccessControlled {
     /**
      * @notice
      * Fund a vault's native gas balance (Used to fund trigger runs)
