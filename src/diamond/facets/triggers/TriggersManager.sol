@@ -6,13 +6,67 @@ pragma solidity ^0.8.18;
 import "../../AccessControlled.sol";
 import "../../../Types.sol";
 import "../../storage/TriggersManager.sol";
+import "../../storage/Strategies.sol";
 import "./automation/Automation.sol";
 import "../core/StrategiesViewer.sol";
+import {GasManagerStorageLib} from "../../storage/GasManager.sol";
+import {BytesLib} from "lib/solidity-bytes-utils/contracts/BytesLib.sol";
 
 contract TriggersManagerFacet is AccessControlled {
     // =================
+    //      ERRORS
+    // =================
+    error InsufficientGasBalance();
+
+    error OffchainLookup(
+        address sender,
+        string[] urls,
+        bytes callData,
+        bytes4 callbackFunction,
+        bytes extraData
+    );
+
+    error TriggerNotReady();
+
+    // =================
+    //     MODIFIERS
+    // =================
+
+    /**
+     * Sponsors a call's gas from a vault's gas balance - When received encoded vault
+     * @param encodedVaultRunParams - The vault to take gas from - Encoded
+     */
+    modifier gasless(bytes calldata encodedVaultRunParams) {
+        uint256 startingGas = gasleft();
+        // We assume msg.data contains all non-empty bytes, (evm costs 16 gas for non-empty & 4 for empty byte),
+        // This is because iterating over all of the bytes and incrementing a cost basis would make the actual calculation
+        // cost exponential and thus be not worth it.
+        uint256 intrinsicGasCost = 21000 + (msg.data.length * 16);
+        (Vault vault, ) = abi.decode(encodedVaultRunParams, (Vault, uint256));
+        _; // Marks body of the entire function we are applied to
+        uint256 leftGas = gasleft();
+        // 2300 for ETH .trasnfer()
+        uint256 weiSpent = ((startingGas - leftGas + intrinsicGasCost + 2300) *
+            tx.gasprice) + GasManagerStorageLib.getAdditionalGasCost();
+
+        StrategyState storage state = StrategiesStorageLib.getStrategyState(
+            vault
+        );
+
+        if (weiSpent > state.gasBalanceWei) revert InsufficientGasBalance();
+
+        state.gasBalanceWei -= weiSpent;
+
+        payable(msg.sender).transfer(weiSpent);
+    }
+
+    // =================
     //     FUNCTIONS
     // =================
+
+    // ==========
+    //  REGISTER
+    // ==========
     /**
      * Register multiple triggers
      * @param triggers - Array of the trigger structs to register
@@ -44,6 +98,9 @@ contract TriggersManagerFacet is AccessControlled {
         }
     }
 
+    // ==========
+    //  CHECK
+    // ==========
     /**
      * Check all triggers of all strategies
      * @return triggersStatus - 2D Array of booleans, each index is a strategy and has an array of booleans
@@ -90,64 +147,6 @@ contract TriggersManagerFacet is AccessControlled {
     }
 
     /**
-     * Execute multiple strategies' checked triggers
-     * @param vaultsIndices - Indices of the vaults from storage to execute
-     * @param triggersSignals - 2D boolean array, has to be of same length as indices array, indicates for each
-     * registered strategy whether it should run
-     */
-    function executeStrategiesTriggers(
-        uint256[] calldata vaultsIndices,
-        bool[][] calldata triggersSignals
-    ) external {
-        require(
-            vaultsIndices.length == triggersSignals.length,
-            "Vaults Indices & Triggers Signals Mismatch"
-        );
-
-        Vault[] memory vaults = StrategiesStorageLib.retreive().strategies;
-
-        for (uint256 i; i < vaultsIndices.length; i++)
-            _executeStrategyTriggers(
-                vaults[vaultsIndices[i]],
-                triggersSignals[i]
-            );
-    }
-
-    /**
-     * Execute a strategy's checked triggers (Internal)
-     * @param vault - The vault to execute the triggers on
-     * @param triggersSignals - Boolean array the length of the registered triggers,
-     * indicating whether to execute it or not.
-     */
-    function _executeStrategyTriggers(
-        Vault vault,
-        bool[] calldata triggersSignals
-    ) internal {
-        TriggersManagerStorage
-            storage triggersStorage = TriggersManagerStorageLib.retreive();
-
-        RegisteredTrigger[] memory registeredTriggers = triggersStorage
-            .registeredTriggers[vault];
-
-        require(
-            triggersSignals.length == registeredTriggers.length,
-            "Trigger Signals & Registered Triggers Length Mismatch"
-        );
-
-        for (uint256 i; i < registeredTriggers.length; i++) {
-            if (!triggersSignals[i]) continue;
-
-            // Additional, trust-minimized sufficient check
-            if (!_checkTrigger(vault, i, registeredTriggers[i])) continue;
-
-            _executeTrigger(vault, i, registeredTriggers[i]);
-
-            triggersStorage.registeredTriggers[vault][i].lastStrategyRun = block
-                .timestamp;
-        }
-    }
-
-    /**
      * Check a single trigger condition (internal)
      * @param vault - The vault to check
      * @param triggerIdx - The trigger index to check
@@ -163,6 +162,8 @@ contract TriggersManagerFacet is AccessControlled {
         if (block.timestamp - trigger.lastStrategyRun < trigger.requiredDelay)
             return false;
 
+        if (vault.totalShares() == 0) return false;
+
         if (trigger.triggerType == TriggerTypes.AUTOMATION)
             return
                 AutomationFacet(address(this)).shouldExecuteAutomationTrigger(
@@ -173,21 +174,103 @@ contract TriggersManagerFacet is AccessControlled {
         return false;
     }
 
+    // ==========
+    //    EXEC
+    // ==========
+
     /**
-     * Execute a single trigger condition (internal)
-     * @param vault - The vault to execute on
-     * @param triggerIdx - The trigger index to execute
-     * @param trigger - The actual registered trigger (For types)
+     * Execute a strategy's trigger with CCIP data
+     * @param strategyResponse - Response from CCIP endpoint if request by strategy (otherwise use empty bytes)
+     * @param encodedContext - CCIP Extra data (Context of execution - Strategy Index + Trigger Index)
+     * ** GasLess - Pays back the gas used **
      */
+    function executeStrategyTriggerWithData(
+        bytes calldata strategyResponse,
+        bytes calldata encodedContext
+    ) external gasless(encodedContext) {
+        (Vault vault, uint256 strategyTriggerIdx) = abi.decode(
+            encodedContext,
+            (Vault, uint256)
+        );
+
+        _executeTrigger(vault, strategyTriggerIdx, strategyResponse);
+    }
+
+    /**
+     * Internal function to execute a strategy's trigger
+     * @param vault - THe vault to execute a trigger on
+     * @param strategyTriggerIdx - Index of the trigger of the strategy mapped to it in storage
+     * Note it's external because we want to be able to catch errors here
+     */
+
     function _executeTrigger(
         Vault vault,
-        uint256 triggerIdx,
-        RegisteredTrigger memory trigger
+        uint256 strategyTriggerIdx,
+        bytes memory strategyData
     ) internal {
+        try
+            TriggersManagerFacet(address(this)).tryExecuteTrigger(
+                vault,
+                strategyTriggerIdx,
+                strategyData
+            )
+        {} catch (bytes memory revertData) {
+            // Only interested in modifying CCIP
+            if (bytes4(revertData) != 0x556f1830)
+                assembly {
+                    revert(revertData, mload(revertData))
+                }
+
+            (, string[] memory urls, bytes memory callData, , ) = abi.decode(
+                BytesLib.slice(revertData, 4, revertData.length - 4),
+                (address, string[], bytes, bytes4, bytes)
+            );
+
+            revert OffchainLookup(
+                address(this),
+                urls,
+                callData,
+                TriggersManagerFacet.executeStrategyTriggerWithData.selector,
+                abi.encode(vault, strategyTriggerIdx)
+            );
+        }
+
+        TriggersManagerStorageLib
+        .retreive()
+        .registeredTriggers[vault][strategyTriggerIdx].lastStrategyRun = block
+            .timestamp;
+    }
+
+    /**
+     * Internal function to execute a strategy's trigger
+     * @param vault - THe vault to execute a trigger on
+     * @param strategyTriggerIdx - Index of the trigger of the strategy mapped to it in storage
+     * Note it's external because we want to be able to catch errors here, but shouldnt be called directly
+     */
+    function tryExecuteTrigger(
+        Vault vault,
+        uint256 strategyTriggerIdx,
+        bytes calldata strategyData
+    ) external onlySelf {
+        TriggersManagerStorage
+            storage triggersStorage = TriggersManagerStorageLib.retreive();
+
+        RegisteredTrigger[] memory registeredTriggers = triggersStorage
+            .registeredTriggers[vault];
+
+        RegisteredTrigger memory trigger = registeredTriggers[
+            strategyTriggerIdx
+        ];
+
+        if (!_checkTrigger(vault, strategyTriggerIdx, trigger))
+            revert TriggerNotReady();
+
+        // Switch case
         if (trigger.triggerType == TriggerTypes.AUTOMATION)
             AutomationFacet(address(this)).executeAutomationTrigger(
                 vault,
-                triggerIdx
+                strategyTriggerIdx,
+                strategyData
             );
     }
 

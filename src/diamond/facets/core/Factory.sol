@@ -20,7 +20,8 @@ contract FactoryFacet is AccessControlled {
     event VaultCreated(
         address indexed strategyAddress,
         address indexed creator,
-        address indexed depositToken
+        address indexed depositToken,
+        bytes constructorArgs
     );
 
     // ==================
@@ -80,7 +81,16 @@ contract FactoryFacet is AccessControlled {
         emit VaultCreated(
             address(createdVault),
             msg.sender,
-            address(depositToken)
+            address(depositToken),
+            abi.encode(
+                seedSteps,
+                treeSteps,
+                uprootSteps,
+                approvalPairs,
+                depositToken,
+                isPublic,
+                msg.sender
+            )
         );
 
         /**

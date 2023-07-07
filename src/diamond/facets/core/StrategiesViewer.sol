@@ -20,11 +20,15 @@ contract StrategiesViewerFacet is AccessControlled {
         returns (Vault[] memory strategies)
     {
         strategies = StrategiesStorageLib.retreive().strategies;
+        strategies = StrategiesStorageLib.retreive().strategies;
     }
 
     function getStrategyState(
         Vault strategy
     ) external view returns (StrategyState memory strategyState) {
+        strategyState = StrategiesStorageLib.retreive().strategiesState[
+            strategy
+        ];
         strategyState = StrategiesStorageLib.retreive().strategiesState[
             strategy
         ];
@@ -35,17 +39,9 @@ contract StrategiesViewerFacet is AccessControlled {
     ) external view returns (uint256 vaultGasBalance) {
         vaultGasBalance = StrategiesStorageLib
             .retreive()
+            .retreive()
             .strategiesState[strategy]
             .gasBalanceWei;
-    }
-
-    function getStrategyOperationGas(
-        Vault strategy,
-        uint256 opIndex
-    ) external view returns (uint256 strategyOperationGas) {
-        strategyOperationGas = StrategiesStorageLib
-            .retreive()
-            .strategyOperationsGas[strategy][opIndex];
     }
 
     function getStrategyTriggers(

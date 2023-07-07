@@ -9,6 +9,10 @@ import "./Base.sol";
 import "../../utils/Forks.t.sol";
 import "../../diamond/Deployment.t.sol";
 
+struct DepositData {
+    uint256 amount;
+}
+
 contract ExecutionTest is DiamondTest, YCVMEncoders {
     // ==================
     //     CONSTANTS
@@ -124,9 +128,11 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         uint256 preTotalShares = vaultContract.totalShares();
 
         // Deposit all 100 tokens we have
-        uint256 requiredGasPrepay = vaultContract.approxDepositGas();
-        vaultContract.deposit{value: requiredGasPrepay * 2}(depositAmount);
-        routeLatestRequest();
+        console.log("Gonna deposit...");
+        vaultContract.executeDeposit(
+            abi.encode(new bytes[](0)),
+            abi.encode(DepositData(depositAmount))
+        );
 
         // Assert that the vault's GMX staking balance should now be half of that
         assertEq(
@@ -188,7 +194,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
 
         // Make a strategy run
         vaultContract.runStrategy();
-        routeLatestRequest();
 
         // Assert that the pool balances be bigger than what they were
         assertTrue(
@@ -197,11 +202,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         );
 
         // @notice We do not assert the GNS staking balance as it does not grow like this w the block.timestamp
-        // TODO: Manual storage manipulation? not sure if worth it sine if GMX changed we know it worked.
-        // assertTrue(
-        //     getGNSStakingBalance() > preGNSPoolBalance,
-        //     "Strategy Run, But GNS Position Did Not Grow."
-        // );
     }
 
     /**
@@ -215,11 +215,8 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         vm.prank(vaultContract.YC_DIAMOND());
         vaultContract.changePrivacy(true);
 
-        vm.deal(address(this), 2 ether);
-
         // Then, "deploy" a new test contract and begin pranking it as Bob, and have him deposit a similar amount
         address Bob = address(1);
-        vm.deal(Bob, 2 ether);
 
         vm.startPrank(Bob);
         deal(address(vaultContract.DEPOSIT_TOKEN()), Bob, depositAmount);
@@ -227,14 +224,11 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             address(vaultContract),
             type(uint256).max
         );
-        uint256 requiredGasPrepay = vaultContract.approxDepositGas();
-        vaultContract.deposit{value: requiredGasPrepay * 2}(depositAmount);
+        vaultContract.deposit(depositAmount);
         vm.stopPrank();
-        routeLatestRequest();
 
         vm.prank(vaultContract.YC_DIAMOND());
         vaultContract.runStrategy();
-        routeLatestRequest();
 
         // Keep track of GMX and GNS balances, totalShares, our balance and Bob's blaance b4 the withdrawal
         uint256 preGMXPoolBalance = getGmxStakingBalance();
@@ -253,9 +247,7 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
         assertEq(preTotalShares / preBobShares, 2, "Pre Bob Shares Incorrrect");
 
         // Execute a withdrawal of all of our shares (should be 50% of total shares)
-        requiredGasPrepay = vaultContract.approxWithdrawalGas();
-        vaultContract.withdraw{value: requiredGasPrepay * 2}(preSelfShares);
-        routeLatestRequest();
+        vaultContract.withdraw(preSelfShares);
 
         // Assert that the shares of us are now 0
         assertEq(
@@ -291,9 +283,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             "Withdrawan But GMX remains in pool"
         );
 
-        console.log("Self Pre GMX Pool Balance", preGMXPoolBalance);
-        console.log("Self Existing GMX Pool Balance", getGmxStakingBalance());
-
         // Assert that the GMX  & GNS pool balances of the vault are now half from prev
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
@@ -317,17 +306,8 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
 
         // Prank Bob Contract, Withdraw his shares as him
         vm.startPrank(Bob);
-        requiredGasPrepay = vaultContract.approxWithdrawalGas();
-        vaultContract.withdraw{value: requiredGasPrepay * 2}(
-            vaultContract.balances(Bob) / 2
-        );
+        vaultContract.withdraw(vaultContract.balances(Bob) / 2);
         vm.stopPrank();
-        routeLatestRequest();
-
-        // BOB Got THis Amount: 61070876437181831762585
-        // Deposit Amount Was:  61070476549147019107646
-        // We Got this Amount: 61070876437181831762585
-        // Deposit Amount Was: 61070476549147019107646
 
         // Assert that his balance & total shares are 0
         assertEq(
@@ -340,10 +320,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
             depositAmount / 2,
             "Bob Withdrawn But Total Shares Mismatch"
         );
-
-        // Assert that the vault's GMX and GNS balances in pools are now 0
-        console.log("Bob Pre GMX Pool Balance", preGMXPoolBalance);
-        console.log("Bob Existing GMX Pool Balance", getGmxStakingBalance());
 
         assertTrue(
             getGmxStakingBalance() == preGMXPoolBalance / 2 ||
@@ -417,23 +393,6 @@ contract ExecutionTest is DiamondTest, YCVMEncoders {
 
     function getDepositTokenBalance() public view returns (uint256 balance) {
         return vaultContract.DEPOSIT_TOKEN().balanceOf(address(vaultContract));
-    }
-
-    function routeLatestRequest() internal {
-        uint256 len = vaultContract.getOperationRequests().length;
-        bytes[] memory args = new bytes[](5);
-        args[0] = new bytes(0);
-        args[1] = new bytes(0);
-        args[2] = new bytes(0);
-        args[
-            3
-        ] = hex"050000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000673656c6628290000000000000000000000000000000000000000000000000000";
-        args[
-            4
-        ] = hex"050000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000673656c6628290000000000000000000000000000000000000000000000000000";
-        vm.startPrank(vaultContract.YC_DIAMOND());
-        vaultContract.hydrateAndExecuteRun(len - 1, args);
-        vm.stopPrank();
     }
 
     function setVaultContract(Vault _vaultContract) public {

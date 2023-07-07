@@ -118,12 +118,6 @@ abstract contract VaultState is AccessControl {
      */
     bytes[] internal UPROOTING_STEPS;
 
-    /**
-     * @notice @dev
-     * Used in offchain simulations when hydrating calldata
-     */
-    bool isMainnet = true;
-
     // ==============================
     //           STORAGE
     // ==============================
@@ -140,21 +134,6 @@ abstract contract VaultState is AccessControl {
      * Mapping user addresses to their corresponding balances of vault shares
      */
     mapping(address => uint256) public balances;
-
-    /**
-     * @notice
-     * @dev
-     * We keep track of the approximate gas required to execute withdraw and deposit operations.
-     * This is in order to charge users for the gas they are going to cost the executor
-     * after their offchain hydration.
-     *
-     * We also keep track of the gas for the strategy run operation, mainly for analytical purposes, tho.
-     */
-    uint256 public approxWithdrawalGas = 0.001 ether;
-
-    uint256 public approxDepositGas = 0.001 ether;
-
-    uint256 public approxStrategyGas = 0.001 ether;
 
     // =====================
     //        GETTERS

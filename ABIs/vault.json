@@ -67,6 +67,37 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "string[]",
+        "name": "urls",
+        "type": "string[]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "callData",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "callbackFunction",
+        "type": "bytes4"
+      },
+      {
+        "internalType": "bytes",
+        "name": "extraData",
+        "type": "bytes"
+      }
+    ],
+    "name": "OffchainLookup",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -83,38 +114,6 @@
       }
     ],
     "name": "Deposit",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "operationKey",
-        "type": "uint256"
-      }
-    ],
-    "name": "HydrateRun",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "stepIndex",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "ycCommand",
-        "type": "bytes"
-      }
-    ],
-    "name": "RequestFullfill",
     "type": "event"
   },
   {
@@ -240,42 +239,21 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "approxDepositGas",
-    "outputs": [
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "amt",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "approxStrategyGas",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "approxWithdrawalGas",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "approveDaddyDiamond",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -346,29 +324,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "operationIndex",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address payable",
-        "name": "receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "claimAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "claimOperationGas",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
       }
@@ -376,6 +331,60 @@
     "name": "deposit",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "response",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "encodedDepositData",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "response",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "extraData",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeStrategy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "response",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "encodedWithdrawalData",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeWithdrawal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -429,102 +438,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "idx",
-        "type": "uint256"
-      }
-    ],
-    "name": "getOperationItem",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "enum ExecutionTypes",
-            "name": "action",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "initiator",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "gas",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "arguments",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "commandCalldatas",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bool",
-            "name": "executed",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct OperationItem",
-        "name": "opItem",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getOperationRequests",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "enum ExecutionTypes",
-            "name": "action",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "initiator",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "gas",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "arguments",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "commandCalldatas",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bool",
-            "name": "executed",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct OperationItem[]",
-        "name": "reqs",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "enum ExecutionTypes",
         "name": "executionType",
         "type": "uint8"
@@ -539,62 +452,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "operationIndex",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "commandCalldatas",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "hydrateAndExecuteRun",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "enum ExecutionTypes",
-            "name": "action",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "initiator",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "gas",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "arguments",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "commandCalldatas",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bool",
-            "name": "executed",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct OperationItem",
-        "name": "operation",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -673,54 +530,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "setForkStatus",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "operationIdx",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "startingIndices",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "commandsHydratedThusFar",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "simulateOperationHydrationAndExecution",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "enum ExecutionTypes",
-        "name": "operationType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint256",
-        "name": "approximation",
-        "type": "uint256"
-      }
-    ],
-    "name": "storeGasApproximation",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

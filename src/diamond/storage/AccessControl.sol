@@ -15,6 +15,10 @@ struct AccessControlStorage {
      */
     address[] executors;
     mapping(address => bool) isWhitelisted;
+    /**
+     * The current CCIP gateway URL used for Offchain Actions
+     */
+    string offchainActionsUrl;
 }
 
 /**
@@ -34,5 +38,19 @@ library AccessControlStorageLib {
         assembly {
             s.slot := position
         }
+    }
+
+    function _setOffchainLookupUrl(string calldata newUrl) internal {
+        AccessControlStorage
+            storage accessControlStorage = getAccessControlStorage();
+        accessControlStorage.offchainActionsUrl = newUrl;
+    }
+
+    function _getOffchainLookupUrl()
+        internal
+        view
+        returns (string memory offchainurl)
+    {
+        offchainurl = getAccessControlStorage().offchainActionsUrl;
     }
 }

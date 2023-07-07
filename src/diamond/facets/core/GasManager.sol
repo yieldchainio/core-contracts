@@ -6,7 +6,12 @@ pragma solidity ^0.8.18;
 import "../../../vault/Vault.sol";
 import "../../storage/Strategies.sol";
 import "../../storage/Users.sol";
+<<<<<<< HEAD
+import "../../storage/GasManager.sol";
+import "../../Modifiers.sol";
+=======
 import "../../AccessControlled.sol";
+>>>>>>> main
 
 contract GasManagerFacet is AccessControlled {
     /**
@@ -39,52 +44,11 @@ contract GasManagerFacet is AccessControlled {
     }
 
     /**
-     * @notice
-     * stashOperationGas()
-     * Allows strategies to stash some native gas for an operation
-     * @param operationIndex - Index of the operation it's stashing for
+     * Set the current hook used to return additional gas costs incurred in the txn
+     * (useful for L2s)
+     * @param newHook - The new hook to set
      */
-    function stashOperationGas(
-        uint256 operationIndex
-    ) external payable onlyVaults {
-        StrategiesStorageLib.retreive().strategyOperationsGas[
-            Vault(msg.sender)
-        ][operationIndex] += msg.value;
-    }
-
-    /**
-     * @notice
-     * collectVaultGasDebt()
-     * Deduct from a vault's gas balance, and transfer it to some address
-     * can only be called internally!!
-     * @param strategy - Address of the strategy to deduct
-     * @param receiver - The address of the Ether receiver
-     * @param debtInWei - The debt of the strategy in WEI (not GWEI!!) to deduct
-     */
-    function collectVaultGasDebt(
-        Vault strategy,
-        address payable receiver,
-        uint256 debtInWei
-    ) public onlySelf {
-        // Shorthand for strategies storage
-        StrategiesStorage storage strategiesStorage = StrategiesStorageLib
-            .retreive();
-
-        // Storage ref to our strategy in the mapping
-        StrategyState storage strategyState = strategiesStorage.strategiesState[
-            strategy
-        ];
-
-        // Assert that the balance is sufficient and deduct the debt
-        require(
-            strategyState.gasBalanceWei >= debtInWei,
-            "Insufficient Gas Balance To Deduct."
-        );
-
-        // Deduct it
-        strategyState.gasBalanceWei -= debtInWei;
-
-        // Transfer to the receiver
-        receiver.transfer(debtInWei);
+    function setGasHook(IGasHook newHook) external onlyOwner {
+        GasManagerStorageLib.retreive().gasHook = newHook;
     }
 }

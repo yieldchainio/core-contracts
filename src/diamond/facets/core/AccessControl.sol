@@ -95,4 +95,16 @@ contract AccessControlFacet is AccessControlled {
         accessControlStorage.executors = newArr;
         accessControlStorage.isWhitelisted[executor] = false;
     }
+
+    function getOffchainActionsUrl()
+        external
+        view
+        returns (string memory offchainActionsUrl)
+    {
+        offchainActionsUrl = AccessControlStorageLib._getOffchainLookupUrl();
+    }
+
+    function setOffchainActionsUrl(string calldata newUrl) external onlyOwner {
+        AccessControlStorageLib._setOffchainLookupUrl(newUrl);
+    }
 }
