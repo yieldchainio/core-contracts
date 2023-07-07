@@ -70,12 +70,12 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // dLoupe = new DiamondLoupeFacet();
             // ownerF = new OwnershipFacet();
             // accessControlFacet = new AccessControlFacet();
-            factoryFacet = new FactoryFacet();
+            // factoryFacet = new FactoryFacet();
             // tokenStashFacet = new TokenStashFacet();
             // // scamEthFacet = new ScamEth();
             // strategiesViewerFacet = new StrategiesViewerFacet();
             // gasManagerFacet = new GasManagerFacet();
-            // triggersManagerFacet = new TriggersManagerFacet();
+            triggersManagerFacet = new TriggersManagerFacet();
             // automationFacet = new AutomationFacet();
 
             // lpAdapterFacet = new LpAdapterFacet();
@@ -85,9 +85,9 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             FacetCut[] memory cut = new FacetCut[](1);
             cut[0] = (
                 FacetCut({
-                    facetAddress: address(factoryFacet),
+                    facetAddress: address(triggersManagerFacet),
                     action: FacetCutAction.Replace,
-                    functionSelectors: generateSelectors("FactoryFacet")
+                    functionSelectors: generateSelectors("TriggersManagerFacet")
                 })
             );
 
@@ -134,4 +134,4 @@ contract DiamondCutScript is Script, HelperContract, Chains {
     }
 }
 
-// forge script ./script/deployment/diamond/diamondCut.s.sol:DiamondCutScript --chain-id 42161 --broadcast --verify -vvv --ffi
+// forge script ./script/deployment/diamond/diamondCut.s.sol:DiamondCutScript --broadcast --verify -vvv --ffi

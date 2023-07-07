@@ -53,7 +53,6 @@ contract TriggersManagerFacet is Modifiers {
             vault
         );
 
-
         if (weiSpent > state.gasBalanceWei) revert InsufficientGasBalance();
 
         state.gasBalanceWei -= weiSpent;
@@ -162,6 +161,8 @@ contract TriggersManagerFacet is Modifiers {
         // The required delay registered for the trigger to run
         if (block.timestamp - trigger.lastStrategyRun < trigger.requiredDelay)
             return false;
+
+        if (vault.totalShares() == 0) return false;
 
         if (trigger.triggerType == TriggerTypes.AUTOMATION)
             return
