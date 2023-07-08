@@ -82,4 +82,11 @@ abstract contract VaultTypes {
     struct DepositData {
         uint256 amount;
     }
+
+    struct OffchainCommandValidation {
+        address targetAddr;
+        string sig;
+        bytes interpretedArgs;
+        FunctionCall originalCommand;
+    }
 }

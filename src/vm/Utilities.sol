@@ -12,6 +12,32 @@ import "./Constants.sol";
 
 contract Utilities is Constants {
     /**
+     * Seperate And Decode a YC command into a FunctionCall
+     * @param ycCommand  - Encoded FunctionCall command
+     * @return func - Decoded FunctionCall
+     * @return typeflag - The typeflag of it
+     * @return retTypeflag - The return typeflag of it
+     */
+    function _separateAndDecodeFunctionCommand(
+        bytes memory ycCommand
+    )
+        internal
+        pure
+        returns (FunctionCall memory func, bytes1 typeflag, bytes1 retTypeflag)
+    {
+        bytes memory nakedCommand;
+        (nakedCommand, typeflag, retTypeflag) = _separateCommand(ycCommand);
+
+        require(
+            typeflag >= STATICCALL_COMMAND_FLAG &&
+                typeflag <= DELEGATECALL_COMMAND_FLAG,
+            "Not A Func"
+        );
+
+        func = abi.decode(nakedCommand, (FunctionCall));
+    }
+
+    /**
      * _seperateCommand()
      * Takes in a full encoded ycCommand, returns it seperated (naked) with the type & return type flags
      * @param ycCommand - The full encoded ycCommand to separate

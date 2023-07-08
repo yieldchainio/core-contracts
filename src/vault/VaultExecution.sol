@@ -220,7 +220,12 @@ abstract contract VaultExecution is
                     cachedOffchainCommands.length > stepIndex &&
                     bytes32(currentCommand) != bytes32(0)
                 ) {
-                    _validateOffchainCommand(currentCommand, step.mvc);
+                    // Validate secuirty of the offchain command - It will throw if invalid
+                    _validateOffchainCommand(
+                        step.func,
+                        currentCommand,
+                        step.mvc
+                    );
                     _runFunction(currentCommand);
                 }
                 // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
@@ -260,12 +265,11 @@ abstract contract VaultExecution is
         bytes4 callbackSelector,
         bytes memory actionContext
     ) internal {
-        (bytes memory nakedFunc, , ) = _separateCommand(step.func);
+        (
+            FunctionCall memory originalCall,
+            ,
 
-        FunctionCall memory originalCall = abi.decode(
-            nakedFunc,
-            (FunctionCall)
-        );
+        ) = _separateAndDecodeFunctionCommand(step.func);
 
         bytes memory interpretedArgs = interpretCommandsAndEncodeChunck(
             originalCall.args
@@ -299,11 +303,13 @@ abstract contract VaultExecution is
 
     /**
      * Validate an offchain computed command VS it's MVC
+     * @param originalCommand - The original command used to request the offchain command
      * @param offchainCommand - The command provided by the offchain
      * @param mvc - The MVC of the command
      * Throws if invalid, returns true if not
      */
     function _validateOffchainCommand(
+        bytes memory originalCommand,
         bytes memory offchainCommand,
         bytes memory mvc
     ) internal {
@@ -372,18 +378,43 @@ abstract contract VaultExecution is
         }
         // Else execute as offchain command, revert if return value is falsy
         else {
-            FunctionCall memory func = abi.decode(mvc, (FunctionCall));
+            (
+                FunctionCall memory offchainFunc,
+                ,
 
-            bytes[] memory funcArgs = new bytes[](func.args.length + 1);
+            ) = _separateAndDecodeFunctionCommand(offchainCommand);
 
-            for (uint256 i; i < func.args.length; i++)
-                funcArgs[i] = func.args[i];
+            (
+                FunctionCall memory validationFunc,
+                ,
 
-            funcArgs[funcArgs.length - 1] = offchainCommand;
+            ) = _separateAndDecodeFunctionCommand(mvc);
 
-            func.args = funcArgs;
+            (
+                FunctionCall memory originalFunc,
+                ,
 
-            bytes memory res = _runFunction(abi.encode(func));
+            ) = _separateAndDecodeFunctionCommand(originalCommand);
+
+            validationFunc.args = new bytes[](1);
+
+            // MVC Validaotrs must receive the following struct command, provides all required context
+            validationFunc.args[0] = bytes.concat(
+                REF_VAR_FLAG,
+                REF_VAR_FLAG,
+                abi.encode(
+                    OffchainCommandValidation({
+                        targetAddr: offchainFunc.target_address,
+                        sig: offchainFunc.signature,
+                        interpretedArgs: interpretCommandsAndEncodeChunck(
+                            offchainFunc.args
+                        ),
+                        originalCommand: originalFunc
+                    })
+                )
+            );
+
+            bytes memory res = _runFunction(abi.encode(validationFunc));
 
             bool isValid = abi.decode(res, (bool));
 
