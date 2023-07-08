@@ -57,6 +57,11 @@ abstract contract VaultTypes {
     error NoOffchainComputedCommand(uint256 stepIndex);
 
     /**
+     * When an offcchain computed command does not match a step's MVC
+     */
+    error InsecureOffchainCommand(bytes command, bytes mvc);
+
+    /**
      * CCIP Offchain Loockup
      */
     error OffchainLookup(

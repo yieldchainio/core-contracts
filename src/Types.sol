@@ -91,6 +91,11 @@ struct FunctionCall {
  * @param childrenIndices
  * @uint256
  * A uint representing the index within the strategy's containers array of the step's children container.
+ *
+ * @param mvc
+ * @bytes
+ * Either an encoded function call or an MVC (Minimal Verifable Calldata) we can match against,
+ * only relevent if the step is a callback.
  * -----------------------------
  */
 struct YCStep {
@@ -98,6 +103,7 @@ struct YCStep {
     uint256[] childrenIndices;
     bytes[] conditions;
     bool isCallback;
+    bytes mvc;
 }
 
 /**

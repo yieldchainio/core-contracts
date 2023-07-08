@@ -20,4 +20,5 @@ contract Constants {
     bytes1 internal constant CALL_COMMAND_FLAG = 0x06;
     bytes1 internal constant DELEGATECALL_COMMAND_FLAG = 0x07;
     bytes1 internal constant INTERNAL_LOAD_FLAG = 0x08;
+    bytes1 internal constant MVC_FLAG = 0xff;
 }

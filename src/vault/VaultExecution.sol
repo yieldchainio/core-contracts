@@ -148,7 +148,8 @@ abstract contract VaultExecution is
         );
 
         uint256 debt = DEPOSIT_TOKEN.balanceOf(address(this)) -
-            (preVaultBalance - (preVaultBalance / (100 / shareOfVaultInPercentage)));
+            (preVaultBalance -
+                (preVaultBalance / (100 / shareOfVaultInPercentage)));
 
         DEPOSIT_TOKEN.safeTransfer(msg.sender, debt);
 
@@ -214,13 +215,15 @@ abstract contract VaultExecution is
              */
             if (step.isCallback) {
                 // If already got the command, run it
+                bytes memory currentCommand = cachedOffchainCommands[stepIndex];
                 if (
                     cachedOffchainCommands.length > stepIndex &&
-                    bytes32(cachedOffchainCommands[stepIndex]) != bytes32(0)
-                )
-                    _runFunction(cachedOffchainCommands[stepIndex]);
-
-                    // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
+                    bytes32(currentCommand) != bytes32(0)
+                ) {
+                    _validateOffchainCommand(currentCommand, step.mvc);
+                    _runFunction(currentCommand);
+                }
+                // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
                 else
                     _requestOffchainLookup(
                         step,
@@ -292,5 +295,99 @@ abstract contract VaultExecution is
             callbackSelector,
             actionContext
         );
+    }
+
+    /**
+     * Validate an offchain computed command VS it's MVC
+     * @param offchainCommand - The command provided by the offchain
+     * @param mvc - The MVC of the command
+     * Throws if invalid, returns true if not
+     */
+    function _validateOffchainCommand(
+        bytes memory offchainCommand,
+        bytes memory mvc
+    ) internal {
+        // We need to binary AND the MVC against (i.e if MVC & COMMAND != MVC throw)
+        if (mvc[0] == MVC_FLAG) {
+            if (mvc.length < offchainCommand.length)
+                revert InsecureOffchainCommand(offchainCommand, mvc);
+
+            bool shouldRevert = false;
+
+            // Go into assembly so we can & the entire command / MVC (each 32 byte word)
+            assembly {
+                let mvc_len := mload(mvc) // skip the first byte (MVC flag)
+
+                let leftovers := mod(mvc_len, 32)
+
+                let ptr := add(mvc, 32)
+
+                let command_ptr := add(offchainCommand, 32)
+
+                for {
+                    let i := 1
+                } lt(i, mvc_len) {
+                    i := add(i, 1)
+                } {
+                    let incrementor := mul(32, i)
+
+                    let mvc_word := mload(add(ptr, incrementor))
+
+                    // Irrelevent, no need to compare
+                    if eq(mvc_word, 0) {
+                        continue
+                    }
+
+                    let command_word := mload(add(command_ptr, incrementor))
+
+                    /**
+                     * Logic:
+                     * MVC is "Minimal Verifiable  Calldata". It includes both zero bytes and non-zero bytes.
+                     * Zero bytes are stuff that are either dynamic (unable to determine upfront), or stuff that does not matter for secuirty
+                     * (e.g, amount of tokens, etc).
+                     *
+                     * Non-zero bytes are critical stuff that we must verify (e.g, receiver address).
+                     * When we compare the MVC against the command with a binary AND, all of the MVC zero bytes remain 0's,
+                     * and all of the non-zero values must remain the same. e.g:
+                     * MVC: 0x11002200
+                     * COM: 0x11552299 - VALID (non-zero bytes match against MVC)
+                     * COM: 0x88552299 - INVALID (first 2 bytes do not match MVC, have been tampered with)
+                     * If they change, it means critical parts of the offchain command
+                     * have been tampered with, and is thus deemed invalid & unsafe to run.
+                     */
+                    let matched := and(mvc_word, command_word)
+
+                    // is VALID
+                    if eq(mvc_word, matched) {
+                        continue
+                    }
+
+                    shouldRevert := true
+                    break
+                }
+            }
+
+            if (shouldRevert)
+                revert InsecureOffchainCommand(offchainCommand, mvc);
+        }
+        // Else execute as offchain command, revert if return value is falsy
+        else {
+            FunctionCall memory func = abi.decode(mvc, (FunctionCall));
+
+            bytes[] memory funcArgs = new bytes[](func.args.length + 1);
+
+            for (uint256 i; i < func.args.length; i++)
+                funcArgs[i] = func.args[i];
+
+            funcArgs[funcArgs.length - 1] = offchainCommand;
+
+            func.args = funcArgs;
+
+            bytes memory res = _runFunction(abi.encode(func));
+
+            bool isValid = abi.decode(res, (bool));
+
+            if (!isValid) revert InsecureOffchainCommand(offchainCommand, mvc);
+        }
     }
 }

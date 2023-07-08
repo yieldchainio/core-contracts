@@ -87,7 +87,13 @@ contract BaseStrategy is UtilityEncoder, Test {
         childrenIndices[0] = 1;
         childrenIndices[1] = 2;
         SEED_STEPS[0] = abi.encode(
-            YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
+            YCStep(
+                encodeSelfCommand(),
+                childrenIndices,
+                new bytes[](0),
+                false,
+                new bytes(0)
+            )
         );
 
         bytes[] memory funcArgs = new bytes[](0);
@@ -113,7 +119,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -146,7 +153,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -170,7 +178,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -185,7 +194,13 @@ contract BaseStrategy is UtilityEncoder, Test {
         childrenIndices[0] = 1;
         childrenIndices[1] = 2;
         STEPS[0] = abi.encode(
-            YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
+            YCStep(
+                encodeSelfCommand(),
+                childrenIndices,
+                new bytes[](0),
+                false,
+                new bytes(0)
+            )
         );
 
         funcArgs = new bytes[](7);
@@ -213,7 +228,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -241,7 +257,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -264,7 +281,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -283,7 +301,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -310,7 +329,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -328,7 +348,13 @@ contract BaseStrategy is UtilityEncoder, Test {
         childrenIndices[1] = 2;
 
         UPROOT_STEPS[0] = abi.encode(
-            YCStep(encodeSelfCommand(), childrenIndices, new bytes[](0), false)
+            YCStep(
+                encodeSelfCommand(),
+                childrenIndices,
+                new bytes[](0),
+                false,
+                new bytes(0)
+            )
         );
 
         // We withdraw GNS staking, swap GNS to GMX, Swap DAI to GMX,
@@ -372,7 +398,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -397,7 +424,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -422,7 +450,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -461,7 +490,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 childrenIndices,
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
@@ -486,7 +516,8 @@ contract BaseStrategy is UtilityEncoder, Test {
                 ),
                 new uint256[](0),
                 new bytes[](0),
-                false
+                false,
+                new bytes(0)
             )
         );
 
