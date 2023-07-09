@@ -138,3 +138,10 @@ struct OffchainActionRequest {
     string signature;
     bytes args;
 }
+
+struct OffchainCommandValidation {
+    address targetAddr;
+    string sig;
+    bytes interpretedArgs;
+    FunctionCall originalCommand;
+}

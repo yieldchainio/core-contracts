@@ -1,0 +1,17 @@
+@lifi/=lib/contracts/src/
+
+@facets/=src/diamond/facets/
+@adapters/=src/adapters/
+@lending/=src/adapters/lending/
+@lp/=src/adapters/lp
+@test/=test/
+@gas-hooks/=src/gas-hooks/
+@ifaces/=src/interfaces/
+@utils/=src/utils/
+@vault/=src/vault/
+@vm/=src/vm/
+@diamond-storage=src/diamond/storage/
+
+
+test/=test/
+

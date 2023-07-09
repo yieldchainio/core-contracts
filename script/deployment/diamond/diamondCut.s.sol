@@ -24,6 +24,7 @@ import "src/diamond/facets/withdraw-eth.sol";
 import "src/diamond/facets/adapters/lp/LpAdapter.sol";
 import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
 import "src/diamond/facets/adapters/lp/clients/Glp.sol";
+import "@facets/mvc-validators/LIFI.sol"
 
 import "script/Chains.s.sol";
 
@@ -31,13 +32,21 @@ contract DiamondCutScript is Script, HelperContract, Chains {
     // ===================
     //      STATES
     // ===================
-    //contract types of facets to be deployed
+
+    // -------
+    //  BASE
+    // -------
     Diamond diamond =
         Diamond(payable(0xbAF45B60F69eCa4616CdE172D3961C156946e831));
     DiamondCutFacet dCutFacet;
     DiamondLoupeFacet dLoupe;
     OwnershipFacet ownerF;
+    IDiamondLoupe ILoupe;
+    IDiamondCut ICut;
 
+    // -------
+    //  CORE
+    // -------
     AccessControlFacet accessControlFacet;
     FactoryFacet factoryFacet;
     TokenStashFacet tokenStashFacet;
@@ -45,16 +54,22 @@ contract DiamondCutScript is Script, HelperContract, Chains {
     StrategiesViewerFacet strategiesViewerFacet;
     GasManagerFacet gasManagerFacet;
 
+    // -------
+    //  TRIGGERS
+    // -------
     TriggersManagerFacet triggersManagerFacet;
     AutomationFacet automationFacet;
 
+    // -------
+    //  ADAPTERS
+    // -------
     LpAdapterFacet lpAdapterFacet;
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
     GlpAdapterFacet glpAdapterFacet;
 
-    //interfaces with Facet ABI connected to diamond address
-    IDiamondLoupe ILoupe;
-    IDiamondCut ICut;
+    // ------
+    //  SCRIPT
+    // ------
 
     function run() external {
         for (uint256 i; i < CHAINS.length; i++) {
@@ -75,7 +90,7 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // // scamEthFacet = new ScamEth();
             // strategiesViewerFacet = new StrategiesViewerFacet();
             // gasManagerFacet = new GasManagerFacet();
-            triggersManagerFacet = new TriggersManagerFacet();
+            // triggersManagerFacet = new TriggersManagerFacet();
             // automationFacet = new AutomationFacet();
 
             // lpAdapterFacet = new LpAdapterFacet();
