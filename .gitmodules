@@ -32,4 +32,4 @@
 	url = https://github.com/GNSPS/solidity-bytes-utils
 [submodule "lib/contracts"]
 	path = lib/contracts
-	url = https://github.com/lifinance/contracts
+	url = https://github.com/openzeppelin/contracts
