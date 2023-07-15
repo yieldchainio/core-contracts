@@ -215,18 +215,16 @@ abstract contract VaultExecution is
              */
             if (step.isCallback) {
                 // If already got the command, run it
-                bytes memory currentCommand = cachedOffchainCommands[stepIndex];
                 if (
                     cachedOffchainCommands.length > stepIndex &&
-                    bytes32(currentCommand) != bytes32(0)
+                    bytes32(cachedOffchainCommands[stepIndex]) != bytes32(0)
                 ) {
                     // Validate secuirty of the offchain command - It will throw if invalid
-                    _validateOffchainCommand(
-                        step.func,
-                        currentCommand,
-                        step.mvc
-                    );
-                    _runFunction(currentCommand);
+                    bytes memory currCommand = cachedOffchainCommands[
+                        stepIndex
+                    ];
+                    _validateOffchainCommand(step.func, currCommand, step.mvc);
+                    _runFunction(currCommand);
                 }
                 // Revert with OffchainLookup, CCIP read will fetch from corresponding Offchain Action.
                 else
@@ -313,6 +311,9 @@ abstract contract VaultExecution is
         bytes memory offchainCommand,
         bytes memory mvc
     ) internal {
+        // It's fine to run a nullish command
+        if (bytes32(offchainCommand) == NULLISH_COMMAND) return;
+
         // We need to binary AND the MVC against (i.e if MVC & COMMAND != MVC throw)
         if (mvc[0] == MVC_FLAG) {
             if (mvc.length < offchainCommand.length)
@@ -396,13 +397,10 @@ abstract contract VaultExecution is
 
             ) = _separateAndDecodeFunctionCommand(originalCommand);
 
-            validationFunc.args = new bytes[](1);
-
-            // MVC Validaotrs must receive the following struct command, provides all required context
-            validationFunc.args[0] = bytes.concat(
-                REF_VAR_FLAG,
-                REF_VAR_FLAG,
-                abi.encode(
+            // MVC functon is always static call that returns boolean
+            (, bytes memory res) = validationFunc.target_address.staticcall(
+                abi.encodeWithSignature(
+                    validationFunc.signature,
                     OffchainCommandValidation({
                         targetAddr: offchainFunc.target_address,
                         sig: offchainFunc.signature,
@@ -413,8 +411,6 @@ abstract contract VaultExecution is
                     })
                 )
             );
-
-            bytes memory res = _runFunction(abi.encode(validationFunc));
 
             bool isValid = abi.decode(res, (bool));
 

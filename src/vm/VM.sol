@@ -18,6 +18,8 @@ contract YCVM is Utilities, IVM, Opcodes {
     function _runFunction(
         bytes memory encodedFunctionCall
     ) public override returns (bytes memory returnVal) {
+        if (bytes32(encodedFunctionCall) == NULLISH_COMMAND) return returnVal;
+
         /**
          * Seperate the FunctionCall command body from the typeflags
          */

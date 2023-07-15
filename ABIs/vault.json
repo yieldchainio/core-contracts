@@ -41,6 +41,22 @@
     "type": "constructor"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "command",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "mvc",
+        "type": "bytes"
+      }
+    ],
+    "name": "InsecureOffchainCommand",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InsufficientAllowance",
     "type": "error"
@@ -114,6 +130,12 @@
       }
     ],
     "name": "Deposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "StrategyRun",
     "type": "event"
   },
   {

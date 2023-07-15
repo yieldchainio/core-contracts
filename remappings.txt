@@ -1,4 +1,5 @@
 @lifi/=lib/contracts/src/
+@openzeppelin/=lib/openzeppelin-contracts/
 
 @facets/=src/diamond/facets/
 @adapters/=src/adapters/
@@ -11,6 +12,10 @@
 @vault/=src/vault/
 @vm/=src/vm/
 @diamond-storage=src/diamond/storage/
+@mvc-validators/=src/diamond/facets/mvc-validators/
+
+
+
 
 
 test/=test/

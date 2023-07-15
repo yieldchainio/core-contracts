@@ -2,16 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import "src/diamond/facets/diamond-core/DiamondCutFacet.sol";
-import "src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
-import "src/diamond/facets/diamond-core/OwnershipFacet.sol";
-import "src/diamond/facets/core/AccessControl.sol";
-import "src/diamond/facets/core/Factory.sol";
-import "src/diamond/facets/core/TokenStash.sol";
-import "src/diamond/facets/core/Users.sol";
-import "src/diamond/facets/core/GasManager.sol";
-import "src/diamond/facets/triggers/TriggersManager.sol";
-import "src/diamond/facets/triggers/automation/Automation.sol";
 import "src/diamond/Diamond.sol";
 import "src/diamond/interfaces/IDiamond.sol";
 import "src/diamond/interfaces/IDiamondCut.sol";
@@ -20,13 +10,23 @@ import "src/diamond/interfaces/IERC165.sol";
 import "src/diamond/interfaces/IERC173.sol";
 import "src/diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
-import "src/diamond/facets/withdraw-eth.sol";
-import "src/diamond/facets/adapters/lp/LpAdapter.sol";
-import "src/diamond/facets/adapters/lp/clients/UniV2.sol";
-import "src/diamond/facets/adapters/lp/clients/Glp.sol";
-import "@facets/mvc-validators/LIFI.sol"
-
 import "script/Chains.s.sol";
+
+import "@facets/diamond-core/DiamondCutFacet.sol";
+import "@facets/diamond-core/DiamondLoupeFacet.sol";
+import "@facets/diamond-core/OwnershipFacet.sol";
+import "@facets/core/AccessControl.sol";
+import "@facets/core/Factory.sol";
+import "@facets/core/TokenStash.sol";
+import "@facets/core/Users.sol";
+import "@facets/core/GasManager.sol";
+import "@facets/triggers/TriggersManager.sol";
+import "@facets/triggers/automation/Automation.sol";
+import "@facets/withdraw-eth.sol";
+import "@facets/adapters/lp/LpAdapter.sol";
+import "@facets/adapters/lp/clients/UniV2.sol";
+import "@facets/adapters/lp/clients/Glp.sol";
+import "@facets/mvc-validators/LIFI.sol";
 
 contract DiamondCutScript is Script, HelperContract, Chains {
     // ===================
@@ -67,6 +67,11 @@ contract DiamondCutScript is Script, HelperContract, Chains {
     UniV2LpAdapterFacet uniV2LpAdapterFacet;
     GlpAdapterFacet glpAdapterFacet;
 
+    // -------
+    //  MVC VALIDATORS
+    // -------
+    LIFIValidator lifiValidator;
+
     // ------
     //  SCRIPT
     // ------
@@ -78,6 +83,11 @@ contract DiamondCutScript is Script, HelperContract, Chains {
 
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
+            if (
+                (keccak256(abi.encode(CHAINS[i])) ==
+                    keccak256(abi.encode(vm.envString("ARBITRUM_RPC_URL"))))
+            ) vm.txGasPrice(100000000);
+
             vm.startBroadcast(deployerPrivateKey);
 
             // //deploy facets
@@ -85,7 +95,7 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // dLoupe = new DiamondLoupeFacet();
             // ownerF = new OwnershipFacet();
             // accessControlFacet = new AccessControlFacet();
-            // factoryFacet = new FactoryFacet();
+            factoryFacet = new FactoryFacet();
             // tokenStashFacet = new TokenStashFacet();
             // // scamEthFacet = new ScamEth();
             // strategiesViewerFacet = new StrategiesViewerFacet();
@@ -97,45 +107,16 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
             // glpAdapterFacet = new GlpAdapterFacet();
 
+            // lifiValidator = new LIFIValidator();
+
             FacetCut[] memory cut = new FacetCut[](1);
             cut[0] = (
                 FacetCut({
-                    facetAddress: address(triggersManagerFacet),
+                    facetAddress: address(factoryFacet),
                     action: FacetCutAction.Replace,
-                    functionSelectors: generateSelectors("TriggersManagerFacet")
+                    functionSelectors: generateSelectors("FactoryFacet")
                 })
             );
-
-            // cut[1] = (
-            //     FacetCut({
-            //         facetAddress: address(triggersManagerFacet),
-            //         action: FacetCutAction.Add,
-            //         functionSelectors: generateSelectors("TriggersManagerFacet")
-            //     })
-            // );
-
-            // cut[2] = (
-            //     FacetCut({
-            //         facetAddress: address(automationFacet),
-            //         action: FacetCutAction.Add,
-            //         functionSelectors: generateSelectors("AutomationFacet")
-            //     })
-            // );
-
-            // cut[3] = (
-            //     FacetCut({
-            //         facetAddress: address(triggersManagerFacet),
-            //         action: FacetCutAction.Replace,
-            //         functionSelectors: generateSelectors("TriggersManagerFacet")
-            //     })
-            // );
-            // cut[4] = (
-            //     FacetCut({
-            //         facetAddress: address(strategiesViewerFacet),
-            //         action: FacetCutAction.Replace,
-            //         functionSelectors: generateSelectors("StrategiesViewerFacet")
-            //     })
-            // );
 
             // deploy diamond
             DiamondCutFacet(address(diamond)).diamondCut(
