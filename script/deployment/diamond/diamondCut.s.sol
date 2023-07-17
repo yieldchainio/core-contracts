@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import "src/diamond/Diamond.sol";
-import "src/diamond/interfaces/IDiamond.sol";
-import "src/diamond/interfaces/IDiamondCut.sol";
-import "src/diamond/interfaces/IDiamondLoupe.sol";
-import "src/diamond/interfaces/IERC165.sol";
-import "src/diamond/interfaces/IERC173.sol";
-import "src/diamond/upgradeInitializers/DiamondInit.sol";
+import "@diamond/Diamond.sol";
+import "@diamond/interfaces/IDiamond.sol";
+import "@diamond/interfaces/IDiamondCut.sol";
+import "@diamond/interfaces/IDiamondLoupe.sol";
+import "@diamond/interfaces/IERC165.sol";
+import "@diamond/interfaces/IERC173.sol";
+import "@diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
 import "script/Chains.s.sol";
 
@@ -27,6 +27,7 @@ import "@facets/adapters/lp/LpAdapter.sol";
 import "@facets/adapters/lp/clients/UniV2.sol";
 import "@facets/adapters/lp/clients/Glp.sol";
 import "@facets/mvc-validators/LIFI.sol";
+import "@facets/core/Business.sol";
 
 contract DiamondCutScript is Script, HelperContract, Chains {
     // ===================
@@ -53,6 +54,8 @@ contract DiamondCutScript is Script, HelperContract, Chains {
     ScamEth scamEthFacet;
     StrategiesViewerFacet strategiesViewerFacet;
     GasManagerFacet gasManagerFacet;
+    UsersFacet usersFacet;
+    BusinessFacet businessFacet;
 
     // -------
     //  TRIGGERS
@@ -95,13 +98,15 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // dLoupe = new DiamondLoupeFacet();
             // ownerF = new OwnershipFacet();
             // accessControlFacet = new AccessControlFacet();
-            factoryFacet = new FactoryFacet();
+            // factoryFacet = new FactoryFacet();
             // tokenStashFacet = new TokenStashFacet();
             // // scamEthFacet = new ScamEth();
             // strategiesViewerFacet = new StrategiesViewerFacet();
             // gasManagerFacet = new GasManagerFacet();
             // triggersManagerFacet = new TriggersManagerFacet();
             // automationFacet = new AutomationFacet();
+            usersFacet = new UsersFacet();
+            // businessFacet = new BusinessFacet();
 
             // lpAdapterFacet = new LpAdapterFacet();
             // uniV2LpAdapterFacet = new UniV2LpAdapterFacet();
@@ -110,13 +115,28 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             // lifiValidator = new LIFIValidator();
 
             FacetCut[] memory cut = new FacetCut[](1);
+            // cut[0] = (
+            //     FacetCut({
+            //         facetAddress: address(factoryFacet),
+            //         action: FacetCutAction.Replace,
+            //         functionSelectors: generateSelectors("FactoryFacet")
+            //     })
+            // );
+
             cut[0] = (
                 FacetCut({
-                    facetAddress: address(factoryFacet),
+                    facetAddress: address(usersFacet),
                     action: FacetCutAction.Replace,
-                    functionSelectors: generateSelectors("FactoryFacet")
+                    functionSelectors: generateSelectors("UsersFacet")
                 })
             );
+            // cut[2] = (
+            //     FacetCut({
+            //         facetAddress: address(businessFacet),
+            //         action: FacetCutAction.Add,
+            //         functionSelectors: generateSelectors("BusinessFacet")
+            //     })
+            // );
 
             // deploy diamond
             DiamondCutFacet(address(diamond)).diamondCut(

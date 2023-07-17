@@ -8,17 +8,40 @@
 pragma solidity ^0.8.18;
 import "../../vault/Vault.sol";
 
+// Represents a tier as a whole
+struct Tier {
+    bool isActive;
+    uint256 powerLevel;
+    uint256 monthlyCost;
+    uint256 lifetimeCost;
+}
+
+/**
+ * Represnts a user and it's current tier
+ * if tier id == 0; no tier
+ * @param tierId - The ID of the tier
+ * @param endsOn - Timestamp of when this tier ends.
+ */
+struct UserTier {
+    uint256 tierId;
+    uint256 endsOn;
+}
+
 struct UsersStorage {
     /**
-     * Mapping user addresses => Whether they are premium or not
+     * Map tier ID => Tier struct
      */
-    mapping(address => bool) isPremium;
+    mapping(uint256 tierID => Tier tier) tiers;
     /**
-     * Mapping user addresses => Their portfolio vaults.
-     * Each time someone deposits/withdraws into a vault, it will call a function on our facet and
-     * update the user's portfolio accordingly
+     * Increment this every time u classify a tier
      */
-    mapping(address => Vault[]) portfolios;
+    uint256 tiersAmount;
+    /**
+     * Map user adddresses to their corresponding current tier
+     */
+    mapping(address user => UserTier currentTier) users;
+    // The token address to pay with
+    address paymentToken;
 }
 
 /**
@@ -35,5 +58,28 @@ library UsersStorageLib {
         assembly {
             s.slot := position
         }
+    }
+
+    function getTiers() internal view returns (Tier[] memory tiers) {
+        UsersStorage storage userStorage = retreive();
+        uint256 tiersAmt = userStorage.tiersAmount;
+
+        tiers = new Tier[](tiersAmt);
+
+        for (uint256 i; i < tiers.length; i++) tiers[i] = userStorage.tiers[i];
+    }
+
+    function isInTier(
+        address user,
+        uint256 tierId
+    ) internal view returns (bool isUserInTier) {
+        UserTier memory userTier = retreive().users[user];
+        Tier memory tier = retreive().tiers[tierId];
+        Tier memory userCurrTier = retreive().tiers[userTier.tierId];
+
+        if (
+            userCurrTier.powerLevel >= tier.powerLevel &&
+            block.timestamp < userTier.endsOn
+        ) isUserInTier = true;
     }
 }

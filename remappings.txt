@@ -12,7 +12,9 @@
 @vault/=src/vault/
 @vm/=src/vm/
 @diamond-storage=src/diamond/storage/
+@diamond/=src/diamond/
 @mvc-validators/=src/diamond/facets/mvc-validators/
+@libs/=src/libs/
 
 
 

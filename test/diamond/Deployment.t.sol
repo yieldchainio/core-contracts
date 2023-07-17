@@ -6,26 +6,28 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/Test.sol";
-import "../../src/diamond/facets/diamond-core/DiamondCutFacet.sol";
-import "../../src/diamond/facets/diamond-core/DiamondLoupeFacet.sol";
-import "../../src/diamond/facets/diamond-core/OwnershipFacet.sol";
-import "../../src/diamond/facets/core/AccessControl.sol";
-import "../../src/diamond/facets/core/Factory.sol";
-import "../../src/diamond/facets/core/GasManager.sol";
+import "@facets/diamond-core/DiamondCutFacet.sol";
+import "@facets/diamond-core/DiamondLoupeFacet.sol";
+import "@facets/diamond-core/OwnershipFacet.sol";
+import "@facets/core/AccessControl.sol";
+import "@facets/core/Factory.sol";
+import "@facets/core/GasManager.sol";
+import "@facets/core/Users.sol";
+import "@facets/core/Business.sol";
 
-import "../../src/diamond/facets/core/TokenStash.sol";
-import "../../src/diamond/facets/core/Users.sol";
-import "../../src/diamond/facets/adapters/lp/LpAdapter.sol";
-import "../../src/diamond/facets/adapters/lp/clients/UniV2.sol";
-import {GlpAdapterFacet} from "../../src/diamond/facets/adapters/lp/clients/Glp.sol";
-import {LendingAdapterFacet} from "../../src/diamond/facets/adapters/lending/LendingAdapter.sol";
-import {AaveV3AdapterStorageManager} from "../../src/diamond/facets/adapters/lending/clients/AaveV3Storage.sol";
-import "../../src/diamond/Diamond.sol";
-import "../../src/diamond/interfaces/IDiamond.sol";
-import "../../src/diamond/interfaces/IDiamondCut.sol";
-import "../../src/diamond/interfaces/IDiamondLoupe.sol";
-import "../../src/diamond/interfaces/IERC165.sol";
-import "../../src/diamond/interfaces/IERC173.sol";
+import "@facets/core/TokenStash.sol";
+import "@facets/core/Users.sol";
+import "@facets/adapters/lp/LpAdapter.sol";
+import "@facets/adapters/lp/clients/UniV2.sol";
+import {GlpAdapterFacet} from "@facets/adapters/lp/clients/Glp.sol";
+import {LendingAdapterFacet} from "@facets/adapters/lending/LendingAdapter.sol";
+import {AaveV3AdapterStorageManager} from "@facets/adapters/lending/clients/AaveV3Storage.sol";
+import "@diamond/Diamond.sol";
+import "@diamond/interfaces/IDiamond.sol";
+import "@diamond/interfaces/IDiamondCut.sol";
+import "@diamond/interfaces/IDiamondLoupe.sol";
+import "@diamond/interfaces/IERC165.sol";
+import "@diamond/interfaces/IERC173.sol";
 import "./HelperContract.sol";
 import "../utils/Forks.t.sol";
 
@@ -44,6 +46,8 @@ contract DiamondTest is Test, HelperContract {
     TokenStashFacet tokenStashFacet;
     StrategiesViewerFacet strategiesViewerFacet;
     GasManagerFacet gasManagerFacet;
+    UsersFacet usersFacet;
+    BusinessFacet businessFacet;
 
     TriggersManagerFacet triggersManagerFacet;
     AutomationFacet automationFacet;
@@ -81,6 +85,8 @@ contract DiamondTest is Test, HelperContract {
         tokenStashFacet = new TokenStashFacet();
         strategiesViewerFacet = new StrategiesViewerFacet();
         gasManagerFacet = new GasManagerFacet();
+        usersFacet = new UsersFacet();
+        businessFacet = new BusinessFacet();
 
         // Triggers Facets
         triggersManagerFacet = new TriggersManagerFacet();
@@ -110,7 +116,9 @@ contract DiamondTest is Test, HelperContract {
             "UniV2LpAdapterFacet",
             "GlpAdapterFacet",
             "LendingAdapterFacet",
-            "AaveV3LendingAdapterFacet"
+            "AaveV3LendingAdapterFacet",
+            "UsersFacet",
+            "BusinessFacet"
         ];
 
         // diamod arguments
@@ -136,7 +144,7 @@ contract DiamondTest is Test, HelperContract {
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](14);
+        FacetCut[] memory cut = new FacetCut[](16);
 
         cut[0] = (
             FacetCut({
@@ -246,6 +254,24 @@ contract DiamondTest is Test, HelperContract {
                 action: FacetCutAction.Add,
                 functionSelectors: generateSelectors(
                     "AaveV3AdapterStorageManager"
+                )
+            })
+        );
+
+        cut[14] = (
+            FacetCut({
+                facetAddress: address(usersFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("UsersFacet")
+            })
+        );
+
+        cut[15] = (
+            FacetCut({
+                facetAddress: address(businessFacet),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors(
+                    "BusinessFacet"
                 )
             })
         );
