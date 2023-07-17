@@ -11,6 +11,8 @@ import "../triggers/TriggersManager.sol";
 import "../../AccessControlled.sol";
 
 contract FactoryFacet is AccessControlled {
+    uint256 internal constant PREMIUM_TIER_ID = 1;
+
     // ==================
     //      EVENTS
     // ==================
@@ -32,7 +34,7 @@ contract FactoryFacet is AccessControlled {
      */
     modifier noPrivacyForTheWicked(bool isPublic, address requester) {
         require(
-            isPublic || UsersStorageLib.retreive().isPremium[requester],
+            isPublic || UsersStorageLib.isInTier(requester, PREMIUM_TIER_ID),
             "No Privacy For The Wicked"
         );
         _;
