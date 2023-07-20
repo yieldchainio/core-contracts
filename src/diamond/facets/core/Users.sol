@@ -17,6 +17,7 @@ contract UsersFacet is AccessControlled {
     error UnpricedTier();
     error CannotDowngrade();
     error TierAlreadyAdded();
+    error GreedyBitch();
 
     // ===============
     //     METHODS
@@ -61,6 +62,9 @@ contract UsersFacet is AccessControlled {
         UserTier storage storageTier = usersStorage.users[receiver];
         Tier memory currentTierDetails = usersStorage.tiers[currTier.tierId];
 
+        if (currTier.tierId == tierId && currTier.endsOn == type(uint256).max)
+            revert GreedyBitch();
+
         if (currentTierDetails.powerLevel > tier.powerLevel)
             revert CannotDowngrade();
 
@@ -81,6 +85,11 @@ contract UsersFacet is AccessControlled {
 
         if (currTier.endsOn > block.timestamp) storageTier.endsOn += timeWorth;
         else storageTier.endsOn = block.timestamp + timeWorth;
+    }
+
+    function resetOwnTier() external onlyOwner {
+        UsersStorage storage usersStorage = UsersStorageLib.retreive();
+        usersStorage.users[msg.sender] = UserTier({tierId: 0, endsOn: 0});
     }
 
     // ===============

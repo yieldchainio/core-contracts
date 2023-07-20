@@ -7,6 +7,10 @@ import {AccessControlled} from "@diamond/AccessControlled.sol";
 import {BusinessStorageLib, BusinessStorage} from "@diamond-storage/Business.sol";
 
 contract BusinessFacet is AccessControlled {
+    function treasury() external view returns (address treasuryAddress) {
+        treasuryAddress = BusinessStorageLib.retreive().treasury;
+    }
+
     /**
      * Set the treasury address
      * @param treasuryAddress - The new treasury address

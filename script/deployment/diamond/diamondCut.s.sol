@@ -123,11 +123,14 @@ contract DiamondCutScript is Script, HelperContract, Chains {
             //     })
             // );
 
+            bytes4[] memory sels = new bytes4[](1);
+            sels[0] = 0xf895d2a7;
+
             cut[0] = (
                 FacetCut({
                     facetAddress: address(usersFacet),
-                    action: FacetCutAction.Replace,
-                    functionSelectors: generateSelectors("UsersFacet")
+                    action: FacetCutAction.Add,
+                    functionSelectors: sels
                 })
             );
             // cut[2] = (
