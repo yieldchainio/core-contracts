@@ -7,6 +7,7 @@ import {AccessControlled} from "@diamond/AccessControlled.sol";
 import {BusinessStorageLib} from "@diamond-storage/Business.sol";
 import "forge-std/console.sol";
 
+// @production-facet
 contract UsersFacet is AccessControlled {
     using SafeERC20 for IERC20;
     // ===============

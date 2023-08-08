@@ -10,6 +10,7 @@ import {IERC20} from "../../../interfaces/IERC20.sol";
 import "../triggers/TriggersManager.sol";
 import "../../AccessControlled.sol";
 
+// @production-facet
 contract FactoryFacet is AccessControlled {
     uint256 internal constant PREMIUM_TIER_ID = 1;
 

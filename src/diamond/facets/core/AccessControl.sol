@@ -10,6 +10,7 @@ import "../../storage/AccessControl.sol";
 import "../../AccessControlled.sol";
 import {LibDiamond} from "../../libraries/LibDiamond.sol";
 
+// @production-facet
 contract AccessControlFacet is AccessControlled {
     // ======================
     //       GETTERS

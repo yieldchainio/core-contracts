@@ -13,6 +13,7 @@ error OffchainLookup(
     bytes extraData
 );
 
+// @production-facet
 contract TriggersUtils {
     function safeRunStrategy(Vault vault) internal {
         try vault.runStrategy() {} catch (bytes memory revertData) {

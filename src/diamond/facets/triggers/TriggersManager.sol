@@ -12,6 +12,7 @@ import "../core/StrategiesViewer.sol";
 import {GasManagerStorageLib} from "../../storage/GasManager.sol";
 import {BytesLib} from "lib/solidity-bytes-utils/contracts/BytesLib.sol";
 
+// @production-facet
 contract TriggersManagerFacet is AccessControlled {
     // =================
     //      ERRORS

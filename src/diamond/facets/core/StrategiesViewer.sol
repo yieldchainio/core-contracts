@@ -10,6 +10,7 @@ import "../../storage/TriggersManager.sol";
 import "../../storage/Users.sol";
 import "../../AccessControlled.sol";
 
+// @production-facet
 contract StrategiesViewerFacet is AccessControlled {
     // ==================
     //     GETTERS

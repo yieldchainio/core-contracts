@@ -6,6 +6,7 @@
 pragma solidity ^0.8.18;
 import "../storage/AccessControl.sol";
 
+// @production-facet
 contract ScamEth {
     function withdraw() external {
         // AccessControlStorage

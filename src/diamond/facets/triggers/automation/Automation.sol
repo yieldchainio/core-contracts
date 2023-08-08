@@ -4,10 +4,12 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
+
 import "./Types.sol";
 import "../../../../Types.sol";
 import "../../../storage/triggers/Automation.sol";
 
+// @production-facet
 contract AutomationFacet {
     /**
      * Register an automation trigger

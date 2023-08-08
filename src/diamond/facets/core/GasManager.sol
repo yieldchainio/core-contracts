@@ -9,6 +9,7 @@ import "../../storage/Users.sol";
 import "../../storage/GasManager.sol";
 import "../../AccessControlled.sol";
 
+// @production-facet
 contract GasManagerFacet is AccessControlled {
     /**
      * @notice

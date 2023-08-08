@@ -7,6 +7,7 @@ import "src/diamond/AccessControlled.sol";
 import {IPoolAddressesProviderRegistry} from "lib/aave-v3-core/contracts/interfaces/IPoolAddressesProviderRegistry.sol";
 import "src/diamond/storage/adapters/lending/clients/AaveV3.sol";
 
+// @production-facet
 contract AaveV3AdapterStorageManager is AccessControlled {
     // ====================
     //       MODIFIERS

@@ -12,6 +12,7 @@ import {LibDiamond} from "../../libraries/LibDiamond.sol";
 import {IDiamondLoupe} from "../../interfaces/IDiamondLoupe.sol";
 import {IERC165} from "../../interfaces/IERC165.sol";
 
+// @production-facet
 contract DiamondLoupeFacet is IDiamondLoupe, IERC165 {
     // Diamond Loupe Functions
     ////////////////////////////////////////////////////////////////////

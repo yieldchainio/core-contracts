@@ -10,7 +10,7 @@ import "@diamond/interfaces/IERC165.sol";
 import "@diamond/interfaces/IERC173.sol";
 import "@diamond/upgradeInitializers/DiamondInit.sol";
 import "test/diamond/HelperContract.sol";
-import "script/Chains.s.sol";
+import "script/Multichain.s.sol";
 
 import "@facets/diamond-core/DiamondCutFacet.sol";
 import "@facets/diamond-core/DiamondLoupeFacet.sol";

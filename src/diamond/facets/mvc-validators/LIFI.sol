@@ -6,6 +6,7 @@
 pragma solidity ^0.8.18;
 import "src/Types.sol";
 
+// @production-facet
 contract LIFIValidator {
     struct SwapData {
         address callTo;

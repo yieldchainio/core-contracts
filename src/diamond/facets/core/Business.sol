@@ -6,6 +6,7 @@ pragma solidity ^0.8.18;
 import {AccessControlled} from "@diamond/AccessControlled.sol";
 import {BusinessStorageLib, BusinessStorage} from "@diamond-storage/Business.sol";
 
+// @production-facet
 contract BusinessFacet is AccessControlled {
     function treasury() external view returns (address treasuryAddress) {
         treasuryAddress = BusinessStorageLib.retreive().treasury;
